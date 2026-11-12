@@ -1,0 +1,7 @@
+@* A file path that opens in the viewer (new window): tree for JSON and XML, numbered lines for text, level colours for logs. *@
+<a class="file" href="@($"view?path={Uri.EscapeDataString(Path)}")" target="_blank" title="open @Path">@(Text ?? Path)</a>
+
+@code {
+    [Parameter, EditorRequired] public string Path { get; set; } = "";
+    [Parameter] public string? Text { get; set; }
+}

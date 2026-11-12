@@ -1,0 +1,112 @@
+@page "/view"
+@using System.Text.RegularExpressions
+@using System.Xml.Linq
+@inject LiveConfig Live
+
+<PageTitle>@System.IO.Path.GetFileName(Path ?? "file")</PageTitle>
+<header>
+    <strong>@System.IO.Path.GetFileName(Path ?? "")</strong>
+    <small>@Path</small>
+    <small>@(text is null ? "" : $"{lines.Length:N0} line(s), {text.Length:N0} chars, host {Live.Host ?? "local"}")</small>
+    <button class="act" onclick="toggleTheme()">light / dark</button>
+</header>
+
+<div class="viewer">
+    @if (error is not null) { <div class="err">@error</div> }
+    else if (text is null) { <div class="meta">loading...</div> }
+    else
+    {
+        var shown = Shown().ToList();      // first, so the match count and any pattern error below are current
+        <div class="row" style="margin-bottom:10px">
+            @if (kind is "json" or "xml")
+            {
+                <button class="chip @(mode == "tree" ? "on" : "")" @onclick="@(() => mode = "tree")">tree</button>
+                <button class="chip @(mode == "text" ? "on" : "")" @onclick="@(() => mode = "text")">text</button>
+            }
+            @if (mode == "tree")
+            {
+                <button class="act" @onclick="() => openDepth = 99">&#9662; expand all</button>
+                <button class="act" @onclick="() => openDepth = 1">&#9656; collapse all</button>
+            }
+            else
+            {
+                <input style="width:320px" placeholder="find: text, or /regex/" @bind="find" @bind:event="oninput" />
+                <label><input type="checkbox" @bind="onlyMatches" /> only matching lines</label>
+                @if (term is not null) { <span class="meta">@matchCount matching line(s)</span> }
+            }
+            <a href="@($"raw?path={Uri.EscapeDataString(Path!)}")" target="_blank">raw (browser's own view)</a>
+            @if (parseNote is not null) { <span class="badge unused">@parseNote</span> }
+        </div>
+
+        @if (mode == "tree" && json is not null) { <div class="tree" @key="openDepth"><JsonTree Node="json" OpenDepth="openDepth" /></div> }
+        else if (mode == "tree" && xml is not null) { <div class="tree" @key="openDepth"><XmlTree Element="xml" OpenDepth="openDepth" /></div> }
+        else
+        {
+            <div class="code">
+                @foreach (var (line, i) in shown)
+                {
+                    <div class="ln @(kind == "log" ? LogLens.Level(line) : "")">
+                        <span class="no">@(i + 1)</span>
+                        <span class="tx">@if (kind == "log") { <Highlight Text="@line" Term="term" /> } else { foreach (var s in Syntax.Line(line, language, term)) {<span class="@s.Class">@if (s.Marked) {<mark>@s.Text</mark>} else {@s.Text}</span>} }</span>
+                    </div>
+                }
+            </div>
+            @if (truncated) { <div class="meta">showing the first @Max lines; use find to narrow it</div> }
+        }
+    }
+</div>
+
+@code {
+    private const int Max = 5000;
+    [SupplyParameterFromQuery] public string? Path { get; set; }
+    private string? text, error, parseNote, find;
+    private string[] lines = [];
+    private string kind = "text", mode = "text", language = "text";
+    private JsonNode? json;
+    private XElement? xml;
+    private int openDepth = 2, matchCount;
+    private bool onlyMatches, truncated;
+    private Regex? term;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Path)) { error = "No file given."; return; }
+        try
+        {
+            text = await Live.CreateHost().ReadTextAsync(Path, CancellationToken.None);
+            if (text is null) { error = $"File not found on {Live.Host ?? "this machine"}: {Path}"; return; }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException) { error = ex.Message; return; }
+
+        lines = text.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
+        var name = System.IO.Path.GetFileName(Path).ToLowerInvariant();
+        language = Syntax.Language(name);
+        var ext = System.IO.Path.GetExtension(name);
+        kind = ext == ".json" ? "json"
+             : ext is ".xml" or ".config" or ".csproj" or ".props" or ".targets" or ".xaml" or ".nuspec" or ".resx" ? "xml"
+             : ext == ".log" || name.StartsWith("logs-") ? "log" : "text";
+        try
+        {
+            if (kind == "json") json = JsonNode.Parse(text, documentOptions: new System.Text.Json.JsonDocumentOptions { CommentHandling = System.Text.Json.JsonCommentHandling.Skip, AllowTrailingCommas = true });
+            if (kind == "xml") xml = XDocument.Parse(text).Root;
+            if (json is not null || xml is not null) mode = "tree";
+        }
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or System.Xml.XmlException) { parseNote = $"does not parse as {kind}: {ex.Message}"; }
+    }
+
+    private IEnumerable<(string Line, int Index)> Shown()
+    {
+        term = Highlight.Compile(find, out var bad);
+        if (bad is not null) parseNote = bad;
+        var all = lines.Select((l, i) => (l, i));
+        if (term is not null)
+        {
+            var hits = all.Where(x => term.IsMatch(x.l)).ToList();
+            matchCount = hits.Count;
+            if (onlyMatches) all = hits;
+        }
+        var list = all.Take(Max + 1).ToList();
+        truncated = list.Count > Max;
+        return list.Take(Max);
+    }
+}

@@ -1,0 +1,106 @@
+{
+  "$schema": "schemas/workflows.schema.json",
+  "workflows": {
+    "debug": {
+      "description": "Point <service>'s consumer at a local debug session. Original files are never modified.",
+      "params": [ "service" ],
+      "steps": [
+        { "run": "git/app-clean" },
+        { "run": "source/verify-service" },
+        { "run": "file/derive-env-debug" },
+        { "run": "compose/validate-debug-env" },
+        { "run": "git/diff-env" },
+        { "run": "compose/stop-service" },
+        { "run": "compose/up-consumer-debug" },
+        { "run": "docker/consumer-link-probe", "continueOnError": true }
+      ]
+    },
+    "restore": {
+      "description": "Undo `debug`: delete the generated files and start both services from the originals.",
+      "params": [ "service" ],
+      "steps": [
+        { "run": "file/remove-derived" },
+        { "run": "compose/up-service" },
+        { "run": "compose/up-consumer" }
+      ]
+    },
+    "isolate": {
+      "description": "Start the stack from a copy of the compose file with <service> commented out.",
+      "params": [ "service" ],
+      "steps": [
+        { "run": "git/app-clean" },
+        { "run": "file/derive-compose-without-service" },
+        { "run": "compose/validate-debug-files" },
+        { "run": "git/diff-compose" },
+        { "run": "compose/stop-service" }
+      ]
+    },
+    "logs": {
+      "description": "Recent logs of <service>'s consumer.",
+      "params": [ "service" ],
+      "steps": [ { "run": "docker/consumer-logs" } ]
+    },
+    "suppress": {
+      "description": "Take <service> out of the stack so it can run in a local debug session: comment it out of a COPY of the compose file, relax every depends_on that points at it, point its consumer at the debug host and port, and start the rest. Undo with `unsuppress`.",
+      "params": [ "service" ],
+      "steps": [
+        { "run": "git/app-clean" },
+        { "run": "file/derive-compose-suppressed" },
+        { "run": "file/derive-env-debug" },
+        { "run": "compose/validate-suppressed" },
+        { "run": "git/diff-compose" },
+        { "run": "git/diff-env" },
+        { "run": "compose/stop-service" },
+        { "run": "compose/up-suppressed" },
+        { "run": "docker/consumer-link-probe", "continueOnError": true }
+      ]
+    },
+    "unsuppress": {
+      "description": "Undo `suppress`: delete the generated compose and env copies and start the whole stack from the originals.",
+      "params": [ "service" ],
+      "steps": [
+        { "run": "file/remove-derived" },
+        { "run": "compose/up-all" }
+      ]
+    },
+    "versions": {
+      "description": "The version each service's image carries, and the version the stack is on. Set the variable VERSION to pin the version that builds and checkouts use; without it they use the detected one.",
+      "params": [],
+      "steps": [ { "run": "version/detect" } ]
+    },
+    "checkout-version": {
+      "description": "Put the source repo <repo> on the commit that matches the version (VERSION, else the detected one): the first existing ref of VERSION_GIT_REFS. Refuses if the tree has uncommitted changes.",
+      "params": [ "repo" ],
+      "steps": [ { "run": "version/checkout" }, { "run": "version/source-matches" } ]
+    },
+    "debug-image-plan": {
+      "description": "Show what `debug-image` would do for the Dockerfile (or project folder) <source>: which service, which unhardened base image, which tag. Writes nothing. Optional variables: service, baseImage.",
+      "params": [ "source" ],
+      "steps": [ { "run": "debugimage/plan" } ]
+    },
+    "debug-image": {
+      "description": "Run a service on a debuggable image instead of its hardened one: write Dockerfile.debug (unhardened base, root, ps, vsdbg), build and tag it, point the service at it through a compose override file, and recreate that one service. The stack keeps running until the build has succeeded. Undo with `restore-image`.",
+      "params": [ "source" ],
+      "steps": [
+        { "run": "debugimage/prepare" },
+        { "run": "version/debug-source-matches", "continueOnError": true },
+        { "run": "docker/build-debug-image" },
+        { "run": "debugimage/use" },
+        { "run": "compose/up-debug-service" }
+      ]
+    },
+    "restore-image": {
+      "description": "Undo `debug-image`: take <service> out of the compose override file and recreate it from its original (hardened) image.",
+      "params": [ "service" ],
+      "steps": [
+        { "run": "debugimage/restore" },
+        { "run": "compose/up-restored-service" }
+      ]
+    },
+    "digest": {
+      "description": "Condensed logs of <service>: repeated lines collapsed into patterns with counts, errors first.",
+      "params": [ "service" ],
+      "steps": [ { "run": "docker/service-digest" } ]
+    }
+  }
+}

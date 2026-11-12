@@ -1,0 +1,115 @@
+@inherits LiveComponent
+
+<div class="row">
+    <input placeholder="filter..." @bind="filter" @bind:event="oninput" />
+    <span class="meta">Click a value to change it (Enter saves; Esc or clicking elsewhere cancels). Your change is saved to globals.user.json (your personal layer); "reset" removes it. Values a tool has produced win until cleared.</span>
+</div>
+@if (error is not null) { <div class="err">@error</div> }
+
+@if (Ws.Produced.Count > 0)
+{
+    <h3>Produced by tools this session <span class="meta">@Ws.Produced.Count &middot; these override everything below in the next run</span>
+        <button class="mini" @onclick="() => Ws.Forget()">clear all</button></h3>
+    <table class="vars">
+        @foreach (var (k, v) in Ws.Produced.OrderBy(p => p.Key).ToList())
+        {
+            <tr>
+                <td class="k">@k</td>
+                <td class="v">@(v.Length > 300 ? v[..300] + $" ... ({v.Length:N0} chars)" : v)</td>
+                <td class="o"><span class="badge tool">tool</span> <button class="mini" @onclick="() => Ws.Forget(k)">clear</button></td>
+            </tr>
+        }
+    </table>
+}
+
+@foreach (var g in Groups())
+{
+    <h3>@g.Key <span class="meta">@g.Count()</span></h3>
+    <table class="vars">
+        @foreach (var (k, v) in g)
+        {
+            var origin = Live.Origins.GetValueOrDefault(k, "globals");
+            var shown = Shown(k, v);
+            <tr>
+                <td class="k">@k</td>
+                <td class="v">
+                    @if (editKey == k)
+                    {
+                        <input @ref="editBox" style="width:calc(100% - 70px)" list="var-vals" value="@editVal" title="Enter saves, Esc or clicking elsewhere cancels" @oninput="e => editVal = e.Value?.ToString() ?? string.Empty" @onkeydown="e => Key(e, k)" @onblur="() => { if (editKey == k) editKey = null; }" />
+                        <datalist id="var-vals">@foreach (var o in Ws.Suggest(k.Split('.')[^1])) { <option value="@o"></option> }</datalist>
+                        <button class="mini" @onmousedown="() => Save(k)" @onmousedown:preventDefault="true">save</button>
+                    }
+                    else
+                    {
+                        <span class="edit" title="click to change" @onclick="() => Begin(k, v)">@(shown.Length == 0 ? "(empty)" : shown)</span>
+                        @if (shown != v) { <div class="raw">@v</div> }
+                    }
+                </td>
+                <td class="o">
+                    <span class="badge @(origin == "user" ? "default" : "")">@origin</span>
+                    @if (Ws.Produced.ContainsKey(k)) { <span class="badge tool" title="a tool produced a newer value; see the top of the page">overridden by tool</span> }
+                    @if (UserHas(k))
+                    {
+                        <button class="mini" @onclick="() => Reset(k)">reset</button>
+                        @if (origin != "user") { <span class="badge undefined" title="the selected host's file also sets this, and the host layer wins">shadowed by @origin</span> }
+                    }
+                </td>
+            </tr>
+        }
+    </table>
+}
+
+<h3>Add a variable</h3>
+<div class="row">
+    <input placeholder="NAME or group.name" @bind="newKey" />
+    <input style="width:360px" placeholder="value (may use ${OTHER})" @bind="newVal" />
+    <button class="act" disabled="@string.IsNullOrWhiteSpace(newKey)" @onclick="Add">add to my layer</button>
+</div>
+
+@code {
+    private string filter = "";
+    private string? editKey, editVal, newKey, newVal, error;
+    private HashSet<string> userKeys = new(StringComparer.OrdinalIgnoreCase);
+
+    protected override void OnParametersSet() => LoadUserKeys();
+
+    private void LoadUserKeys() =>
+        userKeys = ConfigLoader.LoadLayers(Live.Dir, Live.Host).Where(l => l.Layer == "user").SelectMany(l => l.Vars.Keys).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    private bool UserHas(string k) => userKeys.Contains(k);
+
+    private ElementReference editBox;
+    private bool focusEditor;
+
+    private void Begin(string k, string raw) { editKey = k; editVal = raw; error = null; focusEditor = true; }
+
+    // Put the cursor in the box that just appeared, so typing works at once and clicking away is noticed.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!focusEditor || editKey is null) return;
+        focusEditor = false;
+        try { await editBox.FocusAsync(); } catch (InvalidOperationException) { /* the box went away again */ }
+    }
+
+    private void Write(Action change)
+    {
+        try { change(); Live.Reload(); LoadUserKeys(); error = null; }
+        catch (Exception ex) when (ex is IOException or System.Text.Json.JsonException or ArgumentException) { error = ex.Message; }
+    }
+
+    private void Save(string k) { Write(() => Live.SetVar(k, editVal ?? "")); editKey = null; }
+    private void Reset(string k) => Write(() => Live.ResetVar(k));
+    private void Add() { var k = newKey!.Trim(); Write(() => Live.SetVar(k, newVal ?? "")); newKey = newVal = null; }
+    private void Key(KeyboardEventArgs e, string k) { if (e.Key == "Enter") Save(k); else if (e.Key == "Escape") editKey = null; }
+
+    private string Shown(string key, string raw)
+    {
+        try { return Live.State.Expand(raw); } catch (InvalidOperationException e) { return $"<{e.Message}>"; }
+    }
+
+    private IEnumerable<IGrouping<string, KeyValuePair<string, string>>> Groups() =>
+        Live.State.Vars
+            .Where(v => filter.Length == 0 || v.Key.Contains(filter, StringComparison.OrdinalIgnoreCase) || v.Value.Contains(filter, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(v => v.Key, StringComparer.OrdinalIgnoreCase)
+            .GroupBy(v => Scanner.Category(v.Key));
+}

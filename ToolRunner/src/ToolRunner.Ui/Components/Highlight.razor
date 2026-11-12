@@ -1,0 +1,35 @@
+@* Text with every match of a search marked. Build the Regex once in the parent with Highlight.Compile. *@
+@using System.Text.RegularExpressions
+@if (Term is null || Text.Length == 0) { @Text }
+else
+{
+    var at = 0;
+    @foreach (Match m in Term.Matches(Text))
+    {
+        if (m.Length == 0) continue;
+        @Text[at..m.Index]<mark>@m.Value</mark>
+        at = m.Index + m.Length;
+    }
+    @Text[at..]
+}
+
+@code {
+    [Parameter, EditorRequired] public string Text { get; set; } = "";
+    [Parameter] public Regex? Term { get; set; }
+
+    /// "text" matches literally (case-insensitive); "/pattern/" is a regular expression. Null for an empty search;
+    /// an invalid pattern gives null and its message in `error`.
+    public static Regex? Compile(string? search, out string? error)
+    {
+        error = null;
+        var f = (search ?? "").Trim();
+        if (f.Length == 0) return null;
+        try
+        {
+            return f.Length > 2 && f.StartsWith('/') && f.EndsWith('/')
+                ? new Regex(f[1..^1], RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(250))
+                : new Regex(Regex.Escape(f), RegexOptions.IgnoreCase);
+        }
+        catch (ArgumentException ex) { error = ex.Message; return null; }
+    }
+}

@@ -1,0 +1,105 @@
+@inherits LiveComponent
+
+<div class="row">
+    <label class="arg" style="width:420px"><span>this deployment</span><input @bind="current" placeholder="folder on the selected host" /></label>
+    <label class="arg" style="width:420px"><span>reference: a folder, or git:REF (e.g. git:HEAD, git:v2026.10)</span><input @bind="reference" list="ref-choices" placeholder="folder, or git:HEAD" /><datalist id="ref-choices"><option value="git:HEAD"></option><option value="git:HEAD~1"></option>@if (Ws.Reference.Length > 0) { <option value="@Ws.Reference"></option> }</datalist></label>
+    <button class="act primary" disabled="@(Ws.Comparing || string.IsNullOrWhiteSpace(current) || string.IsNullOrWhiteSpace(reference))" @onclick="Run">@(Ws.Comparing ? "comparing..." : "compare")</button>
+    <span class="meta">The reference is saved as REFERENCE_ROOT in your layer. Files are compared by meaning where possible.</span>
+</div>
+@if (Ws.CompareError is not null) { <div class="err">@Ws.CompareError</div> }
+
+@if (Ws.Comparison is { } r)
+{
+    @foreach (var n in r.Notes) { <div class="err">@n</div> }
+    var inside = r.Diffs.Where(d => !(d.Area == "file" && d.Item == "")).ToList();
+    <div class="row" style="margin-top:10px">
+        <span class="badge ok">@r.Same identical</span>
+        <span class="badge @(r.FilesDifferent > 0 ? "changed" : "ok")">@r.FilesDifferent differ</span>
+        <span class="badge @(r.FilesOnlyHere > 0 ? "added" : "")">@r.FilesOnlyHere only here</span>
+        <span class="badge @(r.FilesOnlyInReference > 0 ? "removed" : "")">@r.FilesOnlyInReference only in reference</span>
+        <span class="meta">show:</span>
+        @foreach (var a in Areas)
+        {
+            var n = r.Diffs.Count(d => d.Area == a);
+            if (n > 0) { <button class="chip @(areas.Contains(a) ? "on" : "")" @onclick="() => Toggle(a)">@Label(a) @n</button> }
+        }
+        <input placeholder="filter by file or item..." @bind="filter" @bind:event="oninput" />
+    </div>
+
+    @if (areas.Contains("file"))
+    {
+        var only = r.Diffs.Where(d => d.Area == "file" && d.Item == "" && Match(d)).ToList();
+        @if (only.Count > 0)
+        {
+            <h3>Files on one side only</h3>
+            <table>
+                @foreach (var d in only)
+                {
+                    <tr><td class="o"><span class="badge @d.Kind">@(d.Kind == "added" ? "only here" : "only in reference")</span></td><td class="k"><FileLink Path="@($"{(d.Kind == "added" ? r.Current : r.Reference)}/{d.File}")" Text="@d.File" /></td></tr>
+                }
+            </table>
+        }
+    }
+
+    <h3>Differences inside files <span class="meta">here vs reference</span></h3>
+    @foreach (var g in inside.Where(d => areas.Contains(d.Area) && Match(d)).GroupBy(d => d.File))
+    {
+        <details class="card" open>
+            <summary>@g.Key <span class="meta">@g.Count() difference(s)</span>
+                @if (g.First().Area != "binary")
+                {
+                    <span class="meta" @onclick:stopPropagation="true">open: <FileLink Path="@($"{r.Current}/{g.Key}")" Text="here" /> &middot; <FileLink Path="@($"{r.Reference}/{g.Key}")" Text="reference" /></span>
+                }
+                @if (g.First().Area != "binary") { <button class="mini" @onclick="() => LineDiff(g.Key)" @onclick:stopPropagation="true">line diff</button> }
+            </summary>
+            <table class="diffs">
+                @foreach (var d in g)
+                {
+                    <tr>
+                        <td class="o"><span class="badge @d.Kind">@d.Kind</span></td>
+                        <td class="k">@(d.Area is "binary" ? "content (sha256)" : d.Item)</td>
+                        <td class="v">@(d.Current is "(listed)" ? "" : d.Current)</td>
+                        <td class="ref">@(d.Reference is null or "(listed)" ? "" : "reference: " + d.Reference)</td>
+                    </tr>
+                }
+            </table>
+            @if (lineDiffs.TryGetValue(g.Key, out var text)) { <pre class="log">@text</pre> }
+        </details>
+    }
+    <details class="card"><summary>plain-text summary (for copying)</summary><pre>@DeploymentCompare.Text(r)</pre></details>
+}
+else if (!Ws.Comparing)
+{
+    <div class="meta" style="margin-top:12px">Pick the reference folder and press compare. `sandbox\samples.ps1` generates a sample pair to try.</div>
+}
+
+@code {
+    private static readonly string[] Areas = ["file", "env", "settings", "compose", "text", "binary"];
+    private readonly HashSet<string> areas = new(Areas);
+    private readonly Dictionary<string, string> lineDiffs = new();
+    private string current = "", reference = "", filter = "";
+
+    protected override void OnInitialized() { base.OnInitialized(); current = Ws.Root; reference = Ws.Reference; }
+
+    private static string Label(string area) => area switch
+    {
+        "file" => "files", "env" => "env keys", "settings" => "settings (json)", "compose" => "compose", "text" => "other text", _ => "binaries"
+    };
+
+    private void Toggle(string a) { if (!areas.Remove(a)) areas.Add(a); }
+    private bool Match(Diff d) => filter.Length == 0 || d.File.Contains(filter, StringComparison.OrdinalIgnoreCase) || d.Item.Contains(filter, StringComparison.OrdinalIgnoreCase);
+    private Task Run() { lineDiffs.Clear(); return Ws.CompareAsync(current, reference); }
+
+    /// The raw line-by-line diff of one file (reference -> here), via git on the selected host. Click again to hide.
+    private async Task LineDiff(string rel)
+    {
+        if (lineDiffs.Remove(rel) || Ws.Comparison is not { } r) return;
+        try
+        {
+            var res = await Live.CreateHost().ExecAsync("git", ["diff", "--no-index", "--no-color", "--", $"{r.Reference}/{rel}", $"{r.Current}/{rel}"], null, null, CancellationToken.None);
+            var lines = res.Stdout.Split('\n').Where(l => !l.StartsWith("diff --git") && !l.StartsWith("index ")).Select(l => l.TrimEnd('\r')).ToList();
+            lineDiffs[rel] = lines.Count > 400 ? string.Join('\n', lines.Take(400)) + $"\n... {lines.Count - 400} more line(s)" : string.Join('\n', lines);
+        }
+        catch (Exception ex) when (ex is IOException or InvalidOperationException or System.ComponentModel.Win32Exception) { lineDiffs[rel] = ex.Message; }
+    }
+}

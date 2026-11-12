@@ -1,0 +1,2674 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "toolrunner workflows.json",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "workflows": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/workflow"
+      }
+    }
+  },
+  "definitions": {
+    "workflow": {
+      "type": "object",
+      "required": [
+        "steps"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Shown by `toolrunner workflows`."
+        },
+        "params": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Positional parameter names; each becomes a variable."
+        },
+        "defaults": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Values for parameters not given on the command line."
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/step"
+          }
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "required": [
+        "run"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "run": {
+          "anyOf": [
+            {
+              "enum": [
+                "compose/ps",
+                "compose/stop-service",
+                "compose/up-all",
+                "compose/up-consumer",
+                "compose/up-consumer-debug",
+                "compose/up-debug-service",
+                "compose/up-restored-service",
+                "compose/up-service",
+                "compose/up-suppressed",
+                "compose/validate-debug-env",
+                "compose/validate-debug-files",
+                "compose/validate-suppressed",
+                "debugimage/plan",
+                "debugimage/prepare",
+                "debugimage/restore",
+                "debugimage/use",
+                "docker/build-debug-image",
+                "docker/consumer-link-probe",
+                "docker/consumer-logs",
+                "docker/service-digest",
+                "file/derive-compose-suppressed",
+                "file/derive-compose-without-service",
+                "file/derive-env-debug",
+                "file/remove-derived",
+                "git/app-clean",
+                "git/diff-compose",
+                "git/diff-env",
+                "source/verify-service",
+                "version/available",
+                "version/checkout",
+                "version/debug-source-matches",
+                "version/detect",
+                "version/source-matches",
+                "compose",
+                "debugimage",
+                "docker",
+                "dotnet",
+                "file",
+                "git",
+                "logfile",
+                "plugins",
+                "shell",
+                "source",
+                "version"
+              ]
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "tool/intent (a named argument set from args.json), or just a tool name with the verb in `with`."
+        },
+        "with": {
+          "type": "object",
+          "description": "Argument overrides merged over the named set."
+        },
+        "continueOnError": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Carry on with the next step if this one fails."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "git/app-clean"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "path": {
+                    "type": "string",
+                    "description": "Working tree (default ${APP_ROOT})."
+                  },
+                  "untracked": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Count untracked files as changes (default false)."
+                  },
+                  "paths": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Limit to these paths."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "git/diff-env"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "path": {
+                    "type": "string",
+                    "description": "Working tree (default ${APP_ROOT})."
+                  },
+                  "a": {
+                    "type": "string",
+                    "description": "First file."
+                  },
+                  "b": {
+                    "type": "string",
+                    "description": "Second file."
+                  },
+                  "paths": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Limit to these paths."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "git/diff-compose"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "path": {
+                    "type": "string",
+                    "description": "Working tree (default ${APP_ROOT})."
+                  },
+                  "a": {
+                    "type": "string",
+                    "description": "First file."
+                  },
+                  "b": {
+                    "type": "string",
+                    "description": "Second file."
+                  },
+                  "paths": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Limit to these paths."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "source/verify-service"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "strategy": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "none",
+                          "label",
+                          "tag"
+                        ]
+                      },
+                      {
+                        "pattern": "\\$\\{"
+                      }
+                    ],
+                    "description": "How the image records its commit: none, label (org.opencontainers.image.revision) or tag (commit-id prefix)."
+                  },
+                  "src": {
+                    "type": "string",
+                    "description": "Local git working tree."
+                  },
+                  "image": {
+                    "type": "string",
+                    "description": "Image to compare."
+                  },
+                  "allowDirty": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Skip the uncommitted-changes check."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "file/derive-env-debug"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "source": {
+                    "type": "string",
+                    "description": "File to copy from."
+                  },
+                  "target": {
+                    "type": "string",
+                    "description": "File to write."
+                  },
+                  "edits": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "match": {
+                          "type": "string",
+                          "description": "Text to replace inside the matching line(s)."
+                        },
+                        "replace": {
+                          "type": "string",
+                          "description": "Replacement text (with match)."
+                        },
+                        "expect": {
+                          "type": [
+                            "integer",
+                            "string"
+                          ],
+                          "description": "How many lines must match (default 1)."
+                        },
+                        "set": {
+                          "type": "string",
+                          "description": "Env-file KEY whose KEY=... line is replaced."
+                        },
+                        "value": {
+                          "type": "string",
+                          "description": "New value (with set)."
+                        },
+                        "addIfMissing": {
+                          "type": [
+                            "boolean",
+                            "string"
+                          ],
+                          "description": "Append KEY=value if the key is absent."
+                        },
+                        "commentService": {
+                          "type": "string",
+                          "description": "Service name to comment out under services:."
+                        },
+                        "dropDependsOn": {
+                          "type": "string",
+                          "description": "Service name: comment out every other service's depends_on entry for it."
+                        },
+                        "ignoreComments": {
+                          "type": [
+                            "boolean",
+                            "string"
+                          ],
+                          "description": "Set false to let commented-out lines match."
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "description": "Edits; each must match exactly its expected number of lines."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "file/derive-compose-without-service"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "source": {
+                    "type": "string",
+                    "description": "File to copy from."
+                  },
+                  "target": {
+                    "type": "string",
+                    "description": "File to write."
+                  },
+                  "edits": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "match": {
+                          "type": "string",
+                          "description": "Text to replace inside the matching line(s)."
+                        },
+                        "replace": {
+                          "type": "string",
+                          "description": "Replacement text (with match)."
+                        },
+                        "expect": {
+                          "type": [
+                            "integer",
+                            "string"
+                          ],
+                          "description": "How many lines must match (default 1)."
+                        },
+                        "set": {
+                          "type": "string",
+                          "description": "Env-file KEY whose KEY=... line is replaced."
+                        },
+                        "value": {
+                          "type": "string",
+                          "description": "New value (with set)."
+                        },
+                        "addIfMissing": {
+                          "type": [
+                            "boolean",
+                            "string"
+                          ],
+                          "description": "Append KEY=value if the key is absent."
+                        },
+                        "commentService": {
+                          "type": "string",
+                          "description": "Service name to comment out under services:."
+                        },
+                        "dropDependsOn": {
+                          "type": "string",
+                          "description": "Service name: comment out every other service's depends_on entry for it."
+                        },
+                        "ignoreComments": {
+                          "type": [
+                            "boolean",
+                            "string"
+                          ],
+                          "description": "Set false to let commented-out lines match."
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "description": "Edits; each must match exactly its expected number of lines."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "file/derive-compose-suppressed"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "source": {
+                    "type": "string",
+                    "description": "File to copy from."
+                  },
+                  "target": {
+                    "type": "string",
+                    "description": "File to write."
+                  },
+                  "edits": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "match": {
+                          "type": "string",
+                          "description": "Text to replace inside the matching line(s)."
+                        },
+                        "replace": {
+                          "type": "string",
+                          "description": "Replacement text (with match)."
+                        },
+                        "expect": {
+                          "type": [
+                            "integer",
+                            "string"
+                          ],
+                          "description": "How many lines must match (default 1)."
+                        },
+                        "set": {
+                          "type": "string",
+                          "description": "Env-file KEY whose KEY=... line is replaced."
+                        },
+                        "value": {
+                          "type": "string",
+                          "description": "New value (with set)."
+                        },
+                        "addIfMissing": {
+                          "type": [
+                            "boolean",
+                            "string"
+                          ],
+                          "description": "Append KEY=value if the key is absent."
+                        },
+                        "commentService": {
+                          "type": "string",
+                          "description": "Service name to comment out under services:."
+                        },
+                        "dropDependsOn": {
+                          "type": "string",
+                          "description": "Service name: comment out every other service's depends_on entry for it."
+                        },
+                        "ignoreComments": {
+                          "type": [
+                            "boolean",
+                            "string"
+                          ],
+                          "description": "Set false to let commented-out lines match."
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "description": "Edits; each must match exactly its expected number of lines."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "file/remove-derived"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "paths": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Files to delete."
+                  },
+                  "path": {
+                    "type": "string",
+                    "description": "One file to delete."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "compose/validate-debug-env"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "projectDir": {
+                    "type": "string",
+                    "description": "--project-directory (default ${APP_ROOT})."
+                  },
+                  "project": {
+                    "type": "string",
+                    "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+                  },
+                  "envFile": {
+                    "type": "string",
+                    "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+                  },
+                  "files": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Compose files (-f); default ${COMPOSE_FILE}."
+                  },
+                  "optionalFiles": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+                  },
+                  "service": {
+                    "type": "string",
+                    "description": "One service to act on."
+                  },
+                  "services": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Services to act on."
+                  },
+                  "extra": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Extra arguments passed through to docker compose."
+                  },
+                  "quiet": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Only report errors (-q)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "compose/validate-debug-files"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "projectDir": {
+                    "type": "string",
+                    "description": "--project-directory (default ${APP_ROOT})."
+                  },
+                  "project": {
+                    "type": "string",
+                    "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+                  },
+                  "envFile": {
+                    "type": "string",
+                    "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+                  },
+                  "files": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Compose files (-f); default ${COMPOSE_FILE}."
+                  },
+                  "optionalFiles": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+                  },
+                  "service": {
+                    "type": "string",
+                    "description": "One service to act on."
+                  },
+                  "services": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Services to act on."
+                  },
+                  "extra": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Extra arguments passed through to docker compose."
+                  },
+                  "quiet": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Only report errors (-q)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "compose/stop-service"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "projectDir": {
+                    "type": "string",
+                    "description": "--project-directory (default ${APP_ROOT})."
+                  },
+                  "project": {
+                    "type": "string",
+                    "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+                  },
+                  "envFile": {
+                    "type": "string",
+                    "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+                  },
+                  "files": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Compose files (-f); default ${COMPOSE_FILE}."
+                  },
+                  "optionalFiles": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+                  },
+                  "service": {
+                    "type": "string",
+                    "description": "One service to act on."
+                  },
+                  "services": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Services to act on."
+                  },
+                  "extra": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Extra arguments passed through to docker compose."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "compose/up-consumer-debug"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "projectDir": {
+                    "type": "string",
+                    "description": "--project-directory (default ${APP_ROOT})."
+                  },
+                  "project": {
+                    "type": "string",
+                    "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+                  },
+                  "envFile": {
+                    "type": "string",
+                    "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+                  },
+                  "files": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Compose files (-f); default ${COMPOSE_FILE}."
+                  },
+                  "optionalFiles": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+                  },
+                  "service": {
+                    "type": "string",
+                    "description": "One service to act on."
+                  },
+                  "services": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Services to act on."
+                  },
+                  "extra": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Extra arguments passed through to docker compose."
+                  },
+                  "noDeps": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --no-deps when services are named (default true)."
+                  },
+                  "build": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --build."
+                  },
+                  "removeOrphans": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --remove-orphans."
+                  },
+                  "into": {
+                    "type": "string",
+                    "description": "State variable for the start time (default STARTED_AT_UTC)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "compose/up-service"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "projectDir": {
+                    "type": "string",
+                    "description": "--project-directory (default ${APP_ROOT})."
+                  },
+                  "project": {
+                    "type": "string",
+                    "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+                  },
+                  "envFile": {
+                    "type": "string",
+                    "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+                  },
+                  "files": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Compose files (-f); default ${COMPOSE_FILE}."
+                  },
+                  "optionalFiles": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+                  },
+                  "service": {
+                    "type": "string",
+                    "description": "One service to act on."
+                  },
+                  "services": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Services to act on."
+                  },
+                  "extra": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Extra arguments passed through to docker compose."
+                  },
+                  "noDeps": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --no-deps when services are named (default true)."
+                  },
+                  "build": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --build."
+                  },
+                  "removeOrphans": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --remove-orphans."
+                  },
+                  "into": {
+                    "type": "string",
+                    "description": "State variable for the start time (default STARTED_AT_UTC)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "compose/up-consumer"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "projectDir": {
+                    "type": "string",
+                    "description": "--project-directory (default ${APP_ROOT})."
+                  },
+                  "project": {
+                    "type": "string",
+                    "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+                  },
+                  "envFile": {
+                    "type": "string",
+                    "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+                  },
+                  "files": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Compose files (-f); default ${COMPOSE_FILE}."
+                  },
+                  "optionalFiles": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+                  },
+                  "service": {
+                    "type": "string",
+                    "description": "One service to act on."
+                  },
+                  "services": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Services to act on."
+                  },
+                  "extra": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Extra arguments passed through to docker compose."
+                  },
+                  "noDeps": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --no-deps when services are named (default true)."
+                  },
+                  "build": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --build."
+                  },
+                  "removeOrphans": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --remove-orphans."
+                  },
+                  "into": {
+                    "type": "string",
+                    "description": "State variable for the start time (default STARTED_AT_UTC)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "compose/validate-suppressed"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "projectDir": {
+                    "type": "string",
+                    "description": "--project-directory (default ${APP_ROOT})."
+                  },
+                  "project": {
+                    "type": "string",
+                    "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+                  },
+                  "envFile": {
+                    "type": "string",
+                    "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+                  },
+                  "files": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Compose files (-f); default ${COMPOSE_FILE}."
+                  },
+                  "optionalFiles": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+                  },
+                  "service": {
+                    "type": "string",
+                    "description": "One service to act on."
+                  },
+                  "services": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Services to act on."
+                  },
+                  "extra": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Extra arguments passed through to docker compose."
+                  },
+                  "quiet": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Only report errors (-q)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "compose/up-suppressed"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "projectDir": {
+                    "type": "string",
+                    "description": "--project-directory (default ${APP_ROOT})."
+                  },
+                  "project": {
+                    "type": "string",
+                    "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+                  },
+                  "envFile": {
+                    "type": "string",
+                    "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+                  },
+                  "files": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Compose files (-f); default ${COMPOSE_FILE}."
+                  },
+                  "optionalFiles": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+                  },
+                  "service": {
+                    "type": "string",
+                    "description": "One service to act on."
+                  },
+                  "services": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Services to act on."
+                  },
+                  "extra": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Extra arguments passed through to docker compose."
+                  },
+                  "noDeps": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --no-deps when services are named (default true)."
+                  },
+                  "build": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --build."
+                  },
+                  "removeOrphans": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --remove-orphans."
+                  },
+                  "into": {
+                    "type": "string",
+                    "description": "State variable for the start time (default STARTED_AT_UTC)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "compose/up-all"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "projectDir": {
+                    "type": "string",
+                    "description": "--project-directory (default ${APP_ROOT})."
+                  },
+                  "project": {
+                    "type": "string",
+                    "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+                  },
+                  "envFile": {
+                    "type": "string",
+                    "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+                  },
+                  "files": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Compose files (-f); default ${COMPOSE_FILE}."
+                  },
+                  "optionalFiles": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+                  },
+                  "service": {
+                    "type": "string",
+                    "description": "One service to act on."
+                  },
+                  "services": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Services to act on."
+                  },
+                  "extra": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Extra arguments passed through to docker compose."
+                  },
+                  "noDeps": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --no-deps when services are named (default true)."
+                  },
+                  "build": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --build."
+                  },
+                  "removeOrphans": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --remove-orphans."
+                  },
+                  "into": {
+                    "type": "string",
+                    "description": "State variable for the start time (default STARTED_AT_UTC)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "compose/ps"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "projectDir": {
+                    "type": "string",
+                    "description": "--project-directory (default ${APP_ROOT})."
+                  },
+                  "project": {
+                    "type": "string",
+                    "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+                  },
+                  "envFile": {
+                    "type": "string",
+                    "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+                  },
+                  "files": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Compose files (-f); default ${COMPOSE_FILE}."
+                  },
+                  "optionalFiles": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+                  },
+                  "service": {
+                    "type": "string",
+                    "description": "One service to act on."
+                  },
+                  "services": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Services to act on."
+                  },
+                  "extra": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Extra arguments passed through to docker compose."
+                  },
+                  "all": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Include stopped containers (default true)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "compose/up-debug-service"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "projectDir": {
+                    "type": "string",
+                    "description": "--project-directory (default ${APP_ROOT})."
+                  },
+                  "project": {
+                    "type": "string",
+                    "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+                  },
+                  "envFile": {
+                    "type": "string",
+                    "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+                  },
+                  "files": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Compose files (-f); default ${COMPOSE_FILE}."
+                  },
+                  "optionalFiles": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+                  },
+                  "service": {
+                    "type": "string",
+                    "description": "One service to act on."
+                  },
+                  "services": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Services to act on."
+                  },
+                  "extra": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Extra arguments passed through to docker compose."
+                  },
+                  "noDeps": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --no-deps when services are named (default true)."
+                  },
+                  "build": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --build."
+                  },
+                  "removeOrphans": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --remove-orphans."
+                  },
+                  "into": {
+                    "type": "string",
+                    "description": "State variable for the start time (default STARTED_AT_UTC)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "compose/up-restored-service"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "projectDir": {
+                    "type": "string",
+                    "description": "--project-directory (default ${APP_ROOT})."
+                  },
+                  "project": {
+                    "type": "string",
+                    "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+                  },
+                  "envFile": {
+                    "type": "string",
+                    "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+                  },
+                  "files": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Compose files (-f); default ${COMPOSE_FILE}."
+                  },
+                  "optionalFiles": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+                  },
+                  "service": {
+                    "type": "string",
+                    "description": "One service to act on."
+                  },
+                  "services": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Services to act on."
+                  },
+                  "extra": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Extra arguments passed through to docker compose."
+                  },
+                  "noDeps": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --no-deps when services are named (default true)."
+                  },
+                  "build": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --build."
+                  },
+                  "removeOrphans": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Pass --remove-orphans."
+                  },
+                  "into": {
+                    "type": "string",
+                    "description": "State variable for the start time (default STARTED_AT_UTC)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "version/detect"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "composeFile": {
+                    "type": "string",
+                    "description": "Compose file (default ${COMPOSE_FILE})."
+                  },
+                  "requireSame": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Fail when product images are on different versions (default false)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "version/available"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "repo": {
+                    "type": "string",
+                    "description": "A git working tree."
+                  },
+                  "image": {
+                    "type": "string",
+                    "description": "An image whose registry tags to list (needs REGISTRY_API)."
+                  },
+                  "fetch": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Run `git fetch --tags` first (default false)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "version/checkout"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "repo": {
+                    "type": "string",
+                    "description": "The git working tree."
+                  },
+                  "fetch": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Run `git fetch --tags` first (default false)."
+                  },
+                  "version": {
+                    "type": "string",
+                    "description": "The version (default ${VERSION}, then the one detected from the compose file)."
+                  },
+                  "composeFile": {
+                    "type": "string",
+                    "description": "Compose file to detect the version from (default ${COMPOSE_FILE})."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "version/source-matches"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "repo": {
+                    "type": "string",
+                    "description": "The git working tree."
+                  },
+                  "version": {
+                    "type": "string",
+                    "description": "The version (default ${VERSION}, then the one detected from the compose file)."
+                  },
+                  "composeFile": {
+                    "type": "string",
+                    "description": "Compose file to detect the version from (default ${COMPOSE_FILE})."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "version/debug-source-matches"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "repo": {
+                    "type": "string",
+                    "description": "The git working tree."
+                  },
+                  "version": {
+                    "type": "string",
+                    "description": "The version (default ${VERSION}, then the one detected from the compose file)."
+                  },
+                  "composeFile": {
+                    "type": "string",
+                    "description": "Compose file to detect the version from (default ${COMPOSE_FILE})."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "debugimage/plan"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "source": {
+                    "type": "string",
+                    "description": "The Dockerfile, or the project folder that contains it."
+                  },
+                  "service": {
+                    "type": "string",
+                    "description": "The compose service whose image this replaces. Default: matched by name."
+                  },
+                  "baseImage": {
+                    "type": "string",
+                    "description": "The unhardened base image to build on. Default: the best candidate."
+                  },
+                  "context": {
+                    "type": "string",
+                    "description": "Build context. Default: worked out from the project paths the Dockerfile copies."
+                  },
+                  "composeFile": {
+                    "type": "string",
+                    "description": "Compose file that defines the service (default ${COMPOSE_FILE})."
+                  },
+                  "tag": {
+                    "type": "string",
+                    "description": "The debug image, repo:tag. Default: the service's image repo with tag ${VERSION}-debug (without VERSION: the tag the service has now, plus -debug)."
+                  },
+                  "asRoot": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Run as root in the debug image (default true)."
+                  },
+                  "packages": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Install ps, curl and unzip with the base image's package manager (default true)."
+                  },
+                  "configuration": {
+                    "type": "string",
+                    "description": "Build configuration that replaces Release (default Debug; empty = leave as is)."
+                  },
+                  "vsdbg": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "mount",
+                          "copy",
+                          "download"
+                        ]
+                      },
+                      {
+                        "pattern": "\\$\\{"
+                      }
+                    ],
+                    "description": "How the debugger gets in. mount (default): bind-mount the vsdbg folder at /remote_debugger when the service starts, as Visual Studio does. copy: bake that folder into the image. download: run GetVsDbg.sh at build time (needs internet)."
+                  },
+                  "vsdbgDir": {
+                    "type": "string",
+                    "description": "Folder that holds vsdbg (default ${VSDBG_DIR}, then %USERPROFILE%/vsdbg/vs2017u5, where Visual Studio keeps it). Its linux-musl-x64 subfolder is used for an alpine base."
+                  },
+                  "vsdbgUrl": {
+                    "type": "string",
+                    "description": "For vsdbg=download: the GetVsDbg.sh script (default ${VSDBG_URL}, then https://aka.ms/getvsdbgsh)."
+                  },
+                  "registryApi": {
+                    "type": "string",
+                    "description": "Registry v2 API base (default ${REGISTRY_API}); Artifactory: https://HOST/artifactory/api/docker/REPO-KEY."
+                  },
+                  "registryPrefix": {
+                    "type": "string",
+                    "description": "What goes in front of a repository name in an image reference (default ${REGISTRY_PREFIX})."
+                  },
+                  "registryUser": {
+                    "type": "string",
+                    "description": "User for basic auth (default ${REGISTRY_USER})."
+                  },
+                  "registryToken": {
+                    "type": "string",
+                    "description": "Password / token; sent as Bearer when there is no user (default ${REGISTRY_TOKEN})."
+                  },
+                  "repoFilter": {
+                    "type": "string",
+                    "description": "Regex a repository name must match to be read (default: dotnet|aspnet|runtime)."
+                  },
+                  "localImages": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Also consider the images `docker image ls` reports (default true)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "debugimage/prepare"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "source": {
+                    "type": "string",
+                    "description": "The Dockerfile, or the project folder that contains it."
+                  },
+                  "service": {
+                    "type": "string",
+                    "description": "The compose service whose image this replaces. Default: matched by name."
+                  },
+                  "baseImage": {
+                    "type": "string",
+                    "description": "The unhardened base image to build on. Default: the best candidate."
+                  },
+                  "context": {
+                    "type": "string",
+                    "description": "Build context. Default: worked out from the project paths the Dockerfile copies."
+                  },
+                  "composeFile": {
+                    "type": "string",
+                    "description": "Compose file that defines the service (default ${COMPOSE_FILE})."
+                  },
+                  "tag": {
+                    "type": "string",
+                    "description": "The debug image, repo:tag. Default: the service's image repo with tag ${VERSION}-debug (without VERSION: the tag the service has now, plus -debug)."
+                  },
+                  "asRoot": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Run as root in the debug image (default true)."
+                  },
+                  "packages": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Install ps, curl and unzip with the base image's package manager (default true)."
+                  },
+                  "configuration": {
+                    "type": "string",
+                    "description": "Build configuration that replaces Release (default Debug; empty = leave as is)."
+                  },
+                  "vsdbg": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "mount",
+                          "copy",
+                          "download"
+                        ]
+                      },
+                      {
+                        "pattern": "\\$\\{"
+                      }
+                    ],
+                    "description": "How the debugger gets in. mount (default): bind-mount the vsdbg folder at /remote_debugger when the service starts, as Visual Studio does. copy: bake that folder into the image. download: run GetVsDbg.sh at build time (needs internet)."
+                  },
+                  "vsdbgDir": {
+                    "type": "string",
+                    "description": "Folder that holds vsdbg (default ${VSDBG_DIR}, then %USERPROFILE%/vsdbg/vs2017u5, where Visual Studio keeps it). Its linux-musl-x64 subfolder is used for an alpine base."
+                  },
+                  "vsdbgUrl": {
+                    "type": "string",
+                    "description": "For vsdbg=download: the GetVsDbg.sh script (default ${VSDBG_URL}, then https://aka.ms/getvsdbgsh)."
+                  },
+                  "registryApi": {
+                    "type": "string",
+                    "description": "Registry v2 API base (default ${REGISTRY_API}); Artifactory: https://HOST/artifactory/api/docker/REPO-KEY."
+                  },
+                  "registryPrefix": {
+                    "type": "string",
+                    "description": "What goes in front of a repository name in an image reference (default ${REGISTRY_PREFIX})."
+                  },
+                  "registryUser": {
+                    "type": "string",
+                    "description": "User for basic auth (default ${REGISTRY_USER})."
+                  },
+                  "registryToken": {
+                    "type": "string",
+                    "description": "Password / token; sent as Bearer when there is no user (default ${REGISTRY_TOKEN})."
+                  },
+                  "repoFilter": {
+                    "type": "string",
+                    "description": "Regex a repository name must match to be read (default: dotnet|aspnet|runtime)."
+                  },
+                  "localImages": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Also consider the images `docker image ls` reports (default true)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "debugimage/use"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "service": {
+                    "type": "string",
+                    "description": "Compose service."
+                  },
+                  "image": {
+                    "type": "string",
+                    "description": "The debug image."
+                  },
+                  "override": {
+                    "type": "string",
+                    "description": "The override file (default ${COMPOSE_DEBUG_IMAGE}, then ${WORK_DIR}/docker-compose.debug-image.yml)."
+                  },
+                  "composeFile": {
+                    "type": "string",
+                    "description": "Compose file that defines the service (default ${COMPOSE_FILE})."
+                  },
+                  "asRoot": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Set `user: root` on the service (default true)."
+                  },
+                  "vsdbgMount": {
+                    "type": "string",
+                    "description": "Host folder to bind-mount at /remote_debugger (default ${DEBUG_VSDBG_MOUNT}; none = vsdbg is in the image)."
+                  },
+                  "vsdbgPath": {
+                    "type": "string",
+                    "description": "vsdbg inside the container (default ${DEBUG_VSDBG_PATH}, then /remote_debugger/vsdbg)."
+                  },
+                  "sourceInContainer": {
+                    "type": "string",
+                    "description": "Where the sources were during the build (default ${DEBUG_SOURCE_ROOT})."
+                  },
+                  "sourceOnDisk": {
+                    "type": "string",
+                    "description": "The same sources on this machine (default ${DEBUG_CONTEXT})."
+                  },
+                  "launchJson": {
+                    "type": "string",
+                    "description": "Where to write the launch file (on this machine)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "debugimage/restore"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "service": {
+                    "type": "string",
+                    "description": "Compose service."
+                  },
+                  "override": {
+                    "type": "string",
+                    "description": "The override file (default ${COMPOSE_DEBUG_IMAGE}, then ${WORK_DIR}/docker-compose.debug-image.yml)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "docker/consumer-link-probe"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "target": {
+                    "type": "string",
+                    "description": "Container name or id."
+                  },
+                  "service": {
+                    "type": "string",
+                    "description": "Compose service; resolved through the com.docker.compose.* labels."
+                  },
+                  "project": {
+                    "type": "string",
+                    "description": "Compose project to narrow `service` (default ${COMPOSE_PROJECT})."
+                  },
+                  "contains": {
+                    "type": "string",
+                    "description": "Text a line must contain to match."
+                  },
+                  "regex": {
+                    "type": "string",
+                    "description": "Regular expression a line must match."
+                  },
+                  "expect": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "present",
+                          "absent"
+                        ]
+                      },
+                      {
+                        "pattern": "\\$\\{"
+                      }
+                    ],
+                    "description": "present (default): fail if nothing matches; absent: fail if anything matches."
+                  },
+                  "into": {
+                    "type": "string",
+                    "description": "State variable that receives the full text."
+                  },
+                  "save": {
+                    "type": "string",
+                    "description": "File (on this machine) to write the full text to."
+                  },
+                  "show": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Echo the text to the log when there is no pattern (default true)."
+                  },
+                  "digest": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Log a digest instead of the raw text: repeats collapsed into patterns with counts, errors first."
+                  },
+                  "since": {
+                    "type": "string",
+                    "description": "Default: STARTED_AT_UTC from the last compose up."
+                  },
+                  "until": {
+                    "type": "string",
+                    "description": "Upper bound."
+                  },
+                  "tail": {
+                    "type": [
+                      "integer",
+                      "string"
+                    ],
+                    "description": "Number of lines from the end."
+                  },
+                  "timestamps": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Show timestamps (default true)."
+                  },
+                  "waitSeconds": {
+                    "type": [
+                      "integer",
+                      "string"
+                    ],
+                    "description": "Poll up to this long for the expectation to hold."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "docker/build-debug-image"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "context": {
+                    "type": "string",
+                    "description": "Build context."
+                  },
+                  "tag": {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Image tags (-t)."
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Dockerfile (-f)."
+                  },
+                  "noCache": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "--no-cache."
+                  },
+                  "buildArgs": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean"
+                      ]
+                    },
+                    "description": "--build-arg KEY=VALUE pairs."
+                  },
+                  "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean"
+                      ]
+                    },
+                    "description": "--label KEY=VALUE pairs."
+                  },
+                  "revisionFrom": {
+                    "type": "string",
+                    "description": "Git working tree whose HEAD is stamped as org.opencontainers.image.revision."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "docker/consumer-logs"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "target": {
+                    "type": "string",
+                    "description": "Container name or id."
+                  },
+                  "service": {
+                    "type": "string",
+                    "description": "Compose service; resolved through the com.docker.compose.* labels."
+                  },
+                  "project": {
+                    "type": "string",
+                    "description": "Compose project to narrow `service` (default ${COMPOSE_PROJECT})."
+                  },
+                  "contains": {
+                    "type": "string",
+                    "description": "Text a line must contain to match."
+                  },
+                  "regex": {
+                    "type": "string",
+                    "description": "Regular expression a line must match."
+                  },
+                  "expect": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "present",
+                          "absent"
+                        ]
+                      },
+                      {
+                        "pattern": "\\$\\{"
+                      }
+                    ],
+                    "description": "present (default): fail if nothing matches; absent: fail if anything matches."
+                  },
+                  "into": {
+                    "type": "string",
+                    "description": "State variable that receives the full text."
+                  },
+                  "save": {
+                    "type": "string",
+                    "description": "File (on this machine) to write the full text to."
+                  },
+                  "show": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Echo the text to the log when there is no pattern (default true)."
+                  },
+                  "digest": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Log a digest instead of the raw text: repeats collapsed into patterns with counts, errors first."
+                  },
+                  "since": {
+                    "type": "string",
+                    "description": "Default: STARTED_AT_UTC from the last compose up."
+                  },
+                  "until": {
+                    "type": "string",
+                    "description": "Upper bound."
+                  },
+                  "tail": {
+                    "type": [
+                      "integer",
+                      "string"
+                    ],
+                    "description": "Number of lines from the end."
+                  },
+                  "timestamps": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Show timestamps (default true)."
+                  },
+                  "waitSeconds": {
+                    "type": [
+                      "integer",
+                      "string"
+                    ],
+                    "description": "Poll up to this long for the expectation to hold."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "run": {
+                "const": "docker/service-digest"
+              }
+            },
+            "required": [
+              "run"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "type": "object",
+                "properties": {
+                  "verb": true,
+                  "target": {
+                    "type": "string",
+                    "description": "Container name or id."
+                  },
+                  "service": {
+                    "type": "string",
+                    "description": "Compose service; resolved through the com.docker.compose.* labels."
+                  },
+                  "project": {
+                    "type": "string",
+                    "description": "Compose project to narrow `service` (default ${COMPOSE_PROJECT})."
+                  },
+                  "contains": {
+                    "type": "string",
+                    "description": "Text a line must contain to match."
+                  },
+                  "regex": {
+                    "type": "string",
+                    "description": "Regular expression a line must match."
+                  },
+                  "expect": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "present",
+                          "absent"
+                        ]
+                      },
+                      {
+                        "pattern": "\\$\\{"
+                      }
+                    ],
+                    "description": "present (default): fail if nothing matches; absent: fail if anything matches."
+                  },
+                  "into": {
+                    "type": "string",
+                    "description": "State variable that receives the full text."
+                  },
+                  "save": {
+                    "type": "string",
+                    "description": "File (on this machine) to write the full text to."
+                  },
+                  "show": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Echo the text to the log when there is no pattern (default true)."
+                  },
+                  "digest": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Log a digest instead of the raw text: repeats collapsed into patterns with counts, errors first."
+                  },
+                  "since": {
+                    "type": "string",
+                    "description": "Default: STARTED_AT_UTC from the last compose up."
+                  },
+                  "until": {
+                    "type": "string",
+                    "description": "Upper bound."
+                  },
+                  "tail": {
+                    "type": [
+                      "integer",
+                      "string"
+                    ],
+                    "description": "Number of lines from the end."
+                  },
+                  "timestamps": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ],
+                    "description": "Show timestamps (default true)."
+                  },
+                  "waitSeconds": {
+                    "type": [
+                      "integer",
+                      "string"
+                    ],
+                    "description": "Poll up to this long for the expectation to hold."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

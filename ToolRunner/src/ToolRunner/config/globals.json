@@ -1,0 +1,31 @@
+{
+  "$schema": "schemas/globals.schema.json",
+  "APP_ROOT": "C:/src/myapp",
+
+  "COMPOSE_FILE": "${APP_ROOT}/docker-compose.yml",
+  "ENV_FILE": "${APP_ROOT}/.env",
+
+  "WORK_DIR": "${APP_ROOT}/.toolrunner",
+  "COMPOSE_DEBUG": "${WORK_DIR}/docker-compose.debug.yml",
+  "ENV_DEBUG": "${WORK_DIR}/debug.env",
+  "COMPOSE_DEBUG_IMAGE": "${WORK_DIR}/docker-compose.debug-image.yml",
+
+  "VERSION_PATTERN": "\\d+(\\.\\d+)+|latest",
+  "VERSION_IGNORE": "(alpine|debian|ubuntu|ubi|bookworm|bullseye|jammy|noble|musl|net|dotnet|aspnet)[-_.]?v?\\d+(\\.\\d+)*",
+  "VERSION_GIT_REFS": "v{version};{version};release/{version};origin/release/{version}",
+  "VERSION_LATEST_REFS": "origin/master;origin/main;master;main",
+
+  "services": {
+    "pluginhost": {
+      "image": "myorg/pluginhost:dev",
+      "src": "${APP_ROOT}/../pluginhost",
+      "verify": "label",
+      "hostKey": "PLUGINHOST_HOST",
+      "portKey": "PLUGINHOST_PORT",
+      "debugHost": "host.docker.internal",
+      "debugPort": "5005",
+      "consumer": "gateway",
+      "logProbe": "Connected to host.docker.internal:5005"
+    }
+  }
+}

@@ -1,0 +1,56 @@
+@inherits LiveComponent
+@using ToolRunner.Tools
+
+<div class="meta">Every workflow in workflows.json. Type a parameter value to see each step's arguments with all <span class="s-var">${...}</span> resolved.
+    Each step names a saved command; what its tool and verb do is on the <b>commands</b> tab. Build or change a workflow on the Run tab: assemble a chain (or "Edit as chain") and save it.</div>
+@foreach (var (name, wf) in Live.Cfg.Workflows)
+{
+    var changes = wf.Steps.Count(s => Verb(s)?.Mutates == true);
+    <h3>@name <span class="badge @(changes > 0 ? "changed" : "ok")">@(changes > 0 ? $"{changes} step(s) change things" : "read-only")</span><span class="meta">@wf.Description</span>
+        @if (confirmDelete == name) { <button class="mini" @onclick="() => Delete(name)">really delete</button> <button class="mini" @onclick="() => confirmDelete = null">keep</button> }
+        else { <button class="mini" title="remove this workflow from workflows.json" @onclick="() => confirmDelete = name">delete</button> }
+    </h3>
+    <div class="args">
+        @foreach (var p in wf.Params)
+        {
+            <ArgInput Name="@p" Value="@prm.GetValueOrDefault(p, string.Empty)" ValueChanged="v => prm[p] = v" />
+        }
+    </div>
+    @foreach (var (step, i) in wf.Steps.Select((s, i) => (s, i)))
+    {
+        var spec = Verb(step);
+        <details class="card @(spec?.Mutates == true ? "running" : "ok")">
+            <summary>@(i + 1). @step.Run
+                <span class="badge @(spec?.Mutates == true ? "changed" : "ok")">@(spec is null ? "?" : spec.Mutates ? "changes" : "reads")</span>
+                @if (step.ContinueOnError) { <span class="badge default">continues on error</span> }
+                <span class="meta">@Tool(step) @VerbName(step)@(spec is null ? "" : ": " + spec.Doc)</span>
+            </summary>
+            <Code Text="@Expanded(step)" />
+        </details>
+    }
+}
+
+@code {
+    private readonly ToolRegistry tools = Registry.Default();
+    private readonly Dictionary<string, string> prm = new(StringComparer.OrdinalIgnoreCase);
+    private string? confirmDelete;
+
+    private static string Tool(StepDef s) => s.Run.Split('/')[0];
+    private string? VerbName(StepDef s) => ToolContext.NodeStr(Ws.Merged(s)?["verb"]);
+    private VerbSpec? Verb(StepDef s) => tools.TryGet(Tool(s), out var t) ? t.Spec.FirstOrDefault(v => v.Verb == VerbName(s)) : null;
+
+    private void Delete(string name)
+    {
+        try { ConfigWriter.DeleteWorkflow(Live.Dir, name); Live.Reload(); } catch (IOException) { /* shown as a config error on reload */ }
+        confirmDelete = null;
+    }
+
+    private string Expanded(StepDef step)
+    {
+        if (Ws.Merged(step) is not { } args) return $"no arg set '{step.Run}' in args.json";
+        var s = Ws.State();
+        foreach (var (k, v) in prm) if (v.Length > 0) s.Vars[k] = v;
+        try { return s.ExpandNode(args)!.ToJsonString(ConfigLoader.JsonOptions); }
+        catch (InvalidOperationException ex) { return args.ToJsonString(ConfigLoader.JsonOptions) + $"\n\n({ex.Message})"; }
+    }
+}

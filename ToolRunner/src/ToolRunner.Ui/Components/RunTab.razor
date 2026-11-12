@@ -1,0 +1,336 @@
+@inherits LiveComponent
+@using ToolRunner.Tools
+
+<div class="row">
+    <span class="meta">output:</span>
+    <button class="chip @(Ws.RunLayout == "below" ? "on" : "")" @onclick="@(() => Ws.RunLayout = "below")">below, variables beside</button>
+    <button class="chip @(Ws.RunLayout == "beside" ? "on" : "")" @onclick="@(() => Ws.RunLayout = "beside")">beside</button>
+</div>
+<div class="cols">
+<section>
+    <h3>1. Pick something to run</h3>
+    <div class="row">
+        <select value="@mode" @onchange="e => SetMode(e.Value?.ToString() ?? string.Empty)">
+            <option value="workflow">workflow</option>
+            <option value="command">saved command</option>
+            <option value="tool">tool + verb</option>
+        </select>
+        @if (mode == "workflow")
+        {
+            <select value="@wfName" @onchange="e => Pick(ref wfName, e)">
+                @foreach (var n in Live.Cfg.Workflows.Keys) { <option value="@n">@n</option> }
+            </select>
+        }
+        else if (mode == "command")
+        {
+            <select value="@cmdKey" @onchange="e => Pick(ref cmdKey, e)">
+                @foreach (var k in Commands()) { <option value="@k">@k</option> }
+            </select>
+        }
+        else
+        {
+            <select value="@toolName" @onchange="e => { Pick(ref toolName, e); verb = Tool()?.Verbs.FirstOrDefault(); }">
+                @foreach (var t in tools.All) { <option value="@t.Name">@t.Name</option> }
+            </select>
+            <select value="@verb" @onchange="e => Pick(ref verb, e)">
+                @foreach (var v in Tool()?.Spec ?? []) { <option value="@v.Verb">@v.Verb</option> }
+            </select>
+        }
+    </div>
+    @if (mode == "command" && SavedSet() is { } savedSet)
+    {
+        <div class="meta">@(VerbSpec() is { } vs ? $"{cmdKey!.Split('/')[0]} {vs.Verb}: {vs.Doc}" : "its verb is computed at run time")
+            @if (VerbSpec()?.Mutates == true) { <span class="badge changed">changes the deployment</span> }</div>
+        <Code Text="@savedSet.ToJsonString(ConfigLoader.JsonOptions)" />
+    }
+    else
+    {
+        <div class="meta">@Describe() @if (mode == "tool" && VerbSpec()?.Mutates == true) { <span class="badge changed">changes the deployment</span> }</div>
+    }
+
+    @if (mode != "workflow" && VerbSpec() is { } spec)
+    {
+        <h3>2. Arguments <span class="meta">blank = @(mode == "command" ? "the saved value shown in grey" : "not passed"); hover a name for help</span></h3>
+        <div class="args">
+            @foreach (var a in spec.Args)
+            {
+                <ArgInput Name="@a.Name" Spec="a" Placeholder="@Saved(a.Name)" Value="@values.GetValueOrDefault(a.Name, string.Empty)"
+                          ValueChanged="v => values[a.Name] = v" />
+            }
+        </div>
+    }
+
+    @{ var step = CurrentStep(out var problem); var needs = mode == "workflow" ? WorkflowParams() : step is null ? new() : Ws.Needs([step]); }
+    @if (needs.Count > 0)
+    {
+        <h3>@(mode == "workflow" ? "2. Parameters" : "3. Values it needs") <span class="meta">${...} names nothing defines yet</span></h3>
+        <div class="args">
+            @foreach (var p in needs)
+            {
+                <ArgInput Name="@p" Value="@vars.GetValueOrDefault(p, string.Empty)" ValueChanged="v => vars[p] = v" />
+            }
+        </div>
+    }
+    @if (problem is not null) { <div class="err">@problem</div> }
+
+    <div class="row" style="margin-top:10px">
+        <button class="act primary" disabled="@(Session.Running || problem is not null)" @onclick="() => RunNow(false)">Run</button>
+        <button class="act" disabled="@(Session.Running || problem is not null)" @onclick="() => RunNow(true)">Dry run</button>
+        <button class="act" disabled="@(!Session.Running)" @onclick="Session.Stop">Stop</button>
+        <button class="act" disabled="@(problem is not null)" @onclick="AddToChain">+ Add to chain</button>
+        @if (mode == "workflow") { <button class="act" title="replace the chain with this workflow's steps, to change and re-save it" @onclick="EditAsChain">Edit as chain</button> }
+        @if (mode == "tool")
+        {
+            <input style="width:150px" placeholder="name to save as" @bind="saveCmdName" />
+            <button class="act" disabled="@(problem is not null || string.IsNullOrWhiteSpace(saveCmdName))" @onclick="SaveCommand">Save as command</button>
+        }
+    </div>
+    @if (message is not null) { <div class="note">@message</div> }
+
+    <h3>Chain <span class="meta">a workflow in the making: @chain.Count step(s), run top to bottom, stopping at the first failure. Saving it makes it a workflow like any other.</span></h3>
+    @if (chain.Count == 0) { <div class="meta">Empty. "+ Add to chain" combines commands; "Edit as chain" loads an existing workflow here so you can change it and save it again (same name replaces it).</div> }
+    @foreach (var (s, i) in chain.Select((s, i) => (s, i)))
+    {
+        <div class="card chainstep">
+            <b>@(i + 1). @s.Run</b>
+            <span class="meta">@(s.With is { Count: > 0 } ? s.With.ToJsonString() : "")</span>
+            <span class="right">
+                <label class="meta"><input type="checkbox" checked="@s.ContinueOnError" @onchange="e => s.ContinueOnError = (bool)e.Value!" /> continue on error</label>
+                <button class="mini" disabled="@(i == 0)" @onclick="() => Move(i, -1)">&uarr;</button>
+                <button class="mini" disabled="@(i == chain.Count - 1)" @onclick="() => Move(i, 1)">&darr;</button>
+                <button class="mini" @onclick="() => chain.RemoveAt(i)">remove</button>
+            </span>
+        </div>
+    }
+    @if (chain.Count > 0)
+    {
+        var chainNeeds = Ws.Needs(chain);
+        @if (chainNeeds.Count > 0)
+        {
+            <div class="args">
+                @foreach (var p in chainNeeds) { <ArgInput Name="@p" Value="@vars.GetValueOrDefault(p, string.Empty)" ValueChanged="v => vars[p] = v" /> }
+            </div>
+        }
+        <div class="row" style="margin-top:8px">
+            <button class="act primary" disabled="@Session.Running" @onclick="() => RunChain(false)">Run chain</button>
+            <button class="act" disabled="@Session.Running" @onclick="() => RunChain(true)">Dry run chain</button>
+            <button class="act" @onclick="() => chain.Clear()">Clear</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+            <input style="width:150px" placeholder="workflow name" @bind="Ws.ChainName" />
+            <input style="width:320px" placeholder="description" @bind="Ws.ChainDescription" />
+            <button class="act" disabled="@string.IsNullOrWhiteSpace(Ws.ChainName)" @onclick="SaveWorkflow">@(Ws.ChainName is { } n && Live.Cfg.Workflows.ContainsKey(n.Trim()) ? "Save (replace workflow)" : "Save as workflow")</button>
+            <span class="meta">parameters: @(chainNeeds.Count == 0 ? "none" : string.Join(", ", chainNeeds))</span>
+        </div>
+    }
+</section>
+
+@if (Ws.RunLayout == "below") { <section class="side">@WatchView</section> }
+else { <section>@OutputView<div class="side" style="margin-top:14px">@WatchView</div></section> }
+</div>
+@if (Ws.RunLayout == "below") { @OutputView }
+
+@code {
+    private string watchName = "";
+
+    private RenderFragment OutputView => @<div>
+        <h3>Output @if (Session.Title is not null) { <span class="meta">@Session.Title &middot; @(Session.Running ? "running..." : $"exit {Session.Exit}")</span> }</h3>
+        @if (Session.Title is null) { <div class="meta">Nothing has run yet in this session.</div> }
+        else { <div class="@(Ws.RunLayout == "below" ? "outpanel" : "")"><Cards Lines="@Session.Log" /></div> }
+    </div>;
+
+    private RenderFragment WatchView => @<div>
+        <h3 style="margin-top:0">Variables <span class="meta">live: what the next run will use</span></h3>
+        <div class="row">
+            <input style="width:220px" list="watch-names" placeholder="variable to watch" @bind="watchName" />
+            <datalist id="watch-names">@foreach (var k in Ws.State().Vars.Keys.Order(StringComparer.OrdinalIgnoreCase)) { <option value="@k"></option> }</datalist>
+            <button class="mini" @onclick="AddWatch">+ watch</button>
+        </div>
+        <table class="vars watch">
+            @foreach (var (name, source, value) in WatchRows())
+            {
+                <tr>
+                    <td class="k">@name</td>
+                    <td class="v" title="@value">@value</td>
+                    <td class="o" style="width:120px"><span class="badge @(source == "tool" ? "tool" : source == "needed" ? "changed" : source == "typed" ? "default" : "")">@source</span>
+                        @if (Ws.Watch.Contains(name)) { <button class="mini" title="stop watching" @onclick="() => Ws.Watch.Remove(name)">&times;</button> }</td>
+                </tr>
+            }
+        </table>
+        <div class="meta">needed = something here uses it and nothing defines it yet; typed = from a box on this tab; tool = produced by a run this session.</div>
+    </div>;
+
+    private void AddWatch()
+    {
+        var n = watchName.Trim();
+        if (n.Length > 0 && !Ws.Watch.Contains(n, StringComparer.OrdinalIgnoreCase)) Ws.Watch.Add(n);
+        watchName = "";
+    }
+
+    /// What the current selection and the chain need, then what you chose to watch, then what tools produced.
+    private List<(string Name, string Source, string Value)> WatchRows()
+    {
+        var state = Ws.State();
+        foreach (var (k, v) in Vars()) state.Vars[k] = v;
+        string Value(string name) { try { return state.Vars.TryGetValue(name, out var raw) ? state.Expand(raw) : "(not set)"; } catch (InvalidOperationException e) { return $"<{e.Message}>"; } }
+        string Source(string name) => Ws.Produced.ContainsKey(name) ? "tool" : Vars().ContainsKey(name) ? "typed" : state.Vars.ContainsKey(name) ? Live.Origins.GetValueOrDefault(name, "globals") : "needed";
+
+        var step = CurrentStep(out _);
+        var names = (mode == "workflow" ? WorkflowParams() : step is null ? new List<string>() : Ws.Needs([step]))
+            .Concat(Ws.Needs(chain)).Concat(Ws.Watch).Concat(Ws.Produced.Keys.Order()).Distinct(StringComparer.OrdinalIgnoreCase);
+        return names.Select(n => (n, Source(n), Value(n))).ToList();
+    }
+
+    private readonly ToolRegistry tools = Registry.Default();
+    private string mode = "workflow";
+    private string? wfName, cmdKey, toolName, verb, saveCmdName, message;
+    private readonly Dictionary<string, string> values = new();                                   // argument boxes of the current selection
+    private Dictionary<string, string> vars => Ws.RunVars;      // parameter / ${name} boxes; kept in the workspace, so they survive a tab switch
+    private List<StepDef> chain => Ws.Chain;                    // likewise: an unsaved chain is not lost when you look at another tab
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        wfName = Live.Cfg.Workflows.Keys.FirstOrDefault();
+        cmdKey = Commands().FirstOrDefault();
+        toolName = tools.All.First().Name;
+        verb = Tool()?.Verbs.FirstOrDefault();
+    }
+
+    private IEnumerable<string> Commands() => Live.Cfg.Args.SelectMany(t => t.Value.Keys.Select(i => $"{t.Key}/{i}")).Order();
+    private ITool? Tool() => toolName is not null && tools.TryGet(toolName, out var t) ? t : null;
+    private void SetMode(string m) { mode = m; values.Clear(); message = null; }
+    private void Pick(ref string? field, ChangeEventArgs e) { field = e.Value?.ToString(); values.Clear(); message = null; }
+
+    private JsonObject? SavedSet() =>
+        mode == "command" && cmdKey?.Split('/', 2) is [var t, var i] && Live.Cfg.Args.TryGetValue(t, out var sets) && sets.TryGetValue(i, out var set) ? set : null;
+
+    /// The verb whose arguments the form shows: the chosen one, or the saved command's (when it is a literal).
+    private VerbSpec? VerbSpec()
+    {
+        if (mode == "tool") return Tool()?.Spec.FirstOrDefault(v => v.Verb == verb);
+        if (SavedSet() is not { } set || cmdKey is null || !tools.TryGet(cmdKey.Split('/')[0], out var tool)) return null;
+        var v = ToolContext.NodeStr(set["verb"]);
+        return tool.Spec.FirstOrDefault(s => s.Verb.Equals(v, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private string? Saved(string arg) => SavedSet()?[arg] is { } n ? ToolContext.NodeStr(n) : null;
+    private List<string> WorkflowParams() => wfName is not null && Live.Cfg.Workflows.TryGetValue(wfName, out var wf) ? wf.Params : new();
+
+    private string Describe() => mode switch
+    {
+        "workflow" => wfName is not null && Live.Cfg.Workflows.TryGetValue(wfName, out var wf) ? $"{wf.Description}  ({wf.Steps.Count} steps)" : "",
+        "command" => SavedSet() is { } set ? $"args.json: {set.ToJsonString()}" : "",
+        _ => VerbSpec()?.Doc ?? ""
+    };
+
+    /// Typed text -> the JSON the engine expects for that argument type. Throws FormatException with a readable message.
+    private static JsonNode Convert(Arg a, string text)
+    {
+        var t = text.Trim();
+        if (t.Contains("${")) return a.Type is "object" or "edits" || (a.Type == "list" && t.StartsWith('[')) ? ParseJson(a, t) : JsonValue.Create(t);
+        switch (a.Type)
+        {
+            case "bool": return bool.TryParse(t, out var b) ? JsonValue.Create(b) : throw new FormatException($"{a.Name}: true or false expected");
+            case "int": return int.TryParse(t, out var n) ? JsonValue.Create(n) : throw new FormatException($"{a.Name}: a whole number expected");
+            case "list": return t.StartsWith('[') ? ParseJson(a, t) : new JsonArray(t.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(x => (JsonNode)JsonValue.Create(x)!).ToArray());
+            case "object" or "edits": return ParseJson(a, t);
+            default: return JsonValue.Create(t);
+        }
+    }
+
+    private static JsonNode ParseJson(Arg a, string t)
+    {
+        try { return JsonNode.Parse(t) ?? throw new FormatException($"{a.Name}: JSON expected"); }
+        catch (System.Text.Json.JsonException ex) { throw new FormatException($"{a.Name}: not valid JSON ({ex.Message})"); }
+    }
+
+    /// The step the form describes, or null with the reason (a bad value, a required argument left blank).
+    private StepDef? CurrentStep(out string? problem)
+    {
+        problem = null;
+        if (mode == "workflow") return null;
+        var spec = VerbSpec();      // null for a saved command whose verb is computed: no form, but it can still run
+        if (spec is null && mode == "tool") { problem = "Pick a tool and verb."; return null; }
+        var with = new JsonObject();
+        if (mode == "tool") with["verb"] = verb;
+        try
+        {
+            foreach (var a in spec?.Args ?? [])
+                if (values.GetValueOrDefault(a.Name) is { } text && text.Trim().Length > 0) with[a.Name] = Convert(a, text);
+        }
+        catch (FormatException ex) { problem = ex.Message; return null; }
+
+        if (spec is not null && spec.Args.Where(a => a.Required && with[a.Name] is null && Saved(a.Name) is null).Select(a => a.Name).ToList() is { Count: > 0 } missing)
+            problem = $"Required: {string.Join(", ", missing)}";
+
+        var run = mode == "tool" ? toolName! : cmdKey ?? "";
+        return run.Length == 0 ? null : new StepDef { Run = run, With = with.Count > 0 ? with : null };
+    }
+
+    private IReadOnlyDictionary<string, string> Vars() => vars.Where(v => v.Value.Trim().Length > 0).ToDictionary(v => v.Key, v => v.Value.Trim(), StringComparer.OrdinalIgnoreCase);
+
+    private Task RunNow(bool dry)
+    {
+        message = null;
+        if (mode == "workflow") return wfName is null ? Task.CompletedTask : Task.Run(() => Session.RunWorkflowAsync(wfName, Vars(), dry));
+        if (CurrentStep(out _) is not { } step) return Task.CompletedTask;
+        foreach (var (k, v) in values) Ws.Remember(k, v.Trim());
+        var argv = new[] { "run", step.Run }.Concat((step.With ?? new()).Select(p => $"{p.Key}={ToolContext.NodeStr(p.Value)}")).ToArray();
+        return Task.Run(() => Session.RunAsync(step.Run + (mode == "tool" ? $" {verb}" : ""), [step], Vars(), dry, argv, Ws.Needs([step])));
+    }
+
+    private void AddToChain()
+    {
+        message = null;
+        if (mode == "workflow")
+        {
+            if (wfName is not null && Live.Cfg.Workflows.TryGetValue(wfName, out var wf))
+                chain.AddRange(wf.Steps.Select(s => new StepDef { Run = s.Run, With = (JsonObject?)s.With?.DeepClone(), ContinueOnError = s.ContinueOnError }));
+        }
+        else if (CurrentStep(out _) is { } step) chain.Add(step);
+    }
+
+    private void EditAsChain()
+    {
+        if (wfName is null || !Live.Cfg.Workflows.TryGetValue(wfName, out var wf)) return;
+        chain.Clear();
+        AddToChain();
+        (Ws.ChainName, Ws.ChainDescription, message) = (wfName, wf.Description, $"Loaded '{wfName}' into the chain below. Change it, then save; keeping the name replaces the workflow.");
+    }
+
+    private void Move(int i, int by) { var s = chain[i]; chain.RemoveAt(i); chain.Insert(i + by, s); }
+
+    private Task RunChain(bool dry)
+    {
+        message = null;
+        var steps = chain.ToList();
+        return Task.Run(() => Session.RunAsync($"chain of {steps.Count}", steps, Vars(), dry, ["(chain)", .. steps.Select(s => s.Run)], Ws.Needs(steps)));
+    }
+
+    private void SaveWorkflow()
+    {
+        try
+        {
+            var name = Ws.ChainName!.Trim();
+            wfName = name;
+            ConfigWriter.SaveWorkflow(Live.Dir, name, new WorkflowDef { Description = Ws.ChainDescription?.Trim() ?? "", Params = Ws.Needs(chain), Steps = chain.ToList() });
+            Live.Reload();
+            message = $"Saved. '{name}' is now a workflow in workflows.json (pick it under 'workflow' above), or run: toolrunner {name} {string.Join(' ', Ws.Needs(chain).Select(p => $"<{p}>"))}";
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException) { message = ex.Message; }
+    }
+
+    private void SaveCommand()
+    {
+        try
+        {
+            if (CurrentStep(out _) is not { With: { } with } || toolName is null) return;
+            var name = saveCmdName!.Trim();
+            ConfigWriter.SaveArgSet(Live.Dir, toolName, name, with);
+            Live.Reload();
+            message = $"Saved command '{toolName}/{name}' to args.json. It is now under \"saved command\".";
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException) { message = ex.Message; }
+    }
+}

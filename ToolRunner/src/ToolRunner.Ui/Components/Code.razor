@@ -1,0 +1,8 @@
+@* A block of text with light syntax colouring (json, yaml, env, xml) and optional search marks. *@
+<pre class="codeblock">@foreach (var line in Text.Split('\n')) {@foreach (var s in Syntax.Line(line.TrimEnd('\r'), Lang, Term)) {<span class="@s.Class">@if (s.Marked) {<mark>@s.Text</mark>} else {@s.Text}</span>}@("\n")}</pre>
+
+@code {
+    [Parameter, EditorRequired] public string Text { get; set; } = "";
+    [Parameter] public string Lang { get; set; } = "json";
+    [Parameter] public System.Text.RegularExpressions.Regex? Term { get; set; }
+}

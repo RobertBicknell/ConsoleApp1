@@ -1,0 +1,120 @@
+@inherits LiveComponent
+
+<div class="meta">The version here is the application's: the one its images were pushed to the registry with (never the base image's, such as alpine3.20). A stack is normally on one version. Builds tag with that version and
+    source must be checked out at the matching git ref. This tab shows the version the deployment is on, lets you pin another, and lists what exists.</div>
+
+@if (Ws.Versions is not { } main) { <div class="meta" style="margin-top:12px">@(Ws.Scanning ? "Scanning..." : "Scan a deployment first (deployment tab).")</div> }
+else
+{
+<div class="cols">
+<section>
+    <h3>Version in use <span class="meta">what builds, debug images and checkouts use</span></h3>
+    <div class="row">
+        <span class="badge @(Ws.PinnedVersion is null ? "ok" : "changed")" style="font-size:15px">@(Ws.EffectiveVersion ?? "(none)")</span>
+        <span class="meta">@(Ws.PinnedVersion is null ? "detected from the image tags" : $"pinned (VERSION); the deployment is on {main.Detected ?? "?"}")</span>
+    </div>
+    <div class="row" style="margin-top:8px">
+        <input style="width:200px" placeholder="version to pin, e.g. 2.4.1 or latest" @bind="pin" @bind:event="oninput" list="known-versions" />
+        <datalist id="known-versions">@foreach (var k in Known()) { <option value="@k"></option> }</datalist>
+        <button class="act primary" disabled="@string.IsNullOrWhiteSpace(pin)" @onclick="() => { Ws.SetVersion(pin); pin = string.Empty; }">pin</button>
+        <button class="act" disabled="@(Ws.PinnedVersion is null)" @onclick="() => Ws.SetVersion(null)">use the detected version</button>
+    </div>
+    <div class="meta">Pinning writes VERSION to your own layer (globals.user.json). It does not change the deployment: the version the stack pulls
+        is @(main.Variable is null ? "written in its compose files" : $"${{{main.Variable}}} in its env file").</div>
+
+    @foreach (var (stackDir, sv) in Ws.VersionsByStack)
+    {
+    var v = sv;
+    <h3>Detected: @stackDir[(stackDir.LastIndexOf('/') + 1)..] <span class="meta">from the image of every service in @stackDir@(ReferenceEquals(sv, Ws.Versions) ? " (the stack APP_ROOT points at: its version is the one in use)" : "")</span></h3>
+    <div class="row">
+        <span class="badge ok">@(v.Detected ?? "no version found")</span>
+        @if (v.Variable is not null) { <span class="badge default">${@v.Variable}</span> }
+        <span class="badge @(v.Odd.Count > 0 ? "undefined" : "ok")">@v.Odd.Count of @v.Product.Count product image(s) on another version</span>
+    </div>
+    <table class="vars">
+        @foreach (var i in v.Images.OrderBy(i => !v.Odd.Contains(i)).ThenBy(i => !v.Product.Contains(i)).ThenBy(i => i.Service))
+        {
+            <tr>
+                <td class="o" style="width:90px"><span class="badge @(v.Odd.Contains(i) ? "undefined" : v.Product.Contains(i) ? "ok" : "")">@(v.Odd.Contains(i) ? "differs" : v.Product.Contains(i) ? "product" : "other")</span></td>
+                <td class="k">@i.Service</td>
+                <td class="k" style="width:110px"><b>@(i.Version ?? "-")</b></td>
+                <td class="v" title="@i.Image">@i.Image @if (i.Variable is not null) { <span class="meta">tag from ${@i.Variable}</span> }</td>
+            </tr>
+        }
+    </table>
+    }
+    <div class="meta">product = tagged through a variable (or, when no image is, any image with a version); other = third-party images, not part of the stack's version.</div>
+</section>
+
+<section>
+    <h3>What exists <span class="meta">git refs of a source repo, registry tags of an image; reads only</span></h3>
+    <div class="args">
+        <label class="arg"><span>source repo (a git working tree)</span><input @bind="repo" list="src-repos" placeholder="folder of the service's source" />
+            <datalist id="src-repos">@foreach (var r in Repos()) { <option value="@r"></option> }</datalist></label>
+        <label class="arg"><span>image</span>
+            <select @bind="image"><option value="">(none)</option>@foreach (var i in Ws.VersionsByStack.SelectMany(s => s.Versions.Product).Select(i => i.Image).Distinct()) { <option value="@i">@i</option> }</select></label>
+    </div>
+    <div class="row" style="margin-top:8px">
+        <button class="act primary" disabled="@(Ws.ListingVersions || (string.IsNullOrWhiteSpace(repo) && string.IsNullOrWhiteSpace(image)))" @onclick="() => Ws.ListVersionsAsync(repo, image)">@(Ws.ListingVersions ? "asking..." : "list versions")</button>
+        <span class="meta">click a version to pin it</span>
+    </div>
+    @if (Ws.Available is { } a)
+    {
+        @foreach (var n in a.Notes) { <div class="err">@n</div> }
+        @if (a.Git is not null)
+        {
+            <h3>git <span class="meta">@a.Repo</span></h3>
+            <div class="row">
+                @if (Ws.EffectiveVersion is { } ev)
+                {
+                    @if (a.At is { } at) { <span class="badge @(at.Commit == a.Head ? "ok" : "undefined")">@(at.Commit == a.Head ? $"source is on {at.Ref}: matches {ev}" : $"source is on {a.Head?[..7]}, but {ev} is {at.Ref} ({at.Commit[..7]}): run checkout-version")</span> }
+                    else { <span class="badge undefined">no ref for @ev (tried @string.Join(", ", Ws.Scheme.RefsFor(ev)))</span> }
+                }
+            </div>
+            <table class="vars">
+                @foreach (var g in a.Git.Take(60))
+                {
+                    <tr><td class="k" style="width:150px"><button class="chip @(g.Version == Ws.EffectiveVersion ? "on" : "")" @onclick="() => Ws.SetVersion(g.Version)">@g.Version</button></td>
+                        <td class="o" style="width:70px"><span class="badge">@g.Kind</span></td><td class="v">@g.Ref
+                        @if (a.Registry is not null) { <span class="badge @(a.Registry.Contains(g.Version) ? "ok" : "undefined")">@(a.Registry.Contains(g.Version) ? "image exists" : "no image")</span> }</td></tr>
+                }
+            </table>
+            @if (a.Git.Count == 0) { <div class="meta">No tag or branch fits VERSION_GIT_REFS.</div> }
+        }
+        @if (a.Registry is not null)
+        {
+            <h3>registry <span class="meta">@a.Image</span></h3>
+            <div class="row">
+                @foreach (var r in a.Registry.Take(80)) { <button class="chip @(r == Ws.EffectiveVersion ? "on" : "")" @onclick="() => Ws.SetVersion(r)">@r</button> }
+            </div>
+            @if (a.Registry.Count == 0) { <div class="meta">No tag of this image carries a version (VERSION_PATTERN).</div> }
+        }
+    }
+
+    <h3>The scheme <span class="meta">change these on the variables tab to fit the real conventions</span></h3>
+    <table class="vars">
+        <tr><td class="k">VERSION_PATTERN</td><td class="v">@Ws.Scheme.Pattern</td><td class="v meta">regex: the version inside an image tag</td></tr>
+        <tr><td class="k">VERSION_IGNORE</td><td class="v">@Ws.Scheme.Ignore</td><td class="v meta">base-image parts of a tag, never the application version</td></tr>
+        <tr><td class="k">VERSION_GIT_REFS</td><td class="v">@string.Join(" ; ", Ws.Scheme.RefTemplates)</td><td class="v meta">git refs tried in order for a version</td></tr>
+        <tr><td class="k">VERSION_LATEST_REFS</td><td class="v">@string.Join(" ; ", Ws.Scheme.LatestRefs)</td><td class="v meta">what "latest" means in git</td></tr>
+        <tr><td class="k">REGISTRY_API</td><td class="v">@(Ws.State().Vars.GetValueOrDefault("REGISTRY_API", "(not set)"))</td><td class="v meta">where image tags are listed from</td></tr>
+    </table>
+</section>
+</div>
+}
+
+@code {
+    private string pin = "", repo = "", image = "";
+
+    private IEnumerable<string> Known() =>
+        (Ws.Available?.Git?.Select(g => g.Version) ?? []).Concat(Ws.Available?.Registry ?? []).Append(Ws.Versions?.Detected ?? "").Where(s => s.Length > 0).Distinct();
+
+    /// Source folders the configuration names (services.NAME.src), then the repos the deployment lives in.
+    private IEnumerable<string> Repos()
+    {
+        var state = Ws.State();
+        var configured = state.Vars.Where(kv => kv.Key.EndsWith(".src", StringComparison.OrdinalIgnoreCase))
+            .Select(kv => { try { return state.Expand(kv.Value); } catch (InvalidOperationException) { return ""; } });
+        return configured.Concat(Ws.Catalog?.Repos.Select(r => r.Root) ?? []).Where(s => s.Length > 0).Distinct();
+    }
+}

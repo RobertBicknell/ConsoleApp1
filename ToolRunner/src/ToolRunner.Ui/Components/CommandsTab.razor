@@ -1,0 +1,55 @@
+@inherits LiveComponent
+@using ToolRunner.Tools
+
+<div class="meta">The reference for what a step means. A workflow step such as <b>compose/up-all</b> names a <b>saved command</b> (below, from args.json);
+    a saved command picks a <b>tool</b> and a <b>verb</b> and fills in its arguments. Verbs marked <span class="badge changed">changes</span> alter the deployment and are refused while the switch is green.</div>
+<div class="row" style="margin-top:8px"><input style="width:320px" placeholder="filter tools, verbs, commands..." @bind="filter" @bind:event="oninput" /></div>
+
+<div class="cols">
+<section>
+    <h3>Saved commands <span class="meta">args.json &middot; what workflow steps refer to</span></h3>
+    @foreach (var (tool, sets) in Live.Cfg.Args.OrderBy(a => a.Key))
+    {
+        @foreach (var (intent, set) in sets.Where(s => Match($"{tool}/{s.Key} {s.Value.ToJsonString()}")))
+        {
+            var key = $"{tool}/{intent}";
+            var verb = ToolContext.NodeStr(set["verb"]);
+            var spec = tools.TryGet(tool, out var t) ? t.Spec.FirstOrDefault(v => v.Verb == verb) : null;
+            var users = Live.Cfg.Workflows.Where(w => w.Value.Steps.Any(s => s.Run == key)).Select(w => w.Key).ToList();
+            <div class="card @(spec?.Mutates == true ? "running" : "ok")">
+                <b>@key</b>
+                <span class="badge @(spec?.Mutates == true ? "changed" : "ok")">@(spec is null ? "verb computed at run time" : spec.Mutates ? "changes" : "reads")</span>
+                <span class="meta">@tool @verb@(spec is null ? "" : ": " + spec.Doc)</span>
+                <Code Text="@set.ToJsonString(ConfigLoader.JsonOptions)" />
+                <div class="meta">@(users.Count == 0 ? "not used by any workflow" : "used by: " + string.Join(", ", users))</div>
+            </div>
+        }
+    }
+</section>
+
+<section>
+    <h3>Tools and verbs <span class="meta">built in &middot; a required argument is marked *</span></h3>
+    @foreach (var t in tools.All)
+    {
+        @foreach (var v in t.Spec.Where(v => Match($"{t.Name} {v.Verb} {v.Doc} {string.Join(' ', v.Args.Select(a => a.Name))}")))
+        {
+            <details class="card @(v.Mutates ? "running" : "ok")">
+                <summary>@t.Name @v.Verb <span class="badge @(v.Mutates ? "changed" : "ok")">@(v.Mutates ? "changes" : "reads")</span><span class="meta">@v.Doc</span></summary>
+                <table class="vars">
+                    @foreach (var a in v.Args)
+                    {
+                        <tr><td class="k">@a.Name@(a.Required ? " *" : "")</td><td class="o" style="width:70px">@a.Type</td>
+                            <td>@a.Doc @if (a.Values is { } vals) { <span class="meta">one of: @string.Join(", ", vals)</span> }</td></tr>
+                    }
+                </table>
+            </details>
+        }
+    }
+</section>
+</div>
+
+@code {
+    private readonly ToolRegistry tools = Registry.Default();
+    private string filter = "";
+    private bool Match(string text) => filter.Trim().Length == 0 || text.Contains(filter.Trim(), StringComparison.OrdinalIgnoreCase);
+}

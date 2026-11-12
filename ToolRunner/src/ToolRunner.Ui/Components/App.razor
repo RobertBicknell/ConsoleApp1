@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <base href="/" />
+    <title>toolrunner</title>
+    <script>
+        // Theme: your saved choice, else the system setting. Set before first paint so there is no flash.
+        (function () {
+            var t = null;
+            try { t = localStorage.getItem('theme'); } catch (e) { }
+            document.documentElement.dataset.theme = t || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        })();
+        function toggleTheme() {
+            var next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+            document.documentElement.dataset.theme = next;
+            try { localStorage.setItem('theme', next); } catch (e) { }
+        }
+    </script>
+    <style>
+        /* Colours carry meaning and keep it in both themes: green = ok/added, red = failed/missing/removed,
+           amber = changed/warning/running, blue = default/dry run/info, violet = set elsewhere, orange = produced by a tool. */
+        :root {
+            --bg: #f5f6f8; --panel: #ffffff; --alt: #f9fafc; --text: #1d2330; --muted: #6b7488; --faint: #8a93a6; --border: #e3e6ee;
+            --header: #1d2330; --header-text: #ffffff; --header-muted: #9aa4b8; --accent: #1d6fd6; --input: #ffffff;
+            --ok: #2e9d57; --ok-bg: #d5f0df; --bad: #c2261c; --bad-bg: #fbd5d5; --warn: #9a6400; --warn-bg: #fdecc8;
+            --info: #1d6fd6; --info-bg: #dbeafe; --violet-bg: #e8e1f5; --tool-bg: #ffe0b2; --neutral-bg: #e3e6ee; --mark: #ffe45c; --mark-text: #1d2330;
+            --str: #0b6e4f; --num: #a23f00; --kw: #7b2fbf; --key: #1d4f91;
+        }
+        :root[data-theme=dark] {
+            --bg: #14171d; --panel: #1e232c; --alt: #232934; --text: #dfe4ee; --muted: #9aa5ba; --faint: #76809a; --border: #323a49;
+            --header: #0c0e12; --header-text: #ffffff; --header-muted: #8f9ab0; --accent: #5aa7ff; --input: #12151b;
+            --ok: #4cc27c; --ok-bg: #163a26; --bad: #ff7168; --bad-bg: #4b1f1f; --warn: #f0b541; --warn-bg: #46350f;
+            --info: #6db3ff; --info-bg: #1b3456; --violet-bg: #34294f; --tool-bg: #50360f; --neutral-bg: #2c3340; --mark: #b8960a; --mark-text: #0c0e12;
+            --str: #7fd6a8; --num: #ffa869; --kw: #c79bff; --key: #8fc1ff;
+        }
+        body { font: 14px/1.4 Segoe UI, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+        a { color: var(--accent); } a.file { text-decoration: none; border-bottom: 1px dotted var(--accent); font-family: Consolas, monospace; }
+        a.file:hover { border-bottom-style: solid; }
+        header { background: var(--header); color: var(--header-text); padding: 10px 20px; display: flex; gap: 24px; align-items: baseline; flex-wrap: wrap; }
+        header small { color: var(--header-muted); }
+        nav button { background: none; border: 0; color: var(--header-muted); font: inherit; padding: 6px 12px; cursor: pointer; }
+        nav button.on { color: var(--header-text); border-bottom: 2px solid var(--accent); }
+        main { padding: 16px 20px; max-width: 1800px; }
+        h3 { margin: 18px 0 6px; }
+        .meta { color: var(--muted); font-size: 12px; font-weight: normal; }
+        .raw { color: var(--faint); }
+        .err { background: var(--bad-bg); border-left: 4px solid var(--bad); padding: 8px 12px; margin-bottom: 12px; }
+        .note { background: var(--ok-bg); border-left: 4px solid var(--ok); padding: 6px 12px; margin: 8px 0; }
+
+        table { border-collapse: collapse; width: 100%; background: var(--panel); }
+        td, th { text-align: left; padding: 3px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+        td.k { font-family: Consolas, monospace; white-space: nowrap; }
+        td.v { font-family: Consolas, monospace; word-break: break-all; }
+        td.o { white-space: nowrap; width: 1%; }
+        td.ref { font-family: Consolas, monospace; color: var(--faint); word-break: break-all; }
+        /* one column layout for every group on the variables page, however long the names and values are */
+        table.vars { table-layout: fixed; }
+        table.vars td.k { width: 26%; white-space: normal; word-break: break-all; }
+        table.vars td.o { width: 230px; white-space: normal; }
+        table.vars tr:hover td { background: var(--alt); }
+
+        .card { background: var(--panel); border-left: 5px solid var(--faint); margin: 6px 0; padding: 6px 12px; }
+        .card.ok { border-color: var(--ok); } .card.fail { border-color: var(--bad); } .card.running { border-color: var(--warn); } .card.dry { border-color: var(--info); }
+        .card > summary { font-weight: 600; cursor: pointer; }
+        pre { margin: 6px 0; font: 12px Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+        pre .errstream { color: var(--warn); } pre .ran { color: var(--info); } pre .okline { color: var(--ok); } pre .failline { color: var(--bad); font-weight: 600; }
+
+        input, select, textarea { font: inherit; padding: 3px 9px; background: var(--input); color: var(--text); border: 1px solid var(--border); border-radius: 12px; }
+        textarea { border-radius: 10px; } input[type=checkbox], input[type=radio] { border-radius: 3px; padding: 0; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--info-bg); }
+        a.doclink { color: var(--header-text); font-size: 12px; margin-left: 6px; }
+        button.pill { font-weight: 600; border-radius: 12px; padding: 2px 12px; border: 2px solid var(--info); background: var(--info-bg); color: var(--info); cursor: pointer; }
+        button { color: var(--text); }
+        button.act { font: inherit; padding: 4px 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 3px; cursor: pointer; }
+        button.act:disabled { opacity: .5; cursor: default; }
+        button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+        button.mini { font-size: 11px; padding: 0 6px; margin-left: 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 3px; cursor: pointer; }
+        header select, header button.act { font-size: 12px; padding: 1px 6px; }
+
+        .badge { font-size: 11px; padding: 1px 8px; border-radius: 9px; background: var(--neutral-bg); margin-right: 6px; white-space: nowrap; }
+        .badge.ok, .badge.added { background: var(--ok-bg); } .badge.undefined, .badge.removed { background: var(--bad-bg); }
+        .badge.unused, .badge.changed { background: var(--warn-bg); } .badge.default { background: var(--info-bg); }
+        .badge.compose-literal, .badge.container-env { background: var(--violet-bg); } .badge.tool { background: var(--tool-bg); }
+
+        .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; }
+        @@media (max-width: 1100px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+        .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .args { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 12px; margin-top: 4px; }
+        label.arg { display: flex; flex-direction: column; font-size: 12px; color: var(--muted); }
+        label.arg input, label.arg textarea { width: 100%; box-sizing: border-box; font: 13px Consolas, monospace; padding: 3px 9px; }
+        label.arg.req > span { color: var(--bad); font-weight: 600; }
+        label.arg.wide { margin: 8px 0; }
+        .row label.arg { min-width: 180px; }
+        .chainstep { display: flex; gap: 10px; align-items: center; }
+        .chainstep .meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 45%; font-family: Consolas, monospace; }
+        .right { margin-left: auto; white-space: nowrap; }
+        span.edit { cursor: pointer; border-bottom: 1px dashed var(--faint); }
+        mark { background: var(--mark); color: var(--mark-text); border-radius: 2px; padding: 0 1px; }
+
+        /* logs: one row per line, clearly separated; the level shows as a coloured edge and text colour */
+        .panes { display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 14px; margin-top: 10px; }
+        .pane { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; min-width: 0; }
+        .pane > .head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+        .pane > .head b { font-size: 15px; }
+        .lines { max-height: 68vh; overflow: auto; font: 12px Consolas, monospace; }
+        .ll { display: flex; gap: 10px; padding: 3px 10px 3px 7px; border-bottom: 1px solid var(--border); border-left: 3px solid transparent; }
+        .ll:nth-child(even) { background: var(--alt); }
+        .ll .ts { color: var(--faint); white-space: nowrap; flex: none; } .ll .tx { white-space: pre-wrap; word-break: break-word; min-width: 0; }
+        .ll.error { border-left-color: var(--bad); } .ll.error .tx { color: var(--bad); }
+        .ll.warn { border-left-color: var(--warn); } .ll.warn .tx { color: var(--warn); }
+        .ll.debug .tx { color: var(--faint); } .ll.info { border-left-color: var(--info-bg); }
+        table.log td { font: 12px Consolas, monospace; } table.log tr.error td { color: var(--bad); } table.log tr.warn td { color: var(--warn); } table.log tr.debug td { color: var(--faint); }
+        button.chip { font-size: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 1px 10px; background: var(--panel); opacity: .45; cursor: pointer; }
+        button.chip.on { opacity: 1; } button.chip.error { border-color: var(--bad); color: var(--bad); } button.chip.warn { border-color: var(--warn); color: var(--warn); }
+        textarea.spool { width: 100%; box-sizing: border-box; font: 12px Consolas, monospace; margin-top: 8px; }
+
+        /* syntax colours (viewer, workflows, commands) */
+        .s-key { color: var(--key); } .s-str { color: var(--str); } .s-num { color: var(--num); } .s-kw { color: var(--kw); }
+        .s-cm { color: var(--faint); font-style: italic; } .s-var { color: var(--warn); font-weight: 600; }
+        pre.codeblock { background: var(--alt); border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; margin: 6px 0; }
+        /* comparison rows: the same four columns in every file card */
+        table.diffs { table-layout: fixed; } table.diffs td.o { width: 84px; } table.diffs td.k { width: 30%; white-space: normal; word-break: break-all; }
+        table.diffs td.v { width: 32%; }
+        /* the safety switch */
+        button.safe { font-weight: 600; border-radius: 12px; padding: 2px 12px; border: 2px solid; cursor: pointer; }
+        button.safe.on { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+        button.safe.off { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+        .remark { background: var(--info-bg); border-left: 5px solid var(--info); margin: 6px 0; padding: 6px 12px; white-space: pre-wrap; }
+        .outpanel { max-height: 46vh; overflow: auto; border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; background: var(--bg); }
+        .watch td.v { max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .side { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 8px 10px; }
+        .folder { margin: 2px 0; } .folder > summary { cursor: pointer; font-family: Consolas, monospace; }
+        .folder .files { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 2px 0 6px 18px; }
+
+        /* file viewer */
+        .viewer { padding: 12px 20px; }
+        .tree { font: 13px Consolas, monospace; background: var(--panel); padding: 10px 14px; border: 1px solid var(--border); border-radius: 4px; }
+        .tree details > summary { cursor: pointer; } .tree .kids { margin-left: 18px; border-left: 1px dotted var(--border); padding-left: 10px; }
+        .tree .leaf { padding-left: 14px; }
+        .jk { color: var(--key); } .jv.string { color: var(--str); } .jv.number { color: var(--num); } .jv.kw { color: var(--kw); }
+        .xt { color: var(--key); } .xa { color: var(--kw); } .xv { color: var(--str); }
+        .code { font: 12px Consolas, monospace; background: var(--panel); border: 1px solid var(--border); border-radius: 4px; overflow: auto; }
+        .code .ln { display: flex; } .code .ln:hover { background: var(--alt); }
+        .code .no { flex: none; width: 54px; text-align: right; padding-right: 12px; color: var(--faint); user-select: none; border-right: 1px solid var(--border); margin-right: 10px; }
+        .code .tx { white-space: pre-wrap; word-break: break-word; min-width: 0; }
+        .code .cm { color: var(--faint); font-style: italic; } .code .error .tx { color: var(--bad); } .code .warn .tx { color: var(--warn); }
+    </style>
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+<body>
+    <Routes @rendermode="InteractiveServer" />
+    <script src="_framework/blazor.web.js"></script>
+</body>
+</html>

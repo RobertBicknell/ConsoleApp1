@@ -1,0 +1,30 @@
+Answer in plain text with exactly these five sections, in this order.
+
+1. ASSESSMENT
+If RECENT RUNS holds the outcome of an earlier plan for this intent: say whether the intent is fulfilled (yes, no or partly) and quote the lines that show it.
+Otherwise: say what the state shows that matters for the intent.
+
+2. PLAN
+One JSON object and nothing else in this section. A program reads it, so keep exactly this shape:
+
+{
+  "intent": "the intent in one sentence",
+  "vars": { "service": "gateway" },
+  "steps": [
+    { "workflow": "digest", "params": { "service": "gateway" } },
+    { "run": "compose/ps" },
+    { "run": "docker", "with": { "verb": "logs", "service": "gateway", "tail": 200 } }
+  ],
+  "expect": "what the output will show if the intent is fulfilled"
+}
+
+"vars" holds values that saved commands need. Give "steps": [] when nothing should be run (the intent is fulfilled, or you need an answer first).
+
+3. WHY
+One line per step: why it is there. Name every step that is marked [CHANGES].
+
+4. QUESTIONS
+What you need from me before you can plan further, or the word none.
+
+5. CARRY-FORWARD
+At most ten lines I will send back to you next time: the intent, what has been established, what is still open.

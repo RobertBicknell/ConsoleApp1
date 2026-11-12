@@ -1,0 +1,26 @@
+{
+  // Local only. Uses the sandbox config and the fake docker, like the ToolRunner profiles (run sandbox\setup.ps1 once).
+  "profiles": {
+    // The same UI against the real docker / podman on this machine (nothing fake on PATH).
+    "ui (real containers)": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:5180",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "TOOLRUNNER_CONFIG": "..\\ToolRunner\\config"
+      }
+    },
+    "ui": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:5180",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "TOOLRUNNER_CONFIG": "..\\ToolRunner\\config",
+        "PATH": "..\\FakeDocker\\bin\\Debug\\net10.0;%PATH%",
+        "FAKEDOCKER_STATE": "..\\..\\sandbox\\work\\fakedocker-state.json"
+      }
+    }
+  }
+}

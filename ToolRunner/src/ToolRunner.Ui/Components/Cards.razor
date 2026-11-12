@@ -1,0 +1,26 @@
+@* A log shown as one expandable card per step. A failed or running step starts open; the triangle opens or closes all.
+   Inside a card: RAN / WOULD RUN (the resolved arguments) in blue, the OK / FAIL verdict in green / red. *@
+@{ var cards = LogView.Cards(Lines); }
+@if (cards.Count > 1)
+{
+    <button class="mini" style="margin-left:0" title="expand or collapse every step" @onclick="ToggleAll">@(all == true ? "▾ collapse all" : "▸ expand all")</button>
+}
+@foreach (var (c, i) in cards.Select((c, i) => (c, i)))
+{
+    <details class="card @c.Status" open="@(all ?? c.Status is "fail" or "running")" @key="(i, generation)">
+        <summary>@c.Header</summary>
+        <pre>@foreach (var l in c.Lines) {<span class="@Class(l)">@l.TrimEnd('\r')
+</span>}</pre>
+    </details>
+}
+
+@code {
+    [Parameter, EditorRequired] public IEnumerable<string> Lines { get; set; } = [];
+    private bool? all;            // null = each card's own default
+    private int generation;       // re-creates the cards on toggle, so ones opened or closed by hand follow too
+
+    private void ToggleAll() { all = all != true; generation++; }
+
+    private static string Class(string l) =>
+        l.StartsWith("    RAN ") || l.StartsWith("    WOULD RUN ") ? "ran" : l.StartsWith("    OK ") ? "okline" : l.StartsWith("    FAIL ") || l.StartsWith("BLOCKED ") ? "failline" : l.StartsWith("    (stderr) ") ? "errstream" : "";
+}

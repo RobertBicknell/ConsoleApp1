@@ -1,0 +1,165 @@
+@inherits LiveComponent
+
+@if (Ws.Catalog is not { } cat) { <div class="meta" style="margin-top:12px">@(Ws.Scanning ? "Scanning..." : "Scan a deployment first (deployment tab).")</div> }
+else
+{
+<div class="row">
+    <span class="meta">Entry points on the left; each service points at what it needs.</span>
+    <span class="maplegend"><svg width="46" height="10"><line x1="2" y1="5" x2="44" y2="5" class="edge depends" /></svg> depends_on</span>
+    <span class="maplegend"><svg width="46" height="10"><line x1="2" y1="5" x2="44" y2="5" class="edge talks" /></svg> a setting names it</span>
+    <span class="meta">&#8644; published ports &middot; &#128193; bind mounts &middot; &#9707; volumes &middot; &#129513; plugins</span>
+    <button class="act" disabled="@Ws.CheckingRuntime" @onclick="Ws.CheckRuntimeAsync">@(Ws.CheckingRuntime ? "inspecting..." : Ws.Runtime is null ? "colour by running state" : "refresh running state")</button>
+</div>
+
+<div class="cols" style="align-items:flex-start">
+<section style="flex:3;min-width:0">
+@foreach (var stack in cat.Scan.Stacks)
+{
+    var map = SystemMap.Build(stack);
+    var (w, h) = (map.Columns * (W + GapX) - GapX + 2 * Pad, Math.Max(1, map.Rows) * (H + GapY) - GapY + 2 * Pad);
+    <h3>@Rel(cat.Root, stack.Dir) <span class="meta">@map.Nodes.Count service(s), @map.Links.Count connection(s)</span></h3>
+    <div style="overflow:auto">
+    <svg class="sysmap" width="@w" height="@h" viewBox="0 0 @w @h">
+        <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" class="arrowhead" /></marker>
+        </defs>
+        @foreach (var l in map.Links)
+        {
+            var (a, b) = (map.Nodes.First(n => n.Service == l.From), map.Nodes.First(n => n.Service == l.To));
+            var hot = selected is { } s && s.Stack == stack.Dir && (s.Service == l.From || s.Service == l.To);
+            <path d="@Edge(a, b)" class="edge @l.Kind @(hot ? "hot" : "")" marker-end="url(#arrow)">
+                <title>@l.From @(l.Kind == "depends" ? "depends on" : "is configured to reach") @l.To@(l.Via.Count > 0 ? " (" + string.Join(", ", l.Via) + ")" : "")</title>
+            </path>
+        }
+        @foreach (var n in map.Nodes)
+        {
+            var state = State(stack.Dir, n);
+            var on = selected == (stack.Dir, n.Service);
+            <foreignObject x="@X(n)" y="@Y(n)" width="@W" height="@H">
+                <div class="mapnode @state @(on ? "on" : "")" title="@Tip(n)" @onclick="() => selected = on ? null : (stack.Dir, n.Service)">
+                    <div class="name">@n.Service @if (Version(stack.Dir, n.Service) is { } v) { <span class="ver">@v</span> }</div>
+                    <div class="img">@Short(n.Image)</div>
+                    <div class="facts">
+                        @if (n.Ports.Count > 0) { <span title="published ports (host:container)">&#8644; @string.Join(" ", n.Ports.Take(2))@(n.Ports.Count > 2 ? " +" + (n.Ports.Count - 2) : "")</span> }
+                        @if (n.Binds > 0) { <span class="@(n.MissingBinds > 0 ? "bad" : "")" title="bind mounts@(n.MissingBinds > 0 ? $": {n.MissingBinds} source(s) missing" : "")">&#128193; @n.Binds</span> }
+                        @if (n.Volumes > 0) { <span title="named volumes">&#9707; @n.Volumes</span> }
+                        @if (n.PluginsListed > 0) { <span class="@(n.PluginsMissing > 0 ? "bad" : "")" title="plugin assemblies listed in appsettings@(n.PluginsMissing > 0 ? $": {n.PluginsMissing} missing" : "")">&#129513; @n.PluginsListed</span> }
+                    </div>
+                </div>
+            </foreignObject>
+        }
+    </svg>
+    </div>
+}
+</section>
+
+<section class="side" style="flex:1.6;min-width:320px">
+    @if (selected is not { } sel || cat.Scan.Stacks.FirstOrDefault(s => s.Dir == sel.Stack) is not { } st || SystemMap.Build(st) is not { } m || m.Nodes.FirstOrDefault(n => n.Service == sel.Service) is not { } node)
+    {
+        <h3 style="margin-top:0">Service</h3>
+        <div class="meta">Click a service for its details. Hover a line to see what makes the connection.</div>
+    }
+    else
+    {
+        var info = st.Services.First(s => s.Name == node.Service);
+        <h3 style="margin-top:0">@node.Service <span class="meta">@Rel(cat.Root, st.Dir) &middot; <FileLink Path="@info.File" Text="@($"{System.IO.Path.GetFileName(info.File)}:{info.Line}")" /></span></h3>
+        <table class="vars">
+            <tr><td class="k">image</td><td class="v">@(node.Image ?? "(built by compose)")</td></tr>
+            @if (Version(st.Dir, node.Service) is { } ver) { <tr><td class="k">version</td><td class="v">@ver</td></tr> }
+            <tr><td class="k">depends on</td><td class="v">@Names(node.DependsOn)</td></tr>
+            <tr><td class="k">needed by</td><td class="v">@Names(node.Dependants)</td></tr>
+            <tr><td class="k">restart also hits</td><td class="v">@Names(cat.Dependants(node.Service))</td></tr>
+            @foreach (var l in m.Links.Where(l => (l.From == node.Service || l.To == node.Service) && l.Via.Count > 0))
+            {
+                <tr><td class="k">@(l.From == node.Service ? "reaches " + l.To : "reached by " + l.From)</td><td class="v">through @string.Join(", ", l.Via)</td></tr>
+            }
+        </table>
+        <h3>Ports</h3>
+        <table class="vars">
+            @foreach (var p in st.Ports.Where(p => p.Service == node.Service))
+            { <tr><td class="k">@(p.Published ?? "(not published)")</td><td class="v">&rarr; @p.Target/@p.Protocol @(p.Kind == "expose" ? "(exposed only)" : "")</td></tr> }
+        </table>
+        @if (!st.Ports.Any(p => p.Service == node.Service)) { <div class="meta">none</div> }
+        <h3>Mounts</h3>
+        <table class="vars">
+            @foreach (var mt in st.Mounts.Where(x => x.Service == node.Service))
+            {
+                <tr><td class="o" style="width:80px"><span class="badge @(mt.Exists == false ? "undefined" : "")">@(mt.Exists == false ? "missing" : mt.Kind)</span></td>
+                    <td class="k">@(mt.Resolved is null ? mt.Source : Rel(cat.Root, mt.Resolved))</td><td class="v">&rarr; @mt.Target@(mt.ReadOnly ? " (ro)" : "")</td></tr>
+            }
+        </table>
+        @if (!st.Mounts.Any(x => x.Service == node.Service)) { <div class="meta">none</div> }
+        @foreach (var r in st.Plugins.Where(p => p.Service == node.Service))
+        {
+            <h3>Plugins <span class="meta"><FileLink Path="@r.AppSettings" Text="@System.IO.Path.GetFileName(r.AppSettings)" /></span></h3>
+            <div class="row">@foreach (var i in r.Items) { <span class="badge @(i.FoundAt is null ? "undefined" : "ok")">@i.Name</span> }</div>
+        }
+        @if (Ws.Runtime is { } rt)
+        {
+            var mine = rt.Findings.Where(f => f.Stack == st.Dir && f.Service == node.Service && f.Status != "ok").ToList();
+            <h3>Running state <span class="meta">@(mine.Count == 0 ? "everything configured is in effect" : $"{mine.Count} to look at")</span></h3>
+            <table class="vars">
+                @foreach (var f in mine) { <tr><td class="o" style="width:90px"><span class="badge changed">@f.Status</span></td><td class="k">@f.Area @f.Item</td><td class="v">@f.Actual</td></tr> }
+            </table>
+        }
+    }
+</section>
+</div>
+}
+
+<style>
+    .sysmap .edge { fill: none; stroke: var(--muted); stroke-width: 1.6; }
+    .sysmap .edge.talks, .maplegend .edge.talks { stroke-dasharray: 6 4; stroke: var(--info); }
+    .maplegend .edge { stroke: var(--muted); stroke-width: 1.6; }
+    .sysmap .edge.hot { stroke: var(--accent); stroke-width: 2.6; }
+    .sysmap .arrowhead { fill: var(--muted); }
+    .maplegend { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; }
+    .mapnode { box-sizing: border-box; height: 100%; padding: 7px 10px; border: 1.5px solid var(--border); border-left-width: 5px; border-radius: 7px;
+               background: var(--panel); color: var(--text); cursor: pointer; font-size: 12px; overflow: hidden; }
+    .mapnode:hover, .mapnode.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--info-bg); }
+    .mapnode.up { border-left-color: var(--ok); } .mapnode.drift { border-left-color: var(--warn); } .mapnode.down { border-left-color: var(--bad); }
+    .mapnode .name { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mapnode .ver { font-weight: 400; color: var(--muted); margin-left: 4px; }
+    .mapnode .img { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: left; }
+    .mapnode .facts { margin-top: 5px; display: flex; gap: 9px; white-space: nowrap; }
+    .mapnode .facts .bad { color: var(--bad); font-weight: 600; }
+</style>
+
+@code {
+    private const int W = 196, H = 76, GapX = 72, GapY = 22, Pad = 8;
+    private (string Stack, string Service)? selected;
+
+    private static int X(MapNode n) => Pad + n.Column * (W + GapX);
+    private static int Y(MapNode n) => Pad + n.Row * (H + GapY);
+
+    /// Left to right: out of the right edge, into the left edge. Anything else (same column, or a cycle) loops underneath.
+    private static string Edge(MapNode a, MapNode b)
+    {
+        if (b.Column > a.Column)
+        {
+            var (x1, y1, x2, y2) = (X(a) + W, Y(a) + H / 2, X(b) - 2, Y(b) + H / 2);
+            var bend = (x2 - x1) / 2;
+            return $"M {x1} {y1} C {x1 + bend} {y1}, {x2 - bend} {y2}, {x2} {y2}";
+        }
+        var (sx, sy, tx, ty) = (X(a) + W, Y(a) + H * 3 / 4, X(b) + W + 2, Y(b) + H / 4);
+        return $"M {sx} {sy} C {sx + 46} {sy}, {tx + 46} {ty}, {tx} {ty}";
+    }
+
+    private static string Short(string? image) => image is null ? "(built)" : image;
+    private static string Names(IReadOnlyList<string> xs) => xs.Count == 0 ? "-" : string.Join(", ", xs);
+
+    private string? Version(string stack, string service) =>
+        Ws.VersionsByStack.Where(s => s.Stack == stack).SelectMany(s => s.Versions.Product).FirstOrDefault(i => i.Service == service)?.Version;
+
+    /// up / drift / down once the running containers have been inspected; empty before that.
+    private string State(string stack, MapNode n)
+    {
+        if (Ws.Runtime is not { } rt) return "";
+        var mine = rt.Findings.Where(f => f.Stack == stack && f.Service == n.Service).ToList();
+        return mine.Any(f => f.Area == "container" && f.Status is "missing" or "not-running") ? "down" : mine.Any(f => f.Status != "ok") ? "drift" : mine.Count > 0 ? "up" : "";
+    }
+
+    private string Tip(MapNode n) =>
+        $"{n.Service}\n{n.Image}\nports: {(n.Ports.Count == 0 ? "none published" : string.Join(", ", n.Ports))}\nbind mounts: {n.Binds}{(n.MissingBinds > 0 ? $" ({n.MissingBinds} missing)" : "")}, volumes: {n.Volumes}"
+        + $"\ndepends on: {Names(n.DependsOn)}\nneeded by: {Names(n.Dependants)}{(n.PluginsListed > 0 ? $"\nplugins: {n.PluginsListed} listed, {n.PluginsMissing} missing" : "")}\n(click for details)";
+}

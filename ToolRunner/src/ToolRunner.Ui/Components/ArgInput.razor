@@ -1,0 +1,29 @@
+@* One value box with suggestions. The suggestions come from the workspace: what an argument of this name usually wants
+   (services, images, files, env keys ...), recently typed values first, and every variable as ${NAME}. *@
+@inject Workspace Ws
+
+<label class="arg @(Spec?.Required == true ? "req" : "")" title="@Spec?.Doc">
+    <span>@Name@(Spec?.Required == true ? " *" : "")</span>
+    @if (Spec?.Type is "object" or "edits")
+    {
+        <textarea rows="2" placeholder="@(Placeholder ?? (Spec.Type == "edits" ? "[ { \"set\": \"KEY\", \"value\": \"v\" } ]" : "{ \"KEY\": \"value\" }"))"
+                  value="@Value" @oninput="e => ValueChanged.InvokeAsync(e.Value?.ToString() ?? string.Empty)"></textarea>
+    }
+    else
+    {
+        <input list="@_id" placeholder="@(Placeholder ?? (Spec?.Type == "list" ? "a; b; c" : ""))" value="@Value" autocomplete="off"
+               @oninput="e => ValueChanged.InvokeAsync(e.Value?.ToString() ?? string.Empty)" />
+        <datalist id="@_id">
+            @foreach (var s in Ws.Suggest(Name, Spec)) { <option value="@s"></option> }
+        </datalist>
+    }
+</label>
+
+@code {
+    private readonly string _id = "dl-" + Guid.NewGuid().ToString("N")[..8];
+    [Parameter, EditorRequired] public string Name { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public Arg? Spec { get; set; }
+    [Parameter] public string? Placeholder { get; set; }
+}

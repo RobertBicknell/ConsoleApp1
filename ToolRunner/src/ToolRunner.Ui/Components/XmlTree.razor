@@ -1,0 +1,21 @@
+@* An XML element as a collapsible tree: attributes on the summary line, text-only elements on one line. *@
+@using System.Xml.Linq
+@{ var kids = Element.Elements().ToList(); var text = kids.Count == 0 ? Element.Value.Trim() : ""; }
+@if (kids.Count == 0)
+{
+    <div class="leaf">&lt;<span class="xt">@Element.Name.LocalName</span>@Attributes@(text.Length == 0 ? " /" : "")&gt;@if (text.Length > 0) { <span class="xv">@text</span>@("</")<span class="xt">@Element.Name.LocalName</span>@(">") }</div>
+}
+else
+{
+    <details open="@(Depth < OpenDepth)">
+        <summary>&lt;<span class="xt">@Element.Name.LocalName</span>@Attributes&gt;<span class="meta"> @kids.Count</span></summary>
+        <div class="kids">@foreach (var k in kids) { <XmlTree Element="k" Depth="Depth + 1" OpenDepth="OpenDepth" /> }</div>
+    </details>
+}
+
+@code {
+    [Parameter, EditorRequired] public XElement Element { get; set; } = default!;
+    [Parameter] public int Depth { get; set; }
+    [Parameter] public int OpenDepth { get; set; } = 3;
+    private RenderFragment Attributes => @<text>@foreach (var a in Element.Attributes()) { @(" ")<span class="xa">@a.Name.LocalName</span><text>="</text><span class="xv">@a.Value</span><text>"</text> }</text>;
+}

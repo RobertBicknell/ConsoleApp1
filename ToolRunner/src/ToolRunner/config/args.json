@@ -1,0 +1,80 @@
+{
+  "$schema": "schemas/args.schema.json",
+  "args": {
+    "git": {
+      "app-clean":      { "verb": "require-clean", "path": "${APP_ROOT}" },
+      "diff-env":       { "verb": "diff", "a": "${ENV_FILE}", "b": "${ENV_DEBUG}" },
+      "diff-compose":   { "verb": "diff", "a": "${COMPOSE_FILE}", "b": "${COMPOSE_DEBUG}" }
+    },
+    "source": {
+      "verify-service": {
+        "verb": "verify",
+        "strategy": "${services.${service}.verify}",
+        "image": "${services.${service}.image}",
+        "src": "${services.${service}.src}"
+      }
+    },
+    "file": {
+      "derive-env-debug": {
+        "verb": "derive",
+        "source": "${ENV_FILE}",
+        "target": "${ENV_DEBUG}",
+        "edits": [
+          { "set": "${services.${service}.hostKey}", "value": "${services.${service}.debugHost}" },
+          { "set": "${services.${service}.portKey}", "value": "${services.${service}.debugPort}" }
+        ]
+      },
+      "derive-compose-without-service": {
+        "verb": "derive",
+        "source": "${COMPOSE_FILE}",
+        "target": "${COMPOSE_DEBUG}",
+        "edits": [ { "commentService": "${service}" } ]
+      },
+      "derive-compose-suppressed": {
+        "verb": "derive",
+        "source": "${COMPOSE_FILE}",
+        "target": "${COMPOSE_DEBUG}",
+        "edits": [ { "commentService": "${service}" }, { "dropDependsOn": "${service}" } ]
+      },
+      "remove-derived": { "verb": "delete", "paths": [ "${COMPOSE_DEBUG}", "${ENV_DEBUG}" ] }
+    },
+    "compose": {
+      "validate-debug-env":   { "verb": "config", "envFile": "${ENV_DEBUG}", "quiet": true },
+      "validate-debug-files": { "verb": "config", "files": [ "${COMPOSE_DEBUG}" ], "quiet": true },
+      "stop-service":         { "verb": "stop", "service": "${service}" },
+      "up-consumer-debug":    { "verb": "up", "envFile": "${ENV_DEBUG}", "service": "${services.${service}.consumer}" },
+      "up-service":           { "verb": "up", "service": "${service}" },
+      "up-consumer":          { "verb": "up", "service": "${services.${service}.consumer}" },
+      "validate-suppressed":  { "verb": "config", "files": [ "${COMPOSE_DEBUG}" ], "envFile": "${ENV_DEBUG}", "quiet": true },
+      "up-suppressed":        { "verb": "up", "files": [ "${COMPOSE_DEBUG}" ], "envFile": "${ENV_DEBUG}" },
+      "up-all":               { "verb": "up" },
+      "ps":                   { "verb": "ps" },
+      "up-debug-service":     { "verb": "up", "service": "${DEBUG_SERVICE}", "optionalFiles": [ "${COMPOSE_DEBUG_IMAGE}" ] },
+      "up-restored-service":  { "verb": "up", "service": "${service}", "optionalFiles": [ "${COMPOSE_DEBUG_IMAGE}" ] }
+    },
+    "version": {
+      "detect":        { "verb": "detect" },
+      "available":     { "verb": "available", "repo": "${repo:-}", "image": "${image:-}" },
+      "checkout":      { "verb": "checkout", "repo": "${repo}" },
+      "source-matches": { "verb": "verify-source", "repo": "${repo}" },
+      "debug-source-matches": { "verb": "verify-source", "repo": "${DEBUG_CONTEXT}", "version": "${DEBUG_VERSION:-}" }
+    },
+    "debugimage": {
+      "plan":    { "verb": "plan", "source": "${source}", "service": "${service:-}", "baseImage": "${baseImage:-}" },
+      "prepare": { "verb": "prepare", "source": "${source}", "service": "${service:-}", "baseImage": "${baseImage:-}" },
+      "use":     { "verb": "use", "service": "${DEBUG_SERVICE}", "image": "${DEBUG_IMAGE}" },
+      "restore": { "verb": "restore", "service": "${service}" }
+    },
+    "docker": {
+      "consumer-link-probe": {
+        "verb": "logs",
+        "service": "${services.${service}.consumer}",
+        "contains": "${services.${service}.logProbe}",
+        "waitSeconds": 60
+      },
+      "build-debug-image": { "verb": "build", "context": "${DEBUG_CONTEXT}", "file": "${DEBUG_DOCKERFILE}", "tag": [ "${DEBUG_IMAGE}" ] },
+      "consumer-logs": { "verb": "logs", "service": "${services.${service}.consumer}", "tail": 50 },
+      "service-digest": { "verb": "logs", "service": "${service}", "tail": 2000, "since": "${since:-24h}", "digest": true }
+    }
+  }
+}

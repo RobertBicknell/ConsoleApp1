@@ -1,0 +1,54 @@
+services:
+  db:
+    image: ${REGISTRY}/postgres:${POSTGRES_VERSION}
+    container_name: ${PRODUCT_TITLE}-db
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+
+  productconfig:
+    image: ${REGISTRY}/acme/productconfig:${PRODUCT_VERSION}
+    container_name: ${PRODUCT_TITLE}-productconfig
+    depends_on:
+      - db
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      PRODUCT_TITLE: ${PRODUCT_TITLE}
+    ports:
+      - "${PRODUCTCONFIG_PORT}:8080"
+    volumes:
+      - ./productconfig/appsettings.json:/app/appsettings.json:ro
+      - ./productconfig/plugins:/app/plugins:ro
+    networks:
+      - default
+      - identity
+
+  webportal:
+    image: ${REGISTRY}/acme/webportal:${PRODUCT_VERSION}
+    container_name: ${PRODUCT_TITLE}-webportal
+    depends_on:
+      - productconfig
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      PRODUCT_TITLE: ${PRODUCT_TITLE}
+      PRODUCTCONFIG_URL: http://productconfig:8080
+    ports:
+      - "${WEBPORTAL_PORT}:8080"
+    volumes:
+      - ./webportal/appsettings.json:/app/appsettings.json:ro
+      - ./webportal/plugins:/app/plugins:ro
+    networks:
+      - default
+      - identity
+
+volumes:
+  dbdata:
+
+# Keycloak's network: created by the keycloak stack, joined here.
+networks:
+  identity:
+    name: ${IDENTITY_NETWORK}
+    external: true

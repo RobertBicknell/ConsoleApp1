@@ -1,0 +1,3692 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "toolrunner args.json",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "args": {
+      "type": "object",
+      "properties": {
+        "compose": {
+          "type": "object",
+          "description": "Named argument sets for the `compose` tool; each key is an intent.",
+          "additionalProperties": {
+            "$ref": "#/definitions/tool_compose"
+          }
+        },
+        "debugimage": {
+          "type": "object",
+          "description": "Named argument sets for the `debugimage` tool; each key is an intent.",
+          "additionalProperties": {
+            "$ref": "#/definitions/tool_debugimage"
+          }
+        },
+        "docker": {
+          "type": "object",
+          "description": "Named argument sets for the `docker` tool; each key is an intent.",
+          "additionalProperties": {
+            "$ref": "#/definitions/tool_docker"
+          }
+        },
+        "dotnet": {
+          "type": "object",
+          "description": "Named argument sets for the `dotnet` tool; each key is an intent.",
+          "additionalProperties": {
+            "$ref": "#/definitions/tool_dotnet"
+          }
+        },
+        "file": {
+          "type": "object",
+          "description": "Named argument sets for the `file` tool; each key is an intent.",
+          "additionalProperties": {
+            "$ref": "#/definitions/tool_file"
+          }
+        },
+        "git": {
+          "type": "object",
+          "description": "Named argument sets for the `git` tool; each key is an intent.",
+          "additionalProperties": {
+            "$ref": "#/definitions/tool_git"
+          }
+        },
+        "logfile": {
+          "type": "object",
+          "description": "Named argument sets for the `logfile` tool; each key is an intent.",
+          "additionalProperties": {
+            "$ref": "#/definitions/tool_logfile"
+          }
+        },
+        "plugins": {
+          "type": "object",
+          "description": "Named argument sets for the `plugins` tool; each key is an intent.",
+          "additionalProperties": {
+            "$ref": "#/definitions/tool_plugins"
+          }
+        },
+        "shell": {
+          "type": "object",
+          "description": "Named argument sets for the `shell` tool; each key is an intent.",
+          "additionalProperties": {
+            "$ref": "#/definitions/tool_shell"
+          }
+        },
+        "source": {
+          "type": "object",
+          "description": "Named argument sets for the `source` tool; each key is an intent.",
+          "additionalProperties": {
+            "$ref": "#/definitions/tool_source"
+          }
+        },
+        "version": {
+          "type": "object",
+          "description": "Named argument sets for the `version` tool; each key is an intent.",
+          "additionalProperties": {
+            "$ref": "#/definitions/tool_version"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "definitions": {
+    "tool_compose": {
+      "type": "object",
+      "required": [
+        "verb"
+      ],
+      "properties": {
+        "projectDir": {
+          "type": "string",
+          "description": "--project-directory (default ${APP_ROOT})."
+        },
+        "project": {
+          "type": "string",
+          "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+        },
+        "envFile": {
+          "type": "string",
+          "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+        },
+        "files": {
+          "type": [
+            "array",
+            "string"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Compose files (-f); default ${COMPOSE_FILE}."
+        },
+        "optionalFiles": {
+          "type": [
+            "array",
+            "string"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+        },
+        "service": {
+          "type": "string",
+          "description": "One service to act on."
+        },
+        "services": {
+          "type": [
+            "array",
+            "string"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Services to act on."
+        },
+        "extra": {
+          "type": [
+            "array",
+            "string"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Extra arguments passed through to docker compose."
+        },
+        "noDeps": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Pass --no-deps when services are named (default true)."
+        },
+        "build": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Pass --build."
+        },
+        "removeOrphans": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Pass --remove-orphans."
+        },
+        "into": {
+          "type": "string",
+          "description": "State variable for the start time (default STARTED_AT_UTC)."
+        },
+        "all": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Include stopped containers (default true)."
+        },
+        "quiet": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Only report errors (-q)."
+        },
+        "verb": {
+          "anyOf": [
+            {
+              "const": "up",
+              "description": "Start services detached (-d)."
+            },
+            {
+              "const": "down",
+              "description": "Stop and remove the stack."
+            },
+            {
+              "const": "stop",
+              "description": "Stop services."
+            },
+            {
+              "const": "start",
+              "description": "Start existing services."
+            },
+            {
+              "const": "restart",
+              "description": "Restart services."
+            },
+            {
+              "const": "ps",
+              "description": "List containers."
+            },
+            {
+              "const": "config",
+              "description": "Validate and render the merged model."
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "What `compose` does."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "up"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "projectDir": {
+                "type": "string",
+                "description": "--project-directory (default ${APP_ROOT})."
+              },
+              "project": {
+                "type": "string",
+                "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+              },
+              "envFile": {
+                "type": "string",
+                "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+              },
+              "files": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Compose files (-f); default ${COMPOSE_FILE}."
+              },
+              "optionalFiles": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+              },
+              "service": {
+                "type": "string",
+                "description": "One service to act on."
+              },
+              "services": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Services to act on."
+              },
+              "extra": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Extra arguments passed through to docker compose."
+              },
+              "noDeps": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Pass --no-deps when services are named (default true)."
+              },
+              "build": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Pass --build."
+              },
+              "removeOrphans": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Pass --remove-orphans."
+              },
+              "into": {
+                "type": "string",
+                "description": "State variable for the start time (default STARTED_AT_UTC)."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "down"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "projectDir": {
+                "type": "string",
+                "description": "--project-directory (default ${APP_ROOT})."
+              },
+              "project": {
+                "type": "string",
+                "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+              },
+              "envFile": {
+                "type": "string",
+                "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+              },
+              "files": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Compose files (-f); default ${COMPOSE_FILE}."
+              },
+              "optionalFiles": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+              },
+              "service": {
+                "type": "string",
+                "description": "One service to act on."
+              },
+              "services": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Services to act on."
+              },
+              "extra": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Extra arguments passed through to docker compose."
+              },
+              "removeOrphans": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Pass --remove-orphans."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "stop"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "projectDir": {
+                "type": "string",
+                "description": "--project-directory (default ${APP_ROOT})."
+              },
+              "project": {
+                "type": "string",
+                "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+              },
+              "envFile": {
+                "type": "string",
+                "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+              },
+              "files": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Compose files (-f); default ${COMPOSE_FILE}."
+              },
+              "optionalFiles": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+              },
+              "service": {
+                "type": "string",
+                "description": "One service to act on."
+              },
+              "services": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Services to act on."
+              },
+              "extra": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Extra arguments passed through to docker compose."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "start"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "projectDir": {
+                "type": "string",
+                "description": "--project-directory (default ${APP_ROOT})."
+              },
+              "project": {
+                "type": "string",
+                "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+              },
+              "envFile": {
+                "type": "string",
+                "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+              },
+              "files": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Compose files (-f); default ${COMPOSE_FILE}."
+              },
+              "optionalFiles": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+              },
+              "service": {
+                "type": "string",
+                "description": "One service to act on."
+              },
+              "services": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Services to act on."
+              },
+              "extra": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Extra arguments passed through to docker compose."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "restart"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "projectDir": {
+                "type": "string",
+                "description": "--project-directory (default ${APP_ROOT})."
+              },
+              "project": {
+                "type": "string",
+                "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+              },
+              "envFile": {
+                "type": "string",
+                "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+              },
+              "files": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Compose files (-f); default ${COMPOSE_FILE}."
+              },
+              "optionalFiles": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+              },
+              "service": {
+                "type": "string",
+                "description": "One service to act on."
+              },
+              "services": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Services to act on."
+              },
+              "extra": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Extra arguments passed through to docker compose."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "ps"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "projectDir": {
+                "type": "string",
+                "description": "--project-directory (default ${APP_ROOT})."
+              },
+              "project": {
+                "type": "string",
+                "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+              },
+              "envFile": {
+                "type": "string",
+                "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+              },
+              "files": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Compose files (-f); default ${COMPOSE_FILE}."
+              },
+              "optionalFiles": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+              },
+              "service": {
+                "type": "string",
+                "description": "One service to act on."
+              },
+              "services": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Services to act on."
+              },
+              "extra": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Extra arguments passed through to docker compose."
+              },
+              "all": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Include stopped containers (default true)."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "config"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "projectDir": {
+                "type": "string",
+                "description": "--project-directory (default ${APP_ROOT})."
+              },
+              "project": {
+                "type": "string",
+                "description": "Compose project name (-p); default ${COMPOSE_PROJECT}."
+              },
+              "envFile": {
+                "type": "string",
+                "description": "--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched."
+              },
+              "files": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Compose files (-f); default ${COMPOSE_FILE}."
+              },
+              "optionalFiles": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Override files added after `files`, each only if it exists (e.g. the debug-image override)."
+              },
+              "service": {
+                "type": "string",
+                "description": "One service to act on."
+              },
+              "services": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Services to act on."
+              },
+              "extra": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Extra arguments passed through to docker compose."
+              },
+              "quiet": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Only report errors (-q)."
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      ]
+    },
+    "tool_debugimage": {
+      "type": "object",
+      "required": [
+        "verb"
+      ],
+      "properties": {
+        "like": {
+          "type": "string",
+          "description": "The hardened image to replace (its name gives the kind and the .NET version)."
+        },
+        "registryApi": {
+          "type": "string",
+          "description": "Registry v2 API base (default ${REGISTRY_API}); Artifactory: https://HOST/artifactory/api/docker/REPO-KEY."
+        },
+        "registryPrefix": {
+          "type": "string",
+          "description": "What goes in front of a repository name in an image reference (default ${REGISTRY_PREFIX})."
+        },
+        "registryUser": {
+          "type": "string",
+          "description": "User for basic auth (default ${REGISTRY_USER})."
+        },
+        "registryToken": {
+          "type": "string",
+          "description": "Password / token; sent as Bearer when there is no user (default ${REGISTRY_TOKEN})."
+        },
+        "repoFilter": {
+          "type": "string",
+          "description": "Regex a repository name must match to be read (default: dotnet|aspnet|runtime)."
+        },
+        "localImages": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Also consider the images `docker image ls` reports (default true)."
+        },
+        "source": {
+          "type": "string",
+          "description": "The Dockerfile, or the project folder that contains it."
+        },
+        "service": {
+          "type": "string",
+          "description": "The compose service whose image this replaces. Default: matched by name."
+        },
+        "baseImage": {
+          "type": "string",
+          "description": "The unhardened base image to build on. Default: the best candidate."
+        },
+        "context": {
+          "type": "string",
+          "description": "Build context. Default: worked out from the project paths the Dockerfile copies."
+        },
+        "composeFile": {
+          "type": "string",
+          "description": "Compose file that defines the service (default ${COMPOSE_FILE})."
+        },
+        "tag": {
+          "type": "string",
+          "description": "The debug image, repo:tag. Default: the service's image repo with tag ${VERSION}-debug (without VERSION: the tag the service has now, plus -debug)."
+        },
+        "asRoot": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Run as root in the debug image (default true)."
+        },
+        "packages": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Install ps, curl and unzip with the base image's package manager (default true)."
+        },
+        "configuration": {
+          "type": "string",
+          "description": "Build configuration that replaces Release (default Debug; empty = leave as is)."
+        },
+        "vsdbg": {
+          "anyOf": [
+            {
+              "enum": [
+                "mount",
+                "copy",
+                "download"
+              ]
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "How the debugger gets in. mount (default): bind-mount the vsdbg folder at /remote_debugger when the service starts, as Visual Studio does. copy: bake that folder into the image. download: run GetVsDbg.sh at build time (needs internet)."
+        },
+        "vsdbgDir": {
+          "type": "string",
+          "description": "Folder that holds vsdbg (default ${VSDBG_DIR}, then %USERPROFILE%/vsdbg/vs2017u5, where Visual Studio keeps it). Its linux-musl-x64 subfolder is used for an alpine base."
+        },
+        "vsdbgUrl": {
+          "type": "string",
+          "description": "For vsdbg=download: the GetVsDbg.sh script (default ${VSDBG_URL}, then https://aka.ms/getvsdbgsh)."
+        },
+        "image": {
+          "type": "string",
+          "description": "The debug image."
+        },
+        "override": {
+          "type": "string",
+          "description": "The override file (default ${COMPOSE_DEBUG_IMAGE}, then ${WORK_DIR}/docker-compose.debug-image.yml)."
+        },
+        "vsdbgMount": {
+          "type": "string",
+          "description": "Host folder to bind-mount at /remote_debugger (default ${DEBUG_VSDBG_MOUNT}; none = vsdbg is in the image)."
+        },
+        "vsdbgPath": {
+          "type": "string",
+          "description": "vsdbg inside the container (default ${DEBUG_VSDBG_PATH}, then /remote_debugger/vsdbg)."
+        },
+        "sourceInContainer": {
+          "type": "string",
+          "description": "Where the sources were during the build (default ${DEBUG_SOURCE_ROOT})."
+        },
+        "sourceOnDisk": {
+          "type": "string",
+          "description": "The same sources on this machine (default ${DEBUG_CONTEXT})."
+        },
+        "launchJson": {
+          "type": "string",
+          "description": "Where to write the launch file (on this machine)."
+        },
+        "verb": {
+          "anyOf": [
+            {
+              "const": "candidates",
+              "description": "List unhardened base images that could stand in for a hardened one, best first."
+            },
+            {
+              "const": "plan",
+              "description": "Work out service, base image, context and tag for a debug image. Writes nothing."
+            },
+            {
+              "const": "prepare",
+              "description": "plan, then write Dockerfile.debug beside the Dockerfile."
+            },
+            {
+              "const": "use",
+              "description": "Point a service at its debug image through the generated compose override file; write the Visual Studio launch.json."
+            },
+            {
+              "const": "restore",
+              "description": "Take a service out of the compose override file, so the next `up` uses its original image."
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "What `debugimage` does."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "candidates"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "like": {
+                "type": "string",
+                "description": "The hardened image to replace (its name gives the kind and the .NET version)."
+              },
+              "registryApi": {
+                "type": "string",
+                "description": "Registry v2 API base (default ${REGISTRY_API}); Artifactory: https://HOST/artifactory/api/docker/REPO-KEY."
+              },
+              "registryPrefix": {
+                "type": "string",
+                "description": "What goes in front of a repository name in an image reference (default ${REGISTRY_PREFIX})."
+              },
+              "registryUser": {
+                "type": "string",
+                "description": "User for basic auth (default ${REGISTRY_USER})."
+              },
+              "registryToken": {
+                "type": "string",
+                "description": "Password / token; sent as Bearer when there is no user (default ${REGISTRY_TOKEN})."
+              },
+              "repoFilter": {
+                "type": "string",
+                "description": "Regex a repository name must match to be read (default: dotnet|aspnet|runtime)."
+              },
+              "localImages": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Also consider the images `docker image ls` reports (default true)."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "like"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "plan"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "source": {
+                "type": "string",
+                "description": "The Dockerfile, or the project folder that contains it."
+              },
+              "service": {
+                "type": "string",
+                "description": "The compose service whose image this replaces. Default: matched by name."
+              },
+              "baseImage": {
+                "type": "string",
+                "description": "The unhardened base image to build on. Default: the best candidate."
+              },
+              "context": {
+                "type": "string",
+                "description": "Build context. Default: worked out from the project paths the Dockerfile copies."
+              },
+              "composeFile": {
+                "type": "string",
+                "description": "Compose file that defines the service (default ${COMPOSE_FILE})."
+              },
+              "tag": {
+                "type": "string",
+                "description": "The debug image, repo:tag. Default: the service's image repo with tag ${VERSION}-debug (without VERSION: the tag the service has now, plus -debug)."
+              },
+              "asRoot": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Run as root in the debug image (default true)."
+              },
+              "packages": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Install ps, curl and unzip with the base image's package manager (default true)."
+              },
+              "configuration": {
+                "type": "string",
+                "description": "Build configuration that replaces Release (default Debug; empty = leave as is)."
+              },
+              "vsdbg": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "mount",
+                      "copy",
+                      "download"
+                    ]
+                  },
+                  {
+                    "pattern": "\\$\\{"
+                  }
+                ],
+                "description": "How the debugger gets in. mount (default): bind-mount the vsdbg folder at /remote_debugger when the service starts, as Visual Studio does. copy: bake that folder into the image. download: run GetVsDbg.sh at build time (needs internet)."
+              },
+              "vsdbgDir": {
+                "type": "string",
+                "description": "Folder that holds vsdbg (default ${VSDBG_DIR}, then %USERPROFILE%/vsdbg/vs2017u5, where Visual Studio keeps it). Its linux-musl-x64 subfolder is used for an alpine base."
+              },
+              "vsdbgUrl": {
+                "type": "string",
+                "description": "For vsdbg=download: the GetVsDbg.sh script (default ${VSDBG_URL}, then https://aka.ms/getvsdbgsh)."
+              },
+              "registryApi": {
+                "type": "string",
+                "description": "Registry v2 API base (default ${REGISTRY_API}); Artifactory: https://HOST/artifactory/api/docker/REPO-KEY."
+              },
+              "registryPrefix": {
+                "type": "string",
+                "description": "What goes in front of a repository name in an image reference (default ${REGISTRY_PREFIX})."
+              },
+              "registryUser": {
+                "type": "string",
+                "description": "User for basic auth (default ${REGISTRY_USER})."
+              },
+              "registryToken": {
+                "type": "string",
+                "description": "Password / token; sent as Bearer when there is no user (default ${REGISTRY_TOKEN})."
+              },
+              "repoFilter": {
+                "type": "string",
+                "description": "Regex a repository name must match to be read (default: dotnet|aspnet|runtime)."
+              },
+              "localImages": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Also consider the images `docker image ls` reports (default true)."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "source"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "prepare"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "source": {
+                "type": "string",
+                "description": "The Dockerfile, or the project folder that contains it."
+              },
+              "service": {
+                "type": "string",
+                "description": "The compose service whose image this replaces. Default: matched by name."
+              },
+              "baseImage": {
+                "type": "string",
+                "description": "The unhardened base image to build on. Default: the best candidate."
+              },
+              "context": {
+                "type": "string",
+                "description": "Build context. Default: worked out from the project paths the Dockerfile copies."
+              },
+              "composeFile": {
+                "type": "string",
+                "description": "Compose file that defines the service (default ${COMPOSE_FILE})."
+              },
+              "tag": {
+                "type": "string",
+                "description": "The debug image, repo:tag. Default: the service's image repo with tag ${VERSION}-debug (without VERSION: the tag the service has now, plus -debug)."
+              },
+              "asRoot": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Run as root in the debug image (default true)."
+              },
+              "packages": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Install ps, curl and unzip with the base image's package manager (default true)."
+              },
+              "configuration": {
+                "type": "string",
+                "description": "Build configuration that replaces Release (default Debug; empty = leave as is)."
+              },
+              "vsdbg": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "mount",
+                      "copy",
+                      "download"
+                    ]
+                  },
+                  {
+                    "pattern": "\\$\\{"
+                  }
+                ],
+                "description": "How the debugger gets in. mount (default): bind-mount the vsdbg folder at /remote_debugger when the service starts, as Visual Studio does. copy: bake that folder into the image. download: run GetVsDbg.sh at build time (needs internet)."
+              },
+              "vsdbgDir": {
+                "type": "string",
+                "description": "Folder that holds vsdbg (default ${VSDBG_DIR}, then %USERPROFILE%/vsdbg/vs2017u5, where Visual Studio keeps it). Its linux-musl-x64 subfolder is used for an alpine base."
+              },
+              "vsdbgUrl": {
+                "type": "string",
+                "description": "For vsdbg=download: the GetVsDbg.sh script (default ${VSDBG_URL}, then https://aka.ms/getvsdbgsh)."
+              },
+              "registryApi": {
+                "type": "string",
+                "description": "Registry v2 API base (default ${REGISTRY_API}); Artifactory: https://HOST/artifactory/api/docker/REPO-KEY."
+              },
+              "registryPrefix": {
+                "type": "string",
+                "description": "What goes in front of a repository name in an image reference (default ${REGISTRY_PREFIX})."
+              },
+              "registryUser": {
+                "type": "string",
+                "description": "User for basic auth (default ${REGISTRY_USER})."
+              },
+              "registryToken": {
+                "type": "string",
+                "description": "Password / token; sent as Bearer when there is no user (default ${REGISTRY_TOKEN})."
+              },
+              "repoFilter": {
+                "type": "string",
+                "description": "Regex a repository name must match to be read (default: dotnet|aspnet|runtime)."
+              },
+              "localImages": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Also consider the images `docker image ls` reports (default true)."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "source"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "use"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "service": {
+                "type": "string",
+                "description": "Compose service."
+              },
+              "image": {
+                "type": "string",
+                "description": "The debug image."
+              },
+              "override": {
+                "type": "string",
+                "description": "The override file (default ${COMPOSE_DEBUG_IMAGE}, then ${WORK_DIR}/docker-compose.debug-image.yml)."
+              },
+              "composeFile": {
+                "type": "string",
+                "description": "Compose file that defines the service (default ${COMPOSE_FILE})."
+              },
+              "asRoot": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Set `user: root` on the service (default true)."
+              },
+              "vsdbgMount": {
+                "type": "string",
+                "description": "Host folder to bind-mount at /remote_debugger (default ${DEBUG_VSDBG_MOUNT}; none = vsdbg is in the image)."
+              },
+              "vsdbgPath": {
+                "type": "string",
+                "description": "vsdbg inside the container (default ${DEBUG_VSDBG_PATH}, then /remote_debugger/vsdbg)."
+              },
+              "sourceInContainer": {
+                "type": "string",
+                "description": "Where the sources were during the build (default ${DEBUG_SOURCE_ROOT})."
+              },
+              "sourceOnDisk": {
+                "type": "string",
+                "description": "The same sources on this machine (default ${DEBUG_CONTEXT})."
+              },
+              "launchJson": {
+                "type": "string",
+                "description": "Where to write the launch file (on this machine)."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "service",
+              "image"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "restore"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "service": {
+                "type": "string",
+                "description": "Compose service."
+              },
+              "override": {
+                "type": "string",
+                "description": "The override file (default ${COMPOSE_DEBUG_IMAGE}, then ${WORK_DIR}/docker-compose.debug-image.yml)."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "service"
+            ]
+          }
+        }
+      ]
+    },
+    "tool_docker": {
+      "type": "object",
+      "required": [
+        "verb"
+      ],
+      "properties": {
+        "all": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Include stopped containers (-a)."
+        },
+        "filter": {
+          "type": [
+            "array",
+            "string"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "--filter expressions."
+        },
+        "format": {
+          "type": "string",
+          "description": "--format template."
+        },
+        "into": {
+          "type": "string",
+          "description": "State variable for the output (default DOCKER_PS)."
+        },
+        "target": {
+          "type": "string",
+          "description": "Container name or id."
+        },
+        "service": {
+          "type": "string",
+          "description": "Compose service; resolved through the com.docker.compose.* labels."
+        },
+        "project": {
+          "type": "string",
+          "description": "Compose project to narrow `service` (default ${COMPOSE_PROJECT})."
+        },
+        "image": {
+          "type": "string",
+          "description": "Image name."
+        },
+        "contains": {
+          "type": "string",
+          "description": "Text a line must contain to match."
+        },
+        "regex": {
+          "type": "string",
+          "description": "Regular expression a line must match."
+        },
+        "expect": {
+          "anyOf": [
+            {
+              "enum": [
+                "present",
+                "absent"
+              ]
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "present (default): fail if nothing matches; absent: fail if anything matches."
+        },
+        "save": {
+          "type": "string",
+          "description": "File (on this machine) to write the full text to."
+        },
+        "show": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Echo the text to the log when there is no pattern (default true)."
+        },
+        "digest": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Log a digest instead of the raw text: repeats collapsed into patterns with counts, errors first."
+        },
+        "since": {
+          "type": "string",
+          "description": "Default: STARTED_AT_UTC from the last compose up."
+        },
+        "until": {
+          "type": "string",
+          "description": "Upper bound."
+        },
+        "tail": {
+          "type": [
+            "integer",
+            "string"
+          ],
+          "description": "Number of lines from the end."
+        },
+        "timestamps": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Show timestamps (default true)."
+        },
+        "waitSeconds": {
+          "type": [
+            "integer",
+            "string"
+          ],
+          "description": "Poll up to this long for the expectation to hold."
+        },
+        "context": {
+          "type": "string",
+          "description": "Build context."
+        },
+        "tag": {
+          "type": [
+            "array",
+            "string"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Image tags (-t)."
+        },
+        "file": {
+          "type": "string",
+          "description": "Dockerfile (-f)."
+        },
+        "noCache": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "--no-cache."
+        },
+        "buildArgs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "--build-arg KEY=VALUE pairs."
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "--label KEY=VALUE pairs."
+        },
+        "revisionFrom": {
+          "type": "string",
+          "description": "Git working tree whose HEAD is stamped as org.opencontainers.image.revision."
+        },
+        "cmd": {
+          "type": [
+            "array",
+            "string"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Command and arguments."
+        },
+        "rm": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "--rm (default true)."
+        },
+        "detach": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "-d."
+        },
+        "name": {
+          "type": "string",
+          "description": "--name."
+        },
+        "network": {
+          "type": "string",
+          "description": "--network."
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": "-e KEY=VALUE pairs."
+        },
+        "ports": {
+          "type": [
+            "array",
+            "string"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "-p mappings."
+        },
+        "volumes": {
+          "type": [
+            "array",
+            "string"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "-v mappings."
+        },
+        "extra": {
+          "type": [
+            "array",
+            "string"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Extra docker run arguments."
+        },
+        "verb": {
+          "anyOf": [
+            {
+              "const": "ps",
+              "description": "docker ps."
+            },
+            {
+              "const": "inspect",
+              "description": "docker inspect a container."
+            },
+            {
+              "const": "history",
+              "description": "docker history of an image."
+            },
+            {
+              "const": "logs",
+              "description": "Container logs, optionally waiting for text."
+            },
+            {
+              "const": "events",
+              "description": "docker events between since and now."
+            },
+            {
+              "const": "build",
+              "description": "docker build."
+            },
+            {
+              "const": "run",
+              "description": "docker run."
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "What `docker` does."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "ps"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "all": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Include stopped containers (-a)."
+              },
+              "filter": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "--filter expressions."
+              },
+              "format": {
+                "type": "string",
+                "description": "--format template."
+              },
+              "into": {
+                "type": "string",
+                "description": "State variable for the output (default DOCKER_PS)."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "inspect"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "target": {
+                "type": "string",
+                "description": "Container name or id."
+              },
+              "service": {
+                "type": "string",
+                "description": "Compose service; resolved through the com.docker.compose.* labels."
+              },
+              "project": {
+                "type": "string",
+                "description": "Compose project to narrow `service` (default ${COMPOSE_PROJECT})."
+              },
+              "format": {
+                "type": "string",
+                "description": "--format template."
+              },
+              "into": {
+                "type": "string",
+                "description": "State variable (default DOCKER_INSPECT)."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "history"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "image": {
+                "type": "string",
+                "description": "Image name."
+              },
+              "format": {
+                "type": "string",
+                "description": "--format template."
+              },
+              "into": {
+                "type": "string",
+                "description": "State variable (default DOCKER_HISTORY)."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "image"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "logs"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "target": {
+                "type": "string",
+                "description": "Container name or id."
+              },
+              "service": {
+                "type": "string",
+                "description": "Compose service; resolved through the com.docker.compose.* labels."
+              },
+              "project": {
+                "type": "string",
+                "description": "Compose project to narrow `service` (default ${COMPOSE_PROJECT})."
+              },
+              "contains": {
+                "type": "string",
+                "description": "Text a line must contain to match."
+              },
+              "regex": {
+                "type": "string",
+                "description": "Regular expression a line must match."
+              },
+              "expect": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "present",
+                      "absent"
+                    ]
+                  },
+                  {
+                    "pattern": "\\$\\{"
+                  }
+                ],
+                "description": "present (default): fail if nothing matches; absent: fail if anything matches."
+              },
+              "into": {
+                "type": "string",
+                "description": "State variable that receives the full text."
+              },
+              "save": {
+                "type": "string",
+                "description": "File (on this machine) to write the full text to."
+              },
+              "show": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Echo the text to the log when there is no pattern (default true)."
+              },
+              "digest": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Log a digest instead of the raw text: repeats collapsed into patterns with counts, errors first."
+              },
+              "since": {
+                "type": "string",
+                "description": "Default: STARTED_AT_UTC from the last compose up."
+              },
+              "until": {
+                "type": "string",
+                "description": "Upper bound."
+              },
+              "tail": {
+                "type": [
+                  "integer",
+                  "string"
+                ],
+                "description": "Number of lines from the end."
+              },
+              "timestamps": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Show timestamps (default true)."
+              },
+              "waitSeconds": {
+                "type": [
+                  "integer",
+                  "string"
+                ],
+                "description": "Poll up to this long for the expectation to hold."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "events"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "since": {
+                "type": "string",
+                "description": "Default: STARTED_AT_UTC."
+              },
+              "until": {
+                "type": "string",
+                "description": "Default: now on the host."
+              },
+              "filter": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "--filter expressions."
+              },
+              "format": {
+                "type": "string",
+                "description": "--format template (default {{json .}})."
+              },
+              "contains": {
+                "type": "string",
+                "description": "Text a line must contain to match."
+              },
+              "regex": {
+                "type": "string",
+                "description": "Regular expression a line must match."
+              },
+              "expect": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "present",
+                      "absent"
+                    ]
+                  },
+                  {
+                    "pattern": "\\$\\{"
+                  }
+                ],
+                "description": "present (default): fail if nothing matches; absent: fail if anything matches."
+              },
+              "into": {
+                "type": "string",
+                "description": "State variable that receives the full text."
+              },
+              "save": {
+                "type": "string",
+                "description": "File (on this machine) to write the full text to."
+              },
+              "show": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Echo the text to the log when there is no pattern (default true)."
+              },
+              "digest": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Log a digest instead of the raw text: repeats collapsed into patterns with counts, errors first."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "build"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "context": {
+                "type": "string",
+                "description": "Build context."
+              },
+              "tag": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Image tags (-t)."
+              },
+              "file": {
+                "type": "string",
+                "description": "Dockerfile (-f)."
+              },
+              "noCache": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "--no-cache."
+              },
+              "buildArgs": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "description": "--build-arg KEY=VALUE pairs."
+              },
+              "labels": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "description": "--label KEY=VALUE pairs."
+              },
+              "revisionFrom": {
+                "type": "string",
+                "description": "Git working tree whose HEAD is stamped as org.opencontainers.image.revision."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "context"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "run"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "image": {
+                "type": "string",
+                "description": "Image."
+              },
+              "cmd": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Command and arguments."
+              },
+              "rm": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "--rm (default true)."
+              },
+              "detach": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "-d."
+              },
+              "name": {
+                "type": "string",
+                "description": "--name."
+              },
+              "network": {
+                "type": "string",
+                "description": "--network."
+              },
+              "env": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "description": "-e KEY=VALUE pairs."
+              },
+              "ports": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "-p mappings."
+              },
+              "volumes": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "-v mappings."
+              },
+              "extra": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Extra docker run arguments."
+              },
+              "into": {
+                "type": "string",
+                "description": "State variable (default DOCKER_RUN)."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "image"
+            ]
+          }
+        }
+      ]
+    },
+    "tool_dotnet": {
+      "type": "object",
+      "required": [
+        "verb"
+      ],
+      "properties": {
+        "Text": {
+          "type": "string",
+          "description": "Argument 1 of ExtractText.ExecAsync."
+        },
+        "Pattern": {
+          "type": "string",
+          "description": "Argument 2 of ExtractText.ExecAsync."
+        },
+        "InputFilePath": {
+          "type": "string",
+          "description": "Argument 1 of UpperCaseFile.ExecAsync."
+        },
+        "OutputFilePath": {
+          "type": "string",
+          "description": "Argument 2 of UpperCaseFile.ExecAsync."
+        },
+        "verb": {
+          "anyOf": [
+            {
+              "const": "list",
+              "description": "List the commands found in the plugins folder, and anything that could not be loaded."
+            },
+            {
+              "const": "ExtractText",
+              "description": "Finds the first match of a regular expression in a text. [SamplePlugin.dll] returns variables."
+            },
+            {
+              "const": "UpperCaseFile",
+              "description": "Copies a text file, upper-casing it. An example of a command that writes. [SamplePlugin.dll] returns variables."
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "What `dotnet` does."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "list"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "ExtractText"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "Text": {
+                "type": "string",
+                "description": "Argument 1 of ExtractText.ExecAsync."
+              },
+              "Pattern": {
+                "type": "string",
+                "description": "Argument 2 of ExtractText.ExecAsync."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "Text",
+              "Pattern"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "UpperCaseFile"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "InputFilePath": {
+                "type": "string",
+                "description": "Argument 1 of UpperCaseFile.ExecAsync."
+              },
+              "OutputFilePath": {
+                "type": "string",
+                "description": "Argument 2 of UpperCaseFile.ExecAsync."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "InputFilePath",
+              "OutputFilePath"
+            ]
+          }
+        }
+      ]
+    },
+    "tool_file": {
+      "type": "object",
+      "required": [
+        "verb"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "File to copy from."
+        },
+        "target": {
+          "type": "string",
+          "description": "File to write."
+        },
+        "edits": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "match": {
+                "type": "string",
+                "description": "Text to replace inside the matching line(s)."
+              },
+              "replace": {
+                "type": "string",
+                "description": "Replacement text (with match)."
+              },
+              "expect": {
+                "type": [
+                  "integer",
+                  "string"
+                ],
+                "description": "How many lines must match (default 1)."
+              },
+              "set": {
+                "type": "string",
+                "description": "Env-file KEY whose KEY=... line is replaced."
+              },
+              "value": {
+                "type": "string",
+                "description": "New value (with set)."
+              },
+              "addIfMissing": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Append KEY=value if the key is absent."
+              },
+              "commentService": {
+                "type": "string",
+                "description": "Service name to comment out under services:."
+              },
+              "dropDependsOn": {
+                "type": "string",
+                "description": "Service name: comment out every other service's depends_on entry for it."
+              },
+              "ignoreComments": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Set false to let commented-out lines match."
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Edits; each must match exactly its expected number of lines."
+        },
+        "paths": {
+          "type": [
+            "array",
+            "string"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Files to delete."
+        },
+        "path": {
+          "type": "string",
+          "description": "One file to delete."
+        },
+        "verb": {
+          "anyOf": [
+            {
+              "const": "derive",
+              "description": "Write a modified copy of a file; the source is never touched."
+            },
+            {
+              "const": "delete",
+              "description": "Delete files (typically generated copies)."
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "What `file` does."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "derive"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "source": {
+                "type": "string",
+                "description": "File to copy from."
+              },
+              "target": {
+                "type": "string",
+                "description": "File to write."
+              },
+              "edits": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "match": {
+                      "type": "string",
+                      "description": "Text to replace inside the matching line(s)."
+                    },
+                    "replace": {
+                      "type": "string",
+                      "description": "Replacement text (with match)."
+                    },
+                    "expect": {
+                      "type": [
+                        "integer",
+                        "string"
+                      ],
+                      "description": "How many lines must match (default 1)."
+                    },
+                    "set": {
+                      "type": "string",
+                      "description": "Env-file KEY whose KEY=... line is replaced."
+                    },
+                    "value": {
+                      "type": "string",
+                      "description": "New value (with set)."
+                    },
+                    "addIfMissing": {
+                      "type": [
+                        "boolean",
+                        "string"
+                      ],
+                      "description": "Append KEY=value if the key is absent."
+                    },
+                    "commentService": {
+                      "type": "string",
+                      "description": "Service name to comment out under services:."
+                    },
+                    "dropDependsOn": {
+                      "type": "string",
+                      "description": "Service name: comment out every other service's depends_on entry for it."
+                    },
+                    "ignoreComments": {
+                      "type": [
+                        "boolean",
+                        "string"
+                      ],
+                      "description": "Set false to let commented-out lines match."
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "description": "Edits; each must match exactly its expected number of lines."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "source",
+              "target",
+              "edits"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "delete"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "paths": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Files to delete."
+              },
+              "path": {
+                "type": "string",
+                "description": "One file to delete."
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      ]
+    },
+    "tool_git": {
+      "type": "object",
+      "required": [
+        "verb"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Working tree (default ${APP_ROOT})."
+        },
+        "into": {
+          "type": "string",
+          "description": "State variable (default GIT_HEAD)."
+        },
+        "untracked": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Count untracked files as changes (default false)."
+        },
+        "paths": {
+          "type": [
+            "array",
+            "string"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Limit to these paths."
+        },
+        "a": {
+          "type": "string",
+          "description": "First file."
+        },
+        "b": {
+          "type": "string",
+          "description": "Second file."
+        },
+        "verb": {
+          "anyOf": [
+            {
+              "const": "head",
+              "description": "Commit id of HEAD."
+            },
+            {
+              "const": "status",
+              "description": "Report changed files."
+            },
+            {
+              "const": "require-clean",
+              "description": "Fail if there are uncommitted changes."
+            },
+            {
+              "const": "diff",
+              "description": "Working-tree diff, or compare two files (even outside a repo) with a and b."
+            },
+            {
+              "const": "pull",
+              "description": "git pull --ff-only; refuses if the tree is dirty."
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "What `git` does."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "head"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "path": {
+                "type": "string",
+                "description": "Working tree (default ${APP_ROOT})."
+              },
+              "into": {
+                "type": "string",
+                "description": "State variable (default GIT_HEAD)."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "status"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "path": {
+                "type": "string",
+                "description": "Working tree (default ${APP_ROOT})."
+              },
+              "untracked": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Count untracked files as changes (default false)."
+              },
+              "paths": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Limit to these paths."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "require-clean"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "path": {
+                "type": "string",
+                "description": "Working tree (default ${APP_ROOT})."
+              },
+              "untracked": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Count untracked files as changes (default false)."
+              },
+              "paths": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Limit to these paths."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "diff"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "path": {
+                "type": "string",
+                "description": "Working tree (default ${APP_ROOT})."
+              },
+              "a": {
+                "type": "string",
+                "description": "First file."
+              },
+              "b": {
+                "type": "string",
+                "description": "Second file."
+              },
+              "paths": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Limit to these paths."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "pull"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "path": {
+                "type": "string",
+                "description": "Working tree (default ${APP_ROOT})."
+              },
+              "untracked": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Count untracked files as changes (default false)."
+              },
+              "paths": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Limit to these paths."
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      ]
+    },
+    "tool_logfile": {
+      "type": "object",
+      "required": [
+        "verb"
+      ],
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Log file path on the host."
+        },
+        "since": {
+          "type": "string",
+          "description": "Default: STARTED_AT_UTC."
+        },
+        "until": {
+          "type": "string",
+          "description": "Upper bound."
+        },
+        "waitSeconds": {
+          "type": [
+            "integer",
+            "string"
+          ],
+          "description": "Poll up to this long for the expectation to hold."
+        },
+        "contains": {
+          "type": "string",
+          "description": "Text a line must contain to match."
+        },
+        "regex": {
+          "type": "string",
+          "description": "Regular expression a line must match."
+        },
+        "expect": {
+          "anyOf": [
+            {
+              "enum": [
+                "present",
+                "absent"
+              ]
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "present (default): fail if nothing matches; absent: fail if anything matches."
+        },
+        "into": {
+          "type": "string",
+          "description": "State variable that receives the full text."
+        },
+        "save": {
+          "type": "string",
+          "description": "File (on this machine) to write the full text to."
+        },
+        "show": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Echo the text to the log when there is no pattern (default true)."
+        },
+        "digest": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Log a digest instead of the raw text: repeats collapsed into patterns with counts, errors first."
+        },
+        "verb": {
+          "anyOf": [
+            {
+              "const": "search",
+              "description": "Search a log file on the host, windowed by the leading timestamp of each line."
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "What `logfile` does."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "search"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "file": {
+                "type": "string",
+                "description": "Log file path on the host."
+              },
+              "since": {
+                "type": "string",
+                "description": "Default: STARTED_AT_UTC."
+              },
+              "until": {
+                "type": "string",
+                "description": "Upper bound."
+              },
+              "waitSeconds": {
+                "type": [
+                  "integer",
+                  "string"
+                ],
+                "description": "Poll up to this long for the expectation to hold."
+              },
+              "contains": {
+                "type": "string",
+                "description": "Text a line must contain to match."
+              },
+              "regex": {
+                "type": "string",
+                "description": "Regular expression a line must match."
+              },
+              "expect": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "present",
+                      "absent"
+                    ]
+                  },
+                  {
+                    "pattern": "\\$\\{"
+                  }
+                ],
+                "description": "present (default): fail if nothing matches; absent: fail if anything matches."
+              },
+              "into": {
+                "type": "string",
+                "description": "State variable that receives the full text."
+              },
+              "save": {
+                "type": "string",
+                "description": "File (on this machine) to write the full text to."
+              },
+              "show": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Echo the text to the log when there is no pattern (default true)."
+              },
+              "digest": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Log a digest instead of the raw text: repeats collapsed into patterns with counts, errors first."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "file"
+            ]
+          }
+        }
+      ]
+    },
+    "tool_plugins": {
+      "type": "object",
+      "required": [
+        "verb"
+      ],
+      "properties": {
+        "appsettings": {
+          "type": "string",
+          "description": "The appsettings file the container loads."
+        },
+        "dirs": {
+          "type": [
+            "array",
+            "string"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Host directories to search for the .dll files (the bind-mount sources)."
+        },
+        "key": {
+          "type": "string",
+          "description": "Config path whose strings are the assembly names, e.g. Plugins:Assemblies. Omit to detect them."
+        },
+        "into": {
+          "type": "string",
+          "description": "State variable for the number of missing assemblies (default PLUGINS_MISSING)."
+        },
+        "project": {
+          "type": "string",
+          "description": "The .csproj, or the folder that contains it."
+        },
+        "dir": {
+          "type": "string",
+          "description": "The plugin folder on the host (the source of the service's plugin bind mount)."
+        },
+        "assemblies": {
+          "type": [
+            "array",
+            "string"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "The plugin assemblies to list (not their dependencies). Default: the project's own assembly."
+        },
+        "configuration": {
+          "type": "string",
+          "description": "Build configuration (default Debug)."
+        },
+        "build": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Run `dotnet build` first (default true)."
+        },
+        "output": {
+          "type": "string",
+          "description": "The build output folder, if it cannot be found under the project's bin folder."
+        },
+        "service": {
+          "type": "string",
+          "description": "Compose service whose logs to read."
+        },
+        "target": {
+          "type": "string",
+          "description": "Container name or id (instead of service)."
+        },
+        "since": {
+          "type": "string",
+          "description": "Only logs since this time (default: STARTED_AT_UTC from the last restart or up)."
+        },
+        "allowSilent": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Do not fail when an assembly is never mentioned in the logs (default false)."
+        },
+        "verb": {
+          "anyOf": [
+            {
+              "const": "verify",
+              "description": "Check that every assembly an appsettings file lists exists under the given directories."
+            },
+            {
+              "const": "publish",
+              "description": "Build a plugin project, copy its output to the service's plugin folder and list its assemblies in appsettings."
+            },
+            {
+              "const": "loaded",
+              "description": "Check a service's logs for evidence that the plugin assemblies loaded."
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "What `plugins` does."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "verify"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "appsettings": {
+                "type": "string",
+                "description": "The appsettings file the container loads."
+              },
+              "dirs": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Host directories to search for the .dll files (the bind-mount sources)."
+              },
+              "key": {
+                "type": "string",
+                "description": "Config path whose strings are the assembly names, e.g. Plugins:Assemblies. Omit to detect them."
+              },
+              "into": {
+                "type": "string",
+                "description": "State variable for the number of missing assemblies (default PLUGINS_MISSING)."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "appsettings",
+              "dirs"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "publish"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "project": {
+                "type": "string",
+                "description": "The .csproj, or the folder that contains it."
+              },
+              "dir": {
+                "type": "string",
+                "description": "The plugin folder on the host (the source of the service's plugin bind mount)."
+              },
+              "appsettings": {
+                "type": "string",
+                "description": "The appsettings file the service loads."
+              },
+              "key": {
+                "type": "string",
+                "description": "Config path of the list of plugin assemblies (default Plugins:Assemblies)."
+              },
+              "assemblies": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "The plugin assemblies to list (not their dependencies). Default: the project's own assembly."
+              },
+              "configuration": {
+                "type": "string",
+                "description": "Build configuration (default Debug)."
+              },
+              "build": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Run `dotnet build` first (default true)."
+              },
+              "output": {
+                "type": "string",
+                "description": "The build output folder, if it cannot be found under the project's bin folder."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "project",
+              "dir",
+              "appsettings"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "loaded"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "service": {
+                "type": "string",
+                "description": "Compose service whose logs to read."
+              },
+              "target": {
+                "type": "string",
+                "description": "Container name or id (instead of service)."
+              },
+              "project": {
+                "type": "string",
+                "description": "Compose project to narrow `service`."
+              },
+              "assemblies": {
+                "type": [
+                  "array",
+                  "string"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "description": "Assembly names to look for. Default: the ones the appsettings file lists."
+              },
+              "appsettings": {
+                "type": "string",
+                "description": "Appsettings file to take the names from."
+              },
+              "key": {
+                "type": "string",
+                "description": "Config path of the list of plugin assemblies."
+              },
+              "since": {
+                "type": "string",
+                "description": "Only logs since this time (default: STARTED_AT_UTC from the last restart or up)."
+              },
+              "allowSilent": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Do not fail when an assembly is never mentioned in the logs (default false)."
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      ]
+    },
+    "tool_shell": {
+      "type": "object",
+      "required": [
+        "verb"
+      ],
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "The command line (or several lines). ${NAME} is replaced with the variable's value first."
+        },
+        "shell": {
+          "anyOf": [
+            {
+              "enum": [
+                "cmd",
+                "powershell",
+                "sh",
+                "bash"
+              ]
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "Which shell runs it. Default: cmd locally on Windows, sh otherwise."
+        },
+        "workDir": {
+          "type": "string",
+          "description": "Directory to run in."
+        },
+        "into": {
+          "type": "string",
+          "description": "Variable that receives everything printed to stdout, trimmed (default SHELL_OUT)."
+        },
+        "capture": {
+          "anyOf": [
+            {
+              "enum": [
+                "none",
+                "lines",
+                "json"
+              ]
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "Turn the output into variables. lines: every NAME=value line. json: stdout is a JSON object; each property becomes a variable. Default none."
+        },
+        "regex": {
+          "type": "string",
+          "description": "A regular expression applied to stdout; each named group (?<NAME>...) of the first match becomes a variable."
+        },
+        "prefix": {
+          "type": "string",
+          "description": "Put this in front of every captured variable name."
+        },
+        "expectExit": {
+          "type": [
+            "integer",
+            "string"
+          ],
+          "description": "The exit code that means success (default 0)."
+        },
+        "show": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Echo the output to the log (default true)."
+        },
+        "verb": {
+          "anyOf": [
+            {
+              "const": "run",
+              "description": "Run a shell command; capture its output into variables."
+            },
+            {
+              "const": "query",
+              "description": "Run a shell command that only reads (your responsibility); capture its output into variables."
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "What `shell` does."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "run"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "command": {
+                "type": "string",
+                "description": "The command line (or several lines). ${NAME} is replaced with the variable's value first."
+              },
+              "shell": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "cmd",
+                      "powershell",
+                      "sh",
+                      "bash"
+                    ]
+                  },
+                  {
+                    "pattern": "\\$\\{"
+                  }
+                ],
+                "description": "Which shell runs it. Default: cmd locally on Windows, sh otherwise."
+              },
+              "workDir": {
+                "type": "string",
+                "description": "Directory to run in."
+              },
+              "into": {
+                "type": "string",
+                "description": "Variable that receives everything printed to stdout, trimmed (default SHELL_OUT)."
+              },
+              "capture": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "none",
+                      "lines",
+                      "json"
+                    ]
+                  },
+                  {
+                    "pattern": "\\$\\{"
+                  }
+                ],
+                "description": "Turn the output into variables. lines: every NAME=value line. json: stdout is a JSON object; each property becomes a variable. Default none."
+              },
+              "regex": {
+                "type": "string",
+                "description": "A regular expression applied to stdout; each named group (?<NAME>...) of the first match becomes a variable."
+              },
+              "prefix": {
+                "type": "string",
+                "description": "Put this in front of every captured variable name."
+              },
+              "expectExit": {
+                "type": [
+                  "integer",
+                  "string"
+                ],
+                "description": "The exit code that means success (default 0)."
+              },
+              "show": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Echo the output to the log (default true)."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "command"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "query"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "command": {
+                "type": "string",
+                "description": "The command line (or several lines). ${NAME} is replaced with the variable's value first."
+              },
+              "shell": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "cmd",
+                      "powershell",
+                      "sh",
+                      "bash"
+                    ]
+                  },
+                  {
+                    "pattern": "\\$\\{"
+                  }
+                ],
+                "description": "Which shell runs it. Default: cmd locally on Windows, sh otherwise."
+              },
+              "workDir": {
+                "type": "string",
+                "description": "Directory to run in."
+              },
+              "into": {
+                "type": "string",
+                "description": "Variable that receives everything printed to stdout, trimmed (default SHELL_OUT)."
+              },
+              "capture": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "none",
+                      "lines",
+                      "json"
+                    ]
+                  },
+                  {
+                    "pattern": "\\$\\{"
+                  }
+                ],
+                "description": "Turn the output into variables. lines: every NAME=value line. json: stdout is a JSON object; each property becomes a variable. Default none."
+              },
+              "regex": {
+                "type": "string",
+                "description": "A regular expression applied to stdout; each named group (?<NAME>...) of the first match becomes a variable."
+              },
+              "prefix": {
+                "type": "string",
+                "description": "Put this in front of every captured variable name."
+              },
+              "expectExit": {
+                "type": [
+                  "integer",
+                  "string"
+                ],
+                "description": "The exit code that means success (default 0)."
+              },
+              "show": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Echo the output to the log (default true)."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "command"
+            ]
+          }
+        }
+      ]
+    },
+    "tool_source": {
+      "type": "object",
+      "required": [
+        "verb"
+      ],
+      "properties": {
+        "strategy": {
+          "anyOf": [
+            {
+              "enum": [
+                "none",
+                "label",
+                "tag"
+              ]
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "How the image records its commit: none, label (org.opencontainers.image.revision) or tag (commit-id prefix)."
+        },
+        "src": {
+          "type": "string",
+          "description": "Local git working tree."
+        },
+        "image": {
+          "type": "string",
+          "description": "Image to compare."
+        },
+        "allowDirty": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Skip the uncommitted-changes check."
+        },
+        "verb": {
+          "anyOf": [
+            {
+              "const": "verify",
+              "description": "Check that local source equals what the image was built from."
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "What `source` does."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "verify"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "strategy": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "none",
+                      "label",
+                      "tag"
+                    ]
+                  },
+                  {
+                    "pattern": "\\$\\{"
+                  }
+                ],
+                "description": "How the image records its commit: none, label (org.opencontainers.image.revision) or tag (commit-id prefix)."
+              },
+              "src": {
+                "type": "string",
+                "description": "Local git working tree."
+              },
+              "image": {
+                "type": "string",
+                "description": "Image to compare."
+              },
+              "allowDirty": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Skip the uncommitted-changes check."
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      ]
+    },
+    "tool_version": {
+      "type": "object",
+      "required": [
+        "verb"
+      ],
+      "properties": {
+        "composeFile": {
+          "type": "string",
+          "description": "Compose file (default ${COMPOSE_FILE})."
+        },
+        "requireSame": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Fail when product images are on different versions (default false)."
+        },
+        "repo": {
+          "type": "string",
+          "description": "A git working tree."
+        },
+        "image": {
+          "type": "string",
+          "description": "An image whose registry tags to list (needs REGISTRY_API)."
+        },
+        "fetch": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "Run `git fetch --tags` first (default false)."
+        },
+        "version": {
+          "type": "string",
+          "description": "The version (default ${VERSION}, then the one detected from the compose file)."
+        },
+        "verb": {
+          "anyOf": [
+            {
+              "const": "detect",
+              "description": "Read the version from each service's image tag; report the stack's version and any service that is on another."
+            },
+            {
+              "const": "available",
+              "description": "List the versions that exist: git refs of a source repo and/or registry tags of an image."
+            },
+            {
+              "const": "verify-source",
+              "description": "Check that a source repo's HEAD is the commit of the version."
+            },
+            {
+              "const": "checkout",
+              "description": "Check out the version's ref in a source repo. Refuses if tracked files have uncommitted changes."
+            },
+            {
+              "pattern": "\\$\\{"
+            }
+          ],
+          "description": "What `version` does."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "detect"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "composeFile": {
+                "type": "string",
+                "description": "Compose file (default ${COMPOSE_FILE})."
+              },
+              "requireSame": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Fail when product images are on different versions (default false)."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "available"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "repo": {
+                "type": "string",
+                "description": "A git working tree."
+              },
+              "image": {
+                "type": "string",
+                "description": "An image whose registry tags to list (needs REGISTRY_API)."
+              },
+              "fetch": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Run `git fetch --tags` first (default false)."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "verify-source"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "repo": {
+                "type": "string",
+                "description": "The git working tree."
+              },
+              "version": {
+                "type": "string",
+                "description": "The version (default ${VERSION}, then the one detected from the compose file)."
+              },
+              "composeFile": {
+                "type": "string",
+                "description": "Compose file to detect the version from (default ${COMPOSE_FILE})."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "repo"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verb": {
+                "const": "checkout"
+              }
+            },
+            "required": [
+              "verb"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verb": true,
+              "repo": {
+                "type": "string",
+                "description": "The git working tree."
+              },
+              "fetch": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "Run `git fetch --tags` first (default false)."
+              },
+              "version": {
+                "type": "string",
+                "description": "The version (default ${VERSION}, then the one detected from the compose file)."
+              },
+              "composeFile": {
+                "type": "string",
+                "description": "Compose file to detect the version from (default ${COMPOSE_FILE})."
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "repo"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

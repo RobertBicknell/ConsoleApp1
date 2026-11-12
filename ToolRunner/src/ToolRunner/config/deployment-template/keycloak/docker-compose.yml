@@ -1,0 +1,22 @@
+# Keycloak is its own stack. Products join its network and reach it as http://keycloak:8080;
+# browsers reach it on the published port. KC_HOSTNAME keeps the token issuer the same for both.
+services:
+  keycloak:
+    image: ${REGISTRY}/keycloak/keycloak:${KEYCLOAK_VERSION}
+    container_name: keycloak
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+    ports:
+      - "${KEYCLOAK_PORT}:8080"
+    volumes:
+      - ./import:/opt/keycloak/data/import:ro
+    networks:
+      - identity
+
+networks:
+  identity:
+    name: ${IDENTITY_NETWORK}

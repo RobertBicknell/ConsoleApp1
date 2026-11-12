@@ -1,0 +1,41 @@
+@inherits LiveComponent
+
+@* Browses folders on the selected host (a browser cannot hand a web page a real path, so the server lists them). *@
+<div class="card" style="padding:10px 12px;max-width:760px">
+    <div class="row">
+        @foreach (var r in listing?.Roots ?? []) { <button class="mini" @onclick="() => Go(r)">@r</button> }
+        <button class="mini" disabled="@(listing?.Parent is null)" @onclick="() => Go(listing!.Parent!)">&uarr; up</button>
+        <b style="word-break:break-all">@(listing?.Path ?? "...")</b>
+        @if (listing?.HasCompose == true) { <span class="badge ok">has a compose file</span> }
+    </div>
+    @if (listing?.Error is { } e) { <div class="err">@e</div> }
+    <div class="files" style="max-height:260px;overflow:auto;margin:8px 0">
+        @foreach (var f in listing?.Folders ?? [])
+        {
+            <button class="chip" title="open" @onclick="() => Go(Join(listing!.Path, f))">@f</button>
+        }
+        @if (listing is { Folders.Count: 0, Error: null }) { <span class="meta">no subfolders</span> }
+    </div>
+    <div class="row">
+        <button class="act primary" disabled="@(listing is null)" @onclick="() => OnPick.InvokeAsync(listing!.Path)">use this folder</button>
+        <button class="act" @onclick="() => OnPick.InvokeAsync(null)">cancel</button>
+        <span class="meta">click a folder to open it; "use this folder" picks the one shown in bold</span>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Start { get; set; }
+    /// The chosen folder, or null when cancelled.
+    [Parameter] public EventCallback<string?> OnPick { get; set; }
+    private FolderListing? listing;
+
+    protected override async Task OnInitializedAsync() => await Go(Start);
+
+    private static string Join(string dir, string name) => dir.TrimEnd('/') + "/" + name;
+
+    private async Task Go(string? path)
+    {
+        try { listing = await Folders.ListAsync(Live.CreateHost(), path, CancellationToken.None); }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or IOException) { listing = new FolderListing(path ?? "", null, [], [], false, ex.Message); }
+    }
+}

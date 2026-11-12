@@ -1,0 +1,160 @@
+@inherits LiveComponent
+
+<div class="meta">Two pipelines for the product. <b>Plugins</b>: build and unit-test the .NET plugins, pack them as NuGet, push to JFrog.
+    <b>Product</b>: fetch the plugins of the same version, start the stack, run the Selenium tests, bake config and plugins into final images, push to JFrog.
+    Both take a parameter <code>environment</code> (dev or prod) that selects the JFrog repositories. Fill in what you know, explore, apply what was found, then generate.</div>
+
+@{ var s = Ws.Pipeline; var x = Ws.Exploration; }
+<div class="cols" style="align-items:flex-start">
+<section style="flex:1;min-width:380px">
+    <h3 style="margin-top:8px">1. Settings <span class="meta">saved in your own layer as you type</span></h3>
+    @foreach (var g in s.All.GroupBy(a => a.Group))
+    {
+        <details class="card" open="@(g.Key is "azure devops" or "jfrog" || g.Any(a => a.Value.Length == 0))">
+            <summary>@g.Key <span class="meta">@g.Count(a => a.Value.Length > 0) of @g.Count() set</span></summary>
+            <div class="args">
+                @foreach (var a in g)
+                {
+                    var options = Options(a.Var);
+                    <label class="arg" title="@a.Help"><span>@a.Label <span class="meta">@a.Var</span></span>
+                        <input type="@(a.Var.EndsWith("PAT") || a.Var.EndsWith("TOKEN") ? "password" : "text")" value="@a.Value" list="@(options.Count > 0 ? "opt-" + a.Var : null)"
+                               placeholder="@a.Help" @onchange="e => Ws.SetSetting(a.Var, e.Value?.ToString())" />
+                        @if (options.Count > 0) { <datalist id="opt-@a.Var">@foreach (var o in options) { <option value="@o"></option> }</datalist> }
+                    </label>
+                }
+            </div>
+        </details>
+    }
+</section>
+
+<section style="flex:1.5;min-width:0">
+    <h3 style="margin-top:8px">2. Explore <span class="meta">reads Azure DevOps and Artifactory; changes nothing</span>
+        <button class="act primary" disabled="@Ws.Exploring" @onclick="Ws.ExploreAsync">@(Ws.Exploring ? "exploring..." : x is null ? "explore" : "explore again")</button>
+        @if (x is not null) { <span class="meta">last: @x.At.ToLocalTime().ToString("g")</span> }</h3>
+    @{ List<string> log; lock (Ws.ExploreLog) log = Ws.ExploreLog.ToList(); }
+    @if (log.Count > 0) { <pre class="card" style="max-height:140px;overflow:auto">@string.Join("\n", log)</pre> }
+
+    @if (x is null) { <div class="meta">Nothing explored yet. Set the two URLs (and credentials if needed), then explore.</div> }
+    else
+    {
+        var suggestions = Pipelines.Suggest(x, s);
+        var checks = Pipelines.Assess(x, s);
+        @foreach (var n in x.Azdo.Notes.Concat(x.Jfrog.Notes).Take(8)) { <div class="err">@n</div> }
+        @if (suggestions.Count > 0)
+        {
+            <div class="card running" style="padding:8px 10px">
+                <b>Found for settings that are still empty</b>
+                <button class="act primary" @onclick="() => Apply(suggestions)">use all</button>
+                <table class="vars">@foreach (var (k, v) in suggestions) { <tr><td class="k">@k</td><td class="v">@v</td><td class="o" style="width:60px"><button class="mini" @onclick="() => Ws.SetSetting(k, v)">use</button></td></tr> }</table>
+            </div>
+        }
+
+        <h3>3. Can the pipelines be built? <span class="meta">
+            <span class="badge ok">@checks.Count(c => c.Status == "ok") ok</span><span class="badge undefined">@checks.Count(c => c.Status == "missing") missing</span><span class="badge changed">@checks.Count(c => c.Status == "unknown") unknown</span></span></h3>
+        @foreach (var g in checks.GroupBy(c => c.Pipeline))
+        {
+            <details class="card @(g.Any(c => c.Status == "missing") ? "fail" : g.Any(c => c.Status == "unknown") ? "running" : "ok")" open>
+                <summary>@(g.Key == "both" ? "both pipelines" : g.Key + " pipeline")</summary>
+                <table class="diffs">
+                    @foreach (var c in g)
+                    {
+                        <tr><td class="o"><span class="badge @(c.Status == "ok" ? "ok" : c.Status == "missing" ? "undefined" : "changed")">@c.Status</span></td>
+                            <td class="k">@c.Name</td><td class="v">@c.Evidence</td><td class="ref">@c.Fix</td></tr>
+                    }
+                </table>
+            </details>
+        }
+
+        <h3>Versions seen <span class="meta">tags look like: @Pipelines.TagConvention(x)</span></h3>
+        var rows = Pipelines.VersionTable(x, s, Ws.Scheme);
+        @if (rows.Count == 0) { <div class="meta">No versions found yet in tags, packages or images (set the repositories, then explore again).</div> }
+        else
+        {
+            <table class="vars">
+                <tr><td class="k">version</td><td>plugins tag</td><td>config tag</td><td>NuGet package</td><td>image</td></tr>
+                @foreach (var r in rows.Take(25))
+                {
+                    <tr><td class="k">@r.Version</td>@foreach (var b in new[] { r.PluginsTag, r.ConfigTag, r.Package, r.Image }) { <td><span class="badge @(b ? "ok" : "")">@(b ? "yes" : "-")</span></td> }</tr>
+                }
+            </table>
+        }
+
+        <details class="card"><summary>What was found <span class="meta">@x.Azdo.Repos.Count repositories, @x.Azdo.Pools.Count pools, @x.Azdo.ServiceConnections.Count connections, @x.Jfrog.Repos.Count JFrog repositories</span></summary>
+            <h3>Repositories</h3>
+            <table class="vars">@foreach (var r in x.Azdo.Repos) { <tr><td class="k">@r.Name</td><td class="o" style="width:80px"><span class="badge default">@r.Kind</span></td><td class="v">@string.Join("; ", r.Evidence) &middot; @r.Branches.Count branches, @r.Tags.Count tags</td></tr> }</table>
+            <h3>Agent pools</h3>
+            <table class="vars">@foreach (var p in x.Azdo.Pools) { foreach (var a in p.Agents.DefaultIfEmpty()) { <tr><td class="k">@p.Name</td><td class="k">@(a?.Name ?? "(no agents)")</td><td class="v">@(a is null ? "" : $"{a.Status}, {a.Os}: {string.Join(", ", a.Capabilities.Keys.Where(k => !k.StartsWith("Agent.")).Take(14))}")</td></tr> } }</table>
+            <h3>Service connections, variable groups, existing pipelines</h3>
+            <table class="vars">
+                @foreach (var c in x.Azdo.ServiceConnections) { <tr><td class="k">connection</td><td class="k">@c.Name</td><td class="v">@c.Detail</td></tr> }
+                @foreach (var g in x.Azdo.VariableGroups) { <tr><td class="k">variable group</td><td class="v" colspan="2">@g</td></tr> }
+                @foreach (var p in x.Azdo.Pipelines) { <tr><td class="k">pipeline</td><td class="k">@p.Name</td><td class="v">@p.Detail</td></tr> }
+            </table>
+            <h3>Recent builds <span class="meta">how build numbers are written today</span></h3>
+            <pre>@string.Join("\n", x.Azdo.BuildNumbers.Take(15))</pre>
+            <h3>JFrog repositories</h3>
+            <div class="row">@foreach (var r in x.Jfrog.Repos.Where(r => r.PackageType.ToLowerInvariant() is "nuget" or "docker")) { <span class="badge @(r.PackageType.ToLowerInvariant() == "nuget" ? "default" : "tool")">@r.Key (@r.Type @r.PackageType)</span> }</div>
+            <div class="meta">extensions: @x.Azdo.Extensions.Count &middot; tasks: @x.Azdo.Tasks.Count &middot; relevant: @string.Join(", ", x.Azdo.Tasks.Where(t => System.Text.RegularExpressions.Regex.IsMatch(t, "DotNetCoreCLI|Docker|NuGet|JFrog|Artifactory|Bash|VSTest", System.Text.RegularExpressions.RegexOptions.IgnoreCase)).Take(20))</div>
+        </details>
+    }
+
+    <h3>4. The pipelines <span class="meta">generated from the settings; commit each file to its repository</span>
+        <button class="act" @onclick="Write">write files</button>
+        @if (written is not null) { <span class="note">wrote to <FileLink Path="@written" /></span> }</h3>
+    @{ var bake = s.List("PIPELINE_BAKE_SERVICES").ToList(); var stack = Ws.Catalog?.Scan.Stacks.OrderByDescending(st => st.Services.Count(sv => bake.Contains(sv.Name))).FirstOrDefault(); }
+    @foreach (var (repo, path, content) in Pipelines.Files(s, stack))
+    {
+        <details class="card"><summary>@(repo.Length > 0 ? repo : "(repository not set)") / @path <span class="meta">@content.Split('\n').Length lines</span></summary>
+            <Code Text="@content" Lang="yaml" />
+        </details>
+    }
+    @if (stack is not null)
+    {
+        @foreach (var note in bake.SelectMany(b => Pipelines.BakeDockerfile(b, stack.Dir, stack.Mounts).Notes)) { <div class="meta">note: @note</div> }
+    }
+    <div class="meta">The Dockerfiles copy what each baked service bind-mounts in the scanned deployment (@(stack is null ? "nothing scanned" : Rel(Ws.Root, stack.Dir))).
+        Registering the pipelines in Azure DevOps is a command-line step once the files are committed: <code>toolrunner azdo apply confirm=true</code>.</div>
+</section>
+</div>
+
+@code {
+    private string? written;
+
+    protected override void OnInitialized() { base.OnInitialized(); Ws.LoadExploration(); }
+
+    private void Apply(Dictionary<string, string> suggestions) { foreach (var (k, v) in suggestions) Ws.SetSetting(k, v); }
+
+    /// What the exploration (and the scan) offers for a setting.
+    private List<string> Options(string key)
+    {
+        var x = Ws.Exploration;
+        IEnumerable<string> Jfrog(string package) => x?.Jfrog.Repos.Where(r => r.PackageType.Equals(package, StringComparison.OrdinalIgnoreCase)).Select(r => r.Key) ?? [];
+        return (key switch
+        {
+            "AZDO_PROJECT" => x?.Azdo.Projects ?? [],
+            "PIPELINE_POOL" => x?.Azdo.Pools.Select(p => p.Name) ?? [],
+            "PIPELINE_PLUGINS_REPO" or "PIPELINE_CONFIG_REPO" or "PIPELINE_TESTS_REPO" => x?.Azdo.Repos.Select(r => r.Name) ?? [],
+            "PIPELINE_NUGET_REPO_DEV" or "PIPELINE_NUGET_REPO_PROD" => Jfrog("nuget"),
+            "PIPELINE_DOCKER_REPO_DEV" or "PIPELINE_DOCKER_REPO_PROD" => Jfrog("docker"),
+            "PIPELINE_CREDENTIALS_GROUP" => x?.Azdo.VariableGroups.Select(g => g[..g.LastIndexOf(" (", StringComparison.Ordinal)]) ?? [],
+            "PIPELINE_BAKE_SERVICES" => Ws.Catalog?.Services ?? [],
+            "PIPELINE_PACKAGES" => x?.Jfrog.NugetVersions.Keys.Select(k => k[(k.IndexOf('/') + 1)..]).Distinct() ?? [],
+            _ => []
+        }).ToList();
+    }
+
+    private void Write()
+    {
+        var s = Ws.Pipeline;
+        var bake = s.List("PIPELINE_BAKE_SERVICES").ToList();
+        var stack = Ws.Catalog?.Scan.Stacks.OrderByDescending(st => st.Services.Count(sv => bake.Contains(sv.Name))).FirstOrDefault();
+        var dir = Path.Combine(History.Dir(Live.Dir), "pipelines");
+        foreach (var (repo, path, content) in Pipelines.Files(s, stack))
+        {
+            var file = Path.Combine(dir, repo.Length > 0 ? repo : "_repository-not-set", path);
+            Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+            File.WriteAllText(file, content, new System.Text.UTF8Encoding(false));
+        }
+        written = dir.Replace('\\', '/');
+    }
+}

@@ -1,0 +1,42 @@
+{
+  "productFile": "product.json",
+  "values": {
+    "IDENTITY_NETWORK": "identity"
+  },
+  "stacks": [ "keycloak", "." ],
+  "services": {
+    "productconfig": {
+      "client": "{{product_title}}-productconfig",
+      "url": "http://{{HOST}}:{{PORT+1}}",
+      "pluginsDir": "productconfig/plugins",
+      "plugins": [ "Acme.ProductConfig.Rules" ]
+    },
+    "webportal": {
+      "client": "{{product_title}}-webportal",
+      "url": "http://{{HOST}}:{{PORT+2}}",
+      "pluginsDir": "webportal/plugins",
+      "plugins": [ "Acme.Portal.Widgets" ]
+    }
+  },
+  "keycloak": {
+    "url": "http://{{HOST}}:{{PORT+0}}",
+    "internalUrl": "http://keycloak:8080",
+    "admin": "admin",
+    "adminPassword": "{{SECRET:keycloak-admin}}",
+    "importFile": "keycloak/import/realm.json",
+    "privilegeAttribute": "privileges",
+    "roles": [ "product-admin", "product-user" ],
+    "users": [
+      { "username": "{{product_title}}-admin", "roles": [ "product-admin" ], "privileges": true },
+      { "username": "{{product_title}}-user", "roles": [ "product-user" ], "privileges": true }
+    ]
+  },
+  "test": {
+    "deployClient": "{{productconfig.client}}",
+    "deployUser": "{{product_title}}-admin",
+    "deployMethod": "POST",
+    "deployUrl": "{{productconfig.url}}/api/product",
+    "portalUser": "{{product_title}}-user",
+    "portalUrl": "{{webportal.url}}/"
+  }
+}

@@ -1,0 +1,10 @@
+Answer with exactly these numbered sections, in this order, in plain text (no tables):
+
+1. WHAT THE EVIDENCE SHOWS: the facts from the runs and files above, each with the run number or file it came from.
+2. MOST LIKELY CAUSE: one cause, with your confidence (high, medium or low) and why.
+3. NEXT STEP: exactly one command for me to run, written as a toolrunner command line (for example: toolrunner run docker/consumer-logs service=gateway), or one file edit with the exact before and after text.
+4. HOW I WILL KNOW: the output that would confirm your cause and the output that would disprove it.
+5. WHAT YOU STILL NEED: anything missing from the text above, or "nothing".
+6. CARRY-FORWARD: a self-contained summary of at most 12 lines of everything established so far, the hypotheses already ruled out, and the current plan. I will save it and paste it back at the start of my next message, so write it for a reader who has seen nothing else.
+
+Finish your answer with the single line: END OF ANSWER. If you cannot finish, stop after a complete section and write CONTINUE on its own line so I can ask you to carry on.

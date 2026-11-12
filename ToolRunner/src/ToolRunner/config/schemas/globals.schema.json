@@ -1,0 +1,668 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "toolrunner globals*.json",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "$comment": {
+      "type": "string"
+    },
+    "APP_ROOT": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Root of the application; on a server, an absolute POSIX path."
+    },
+    "DEPLOY_ROOT": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "The deployment folder the UI scans for stacks (default: APP_ROOT)."
+    },
+    "REFERENCE_ROOT": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "A known-good copy of the deployment folder that `compare` checks against."
+    },
+    "COMPOSE_FILE": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Compose file the compose verbs use by default."
+    },
+    "ENV_FILE": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Env file the compose verbs use by default."
+    },
+    "COMPOSE_PROJECT": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Compose project name (-p)."
+    },
+    "WORK_DIR": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Where generated files go; must stay gitignored."
+    },
+    "COMPOSE_DEBUG": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Generated compose file."
+    },
+    "ENV_DEBUG": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Generated env file."
+    },
+    "COMPOSE_DEBUG_IMAGE": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Generated compose override file naming the services that run a debug image."
+    },
+    "REGISTRY_API": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Registry v2 API base used to find base images; Artifactory: https://HOST/artifactory/api/docker/REPO-KEY."
+    },
+    "REGISTRY_PREFIX": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "What precedes a repository name in an image reference pulled from that registry, e.g. HOST/REPO-KEY."
+    },
+    "REGISTRY_USER": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Registry user (basic auth). Keep it in globals.user.json."
+    },
+    "REGISTRY_TOKEN": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Registry password or token (Bearer when there is no user). Keep it in globals.user.json."
+    },
+    "AZDO_URL": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "https://server/tfs/DefaultCollection (on-prem) or https://dev.azure.com/org"
+    },
+    "AZDO_PROJECT": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "The team project that holds the three repositories."
+    },
+    "AZDO_PAT": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Empty = sign in as the current Windows account. Kept in your own layer."
+    },
+    "JFROG_URL": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "https://HOST/artifactory"
+    },
+    "JFROG_USER": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "For exploring from this machine. The pipelines read JFROG_USER / JFROG_TOKEN from the variable group."
+    },
+    "JFROG_TOKEN": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Kept in your own layer."
+    },
+    "PIPELINE_POOL": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Where both pipelines run. Needs dotnet; the product pipeline also needs docker with compose, bash and a browser."
+    },
+    "PIPELINE_PLUGINS_REPO": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "The .NET plugin projects: built, tested, packed and pushed as NuGet."
+    },
+    "PIPELINE_CONFIG_REPO": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "docker-compose, .env, appsettings, product.json."
+    },
+    "PIPELINE_TESTS_REPO": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "The Selenium test projects run against the webportal."
+    },
+    "PIPELINE_MAIN_BRANCH": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Builds of this branch and of release/* run automatically."
+    },
+    "PIPELINE_TAG_PREFIX": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "A git tag <prefix><version> marks a release: v gives v2.4.1. Empty = the tag is the version."
+    },
+    "PIPELINE_PACKAGES": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "`;`-separated ids of the NuGet packages the product pipeline fetches. Empty = every package the plugins pipeline produced cannot be known; name them."
+    },
+    "PIPELINE_CREDENTIALS_GROUP": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "A library variable group in the project; the token marked secret."
+    },
+    "PIPELINE_NUGET_REPO_DEV": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Artifactory repository key the plugins are pushed to for dev."
+    },
+    "PIPELINE_NUGET_REPO_PROD": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "The same for prod."
+    },
+    "PIPELINE_DOCKER_REGISTRY_DEV": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "What precedes an image name when pushing for dev, e.g. HOST/docker-dev-local."
+    },
+    "PIPELINE_DOCKER_REGISTRY_PROD": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "The same for prod."
+    },
+    "PIPELINE_DOCKER_REPO_DEV": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Artifactory key behind the dev registry (for looking up tags)."
+    },
+    "PIPELINE_DOCKER_REPO_PROD": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "The same for prod."
+    },
+    "PIPELINE_PRODUCT": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Names the final images: <registry>/<product>-<service>:<version>."
+    },
+    "PIPELINE_COMPOSE_FILE": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Path from the repository root."
+    },
+    "PIPELINE_ENV_FILE": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Path from the repository root."
+    },
+    "PIPELINE_PLUGINS_DIR": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "The bind-mount source the plugin assemblies are unpacked into before the stack starts."
+    },
+    "PIPELINE_BAKE_SERVICES": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "`;`-separated services whose bind-mounted config and plugins are copied into a final image."
+    },
+    "PIPELINE_HEALTH_URL": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Polled until it answers before the tests start, and handed to the tests as PORTAL_URL."
+    },
+    "PIPELINE_TESTS_PROJECTS": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Glob inside the tests repository."
+    },
+    "BUILD_PRODUCT_JSON": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "The product's data model file. Everything else flows from it."
+    },
+    "BUILD_ENTITIES_PATH": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Path inside product.json to the list of entities, e.g. model:entities. Empty = found automatically."
+    },
+    "BUILD_TITLE": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "A short code for the product, about three letters: written to product.env, used as the prefix of container names."
+    },
+    "BUILD_REALM": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Empty = the product title in lower case."
+    },
+    "BUILD_VERSION": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Selects the images and the plugin packages. Empty = the version in use (versions tab)."
+    },
+    "BUILD_REGISTRY": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "What precedes image names, e.g. HOST/docker-dev-local."
+    },
+    "BUILD_NUGET_REPO": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Artifactory NuGet repository the plugin packages come from (with JFROG_URL / JFROG_USER / JFROG_TOKEN)."
+    },
+    "BUILD_TEMPLATE_DIR": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "docker-compose, .env, appsettings ... with {{PLACEHOLDERS}}, and template.json describing services, Keycloak and the test. Empty = the sample that ships with toolrunner."
+    },
+    "BUILD_OUTPUT_DIR": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Where the finished deployment is written. Existing files are overwritten; nothing is deleted."
+    },
+    "BUILD_HOST": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "The name browsers and services use to reach this machine."
+    },
+    "BUILD_PORT_BASE": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "{{PORT+0}}, {{PORT+1}} ... in the templates count from here."
+    },
+    "BUILD_VALUES": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "`;`-separated NAME=value pairs for placeholders of your own."
+    },
+    "BUILD_PRIVILEGE_FORMAT": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "{entity} is replaced by each entity name."
+    },
+    "BUILD_PRIVILEGE_SEPARATOR": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Joins the entities' privileges into the one string users carry."
+    },
+    "BUILD_EXPECT": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "{entity} is replaced by each entity name; the test passes when all are on the page."
+    },
+    "CONTAINER_ENGINE": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "The container CLI used wherever a tool runs docker: docker (default), podman, or a full path."
+    },
+    "VERSION": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "The version builds and checkouts use. Unset: the version detected from the stack's image tags."
+    },
+    "VERSION_PATTERN": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Regex that finds the version inside an image tag."
+    },
+    "VERSION_IGNORE": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Regex for the parts of an image tag that describe the base image (alpine3.20 ...); never read as the application version."
+    },
+    "VERSION_GIT_REFS": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "`;`-separated git ref templates tried in order for a version; {version} is replaced."
+    },
+    "VERSION_LATEST_REFS": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "`;`-separated git refs that the version `latest` means."
+    },
+    "VSDBG_DIR": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "Folder holding an unpacked vsdbg that debug images copy in (must match the image's libc: linux-x64 or linux-musl-x64)."
+    },
+    "VSDBG_URL": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "description": "GetVsDbg.sh location used when VSDBG_DIR is not set (default https://aka.ms/getvsdbgsh)."
+    },
+    "ssh": {
+      "type": "object",
+      "description": "Used with --host: connect to a Linux server over ssh (key auth only).",
+      "properties": {
+        "target": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ],
+          "description": "user@host."
+        },
+        "port": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ],
+          "description": "ssh port."
+        },
+        "identity": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ],
+          "description": "Path to the private key."
+        },
+        "options": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ],
+          "description": "`;`-separated ssh -o options."
+        }
+      },
+      "additionalProperties": false
+    },
+    "services": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "description": "One service. These keys are conventions used by args.json; add your own.",
+        "properties": {
+          "image": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ],
+            "description": "Image name:tag."
+          },
+          "src": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ],
+            "description": "Local source directory (git working tree)."
+          },
+          "verify": {
+            "anyOf": [
+              {
+                "enum": [
+                  "none",
+                  "label",
+                  "tag"
+                ]
+              },
+              {
+                "pattern": "\\$\\{"
+              }
+            ],
+            "description": "source/verify strategy."
+          },
+          "hostKey": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ],
+            "description": "Env-file key holding the host the consumer connects to."
+          },
+          "portKey": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ],
+            "description": "Env-file key holding the port."
+          },
+          "debugHost": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ],
+            "description": "Host to point the consumer at while debugging."
+          },
+          "debugPort": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ],
+            "description": "Port of the debug session."
+          },
+          "consumer": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ],
+            "description": "Compose service that connects to this one."
+          },
+          "logProbe": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ],
+            "description": "Log text that proves the consumer connected."
+          }
+        },
+        "additionalProperties": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object"
+          ]
+        }
+      }
+    }
+  },
+  "additionalProperties": {
+    "type": [
+      "string",
+      "number",
+      "boolean",
+      "object"
+    ]
+  }
+}

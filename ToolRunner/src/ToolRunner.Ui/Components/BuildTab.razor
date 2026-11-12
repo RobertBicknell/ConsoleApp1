@@ -1,0 +1,105 @@
+@inherits LiveComponent
+
+<div class="meta">Builds a new deployment folder for a product. It flows downwards: <b>product.json</b> gives the entities; a <b>title</b> names the product;
+    a <b>version</b> selects images and plugin packages; the <b>templates</b> are filled in to make docker-compose, .env, product.env and each service's appsettings;
+    <b>Keycloak</b> gets a realm with clients, roles and users whose privileges name every entity. Then check the folder, start it and test it end to end.</div>
+
+@{ var s = Ws.Build; var plan = Ws.BuildPlan(); }
+<div class="cols" style="align-items:flex-start">
+<section style="flex:1;min-width:380px">
+    <h3 style="margin-top:8px">Choices <span class="meta">saved in your own layer as you type</span></h3>
+    @foreach (var g in s.All.GroupBy(a => a.Group))
+    {
+        <details class="card" open>
+            <summary>@g.Key</summary>
+            <div class="args">
+                @foreach (var a in g)
+                {
+                    <label class="arg @(a.Var is "BUILD_PRODUCT_JSON" or "BUILD_TEMPLATE_DIR" or "BUILD_OUTPUT_DIR" or "BUILD_VALUES" ? "wide" : "")" title="@a.Help"><span>@a.Label <span class="meta">@a.Var</span></span>
+                        <input value="@a.Value" placeholder="@Hint(a)" list="@(a.Var == "BUILD_VERSION" ? "build-versions" : null)" @onchange="e => Ws.SetSetting(a.Var, e.Value?.ToString())" />
+                    </label>
+                }
+            </div>
+            @if (g.Key.StartsWith("1"))
+            {
+                <div class="row" style="margin-top:6px"><span class="meta">entities (@plan.Entities.Count):</span>@foreach (var e in plan.Entities) { <span class="badge default">@e</span> }</div>
+            }
+            @if (g.Key.StartsWith("4"))
+            {
+                <div class="row" style="margin-top:6px">
+                    <button class="mini" @onclick="@(() => picking = picking == "BUILD_OUTPUT_DIR" ? null : "BUILD_OUTPUT_DIR")">browse for the deployment folder...</button>
+                    <button class="mini" @onclick="@(() => picking = picking == "BUILD_TEMPLATE_DIR" ? null : "BUILD_TEMPLATE_DIR")">browse for the template folder...</button>
+                </div>
+                @if (picking is not null) { <FolderPicker Start="@(s[picking].Length > 0 ? s[picking] : null)" OnPick="Picked" /> }
+            }
+        </details>
+    }
+    <datalist id="build-versions">@foreach (var v in Versions()) { <option value="@v"></option> }</datalist>
+</section>
+
+<section style="flex:1.5;min-width:0">
+    <h3 style="margin-top:8px">The plan <span class="meta">
+        <span class="badge @(plan.Problems.Count > 0 ? "undefined" : "ok")">@(plan.Problems.Count == 0 ? "ready to write" : $"{plan.Problems.Count} to settle")</span>
+        <span class="badge">@plan.Files.Count files</span><span class="badge">@plan.Clients.Count clients</span><span class="badge">@plan.Users.Count users</span></span></h3>
+    @foreach (var p in plan.Problems) { <div class="err">@p</div> }
+    @foreach (var n in plan.Notes) { <div class="meta">note: @n</div> }
+
+    <div class="row" style="margin-top:8px">
+        <button class="act primary" disabled="@(Ws.Building || plan.Problems.Count > 0 || Ws.ReadOnly)" @onclick="@(() => Ws.BuildAsync("write"))">1. write the folder</button>
+        <button class="act" disabled="@(Ws.Building || plan.Problems.Count > 0 || Ws.ReadOnly)" @onclick="@(() => Ws.BuildAsync("fetch"))">2. fetch the plugins</button>
+        <button class="act" disabled="@(Ws.Building || plan.OutputDir.Length == 0)" @onclick="@(() => Ws.BuildAsync("check"))">3. check the folder</button>
+        <button class="act primary" disabled="@(Ws.Building || plan.Problems.Count > 0 || Ws.ReadOnly)" @onclick="@(() => Ws.BuildAsync("test"))">4. start and test</button>
+        @if (Ws.ReadOnly) { <span class="meta">writing, fetching and starting need the switch in the header on "changes allowed"</span> }
+    </div>
+    @{ List<BuildStep> steps; lock (Ws.BuildSteps) steps = Ws.BuildSteps.ToList(); }
+    @if (Ws.BuildTitle is not null)
+    {
+        <div class="card @(Ws.Building ? "running" : steps.All(x => x.Ok) ? "ok" : "fail")" style="padding:8px 10px;margin-top:8px">
+            <b>@Ws.BuildTitle</b> <span class="meta">@(Ws.Building ? "running..." : steps.All(x => x.Ok) ? "all good" : "stopped at the first failure")</span>
+            <table class="vars">
+                @foreach (var st in steps) { <tr><td class="o" style="width:60px"><span class="badge @(st.Ok ? "ok" : "undefined")">@(st.Ok ? "ok" : "FAIL")</span></td><td class="k">@st.Name</td><td class="v" style="white-space:normal">@st.Detail</td></tr> }
+            </table>
+            @if (!Ws.Building && Ws.BuildTitle == "write" && steps.Count > 0) { <div class="meta">Open it: set the deployment folder on the deployment tab to <b>@plan.OutputDir</b>, then look at the map.</div> }
+        </div>
+    }
+
+    <h3>Keycloak <span class="meta">realm <b>@plan.Value("REALM")</b> at @plan.Value("keycloak.url"), imported when the container starts</span></h3>
+    <table class="vars">
+        @foreach (var c in plan.Clients) { <tr><td class="k">client</td><td class="k">@c.ClientId</td><td class="v">redirects to @c.Url/*</td></tr> }
+        @foreach (var r in plan.Roles) { <tr><td class="k">role</td><td class="k">@r</td><td class="v">@string.Join(", ", plan.Users.Where(u => u.Roles.Contains(r)).Select(u => u.Username))</td></tr> }
+        @foreach (var u in plan.Users) { <tr><td class="k">user</td><td class="k">@u.Username</td><td class="v">password @u.Password &middot; roles @string.Join(", ", u.Roles)@(u.Privileges ? " · carries the privilege string" : "")</td></tr> }
+        <tr><td class="k">admin</td><td class="k">@plan.Value("keycloak.admin")</td><td class="v">password @plan.Value("keycloak.adminPassword")</td></tr>
+        <tr><td class="k">privileges</td><td class="v" colspan="2" style="white-space:normal">@plan.Value("PRIVILEGES")</td></tr>
+    </table>
+
+    <h3>Files <span class="meta">in @(plan.OutputDir.Length > 0 ? plan.OutputDir : "(no folder chosen)")</span></h3>
+    @foreach (var (path, content) in plan.Files)
+    {
+        <details class="card"><summary>@path <span class="meta">@content.Split('\n').Length lines</span></summary>
+            <Code Text="@content" Lang="@(path.EndsWith(".json") ? "json" : path.EndsWith(".yml") || path.EndsWith(".yaml") ? "yaml" : "env")" />
+        </details>
+    }
+    <details class="card"><summary>Template values <span class="meta">what {{NAME}} can be in a template</span></summary>
+        <table class="vars">@foreach (var (k, v) in plan.Values.Where(v => !v.Key.StartsWith("__"))) { <tr><td class="k">{{@k}}</td><td class="v">@v</td></tr> }
+            <tr><td class="k">{{PORT+n}}</td><td class="v">first port + n</td></tr><tr><td class="k">{{SECRET:name}}</td><td class="v">a generated password, the same on every build of this folder</td></tr></table>
+    </details>
+    <div class="meta">The test: docker compose up; Keycloak has the realm, clients, roles and users; the product admin deploys product.json to the config service;
+        the end user opens the portal and the page shows "@s["BUILD_EXPECT"]" for every entity. What is called and where is in the template's template.json.</div>
+</section>
+</div>
+
+@code {
+    private string? picking;
+
+    private void Picked(string? folder) { if (folder is not null && picking is not null) Ws.SetSetting(picking, folder); picking = null; }
+
+    private string Hint(PipelineSetting a) => a.Var switch
+    {
+        "BUILD_VERSION" => Ws.EffectiveVersion is { } v ? $"{v} (the version in use)" : a.Help,
+        "BUILD_TEMPLATE_DIR" => "the sample template that ships with toolrunner",
+        _ => a.Help
+    };
+
+    private IEnumerable<string> Versions() =>
+        (Ws.Available?.Registry ?? []).Concat(Ws.Available?.Git?.Select(g => g.Version) ?? []).Concat(Ws.Exploration?.Jfrog.NugetVersions.SelectMany(n => n.Value) ?? []).Append(Ws.EffectiveVersion ?? "").Where(v => v.Length > 0).Distinct();
+}

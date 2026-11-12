@@ -1,0 +1,31 @@
+@* A JSON value as a collapsible tree; the first levels start open. *@
+@switch (Node)
+{
+    case JsonObject o:
+        <details open="@(Depth < OpenDepth)">
+            <summary>@Label<span class="meta"> {@o.Count}</span></summary>
+            <div class="kids">@foreach (var (k, v) in o) { <JsonTree Name="@k" Node="v" Depth="Depth + 1" OpenDepth="OpenDepth" /> }</div>
+        </details>
+        break;
+    case JsonArray a:
+        <details open="@(Depth < OpenDepth)">
+            <summary>@Label<span class="meta"> [@a.Count]</span></summary>
+            <div class="kids">@for (var i = 0; i < a.Count; i++) { var n = i; <JsonTree Name="@($"[{n}]")" Node="a[n]" Depth="Depth + 1" OpenDepth="OpenDepth" /> }</div>
+        </details>
+        break;
+    default:
+        var kind = Node is null ? "kw" : Node.GetValueKind() switch
+        {
+            System.Text.Json.JsonValueKind.String => "string", System.Text.Json.JsonValueKind.Number => "number", _ => "kw"
+        };
+        <div class="leaf">@Label@(Name is null ? "" : ": ")<span class="jv @kind">@(Node is null ? "null" : kind == "string" ? $"\"{Node.GetValue<string>()}\"" : Node.ToJsonString())</span></div>
+        break;
+}
+
+@code {
+    [Parameter] public string? Name { get; set; }
+    [Parameter] public JsonNode? Node { get; set; }
+    [Parameter] public int Depth { get; set; }
+    [Parameter] public int OpenDepth { get; set; } = 2;
+    private RenderFragment Label => @<span class="jk">@(Name ?? "")</span>;
+}

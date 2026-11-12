@@ -1,0 +1,146 @@
+@inherits LiveComponent
+
+<div class="meta">A service loads plugin assemblies from a bind-mounted folder, and its appsettings file lists which ones. Publishing builds a project,
+    copies its output into that folder (unless the folder is the build output), and makes sure appsettings lists the plugin assembly.
+    Then restart the service and whatever depends on it, and check the logs. Every action here is a recorded run.</div>
+
+@if (Ws.Catalog is not { } cat) { <div class="meta" style="margin-top:12px">@(Ws.Scanning ? "Scanning..." : "Scan a deployment first (deployment tab).")</div> }
+else
+{
+<div class="cols">
+<section>
+    <h3>Publish a plugin</h3>
+    <div class="args">
+        <label class="arg"><span>service</span>
+            <select value="@service" @onchange="e => Pick(e.Value?.ToString() ?? string.Empty)">
+                <option value="">(choose)</option>
+                @foreach (var s in cat.Services) { <option value="@s">@s</option> }
+            </select>
+        </label>
+        <ArgInput Name="project" Value="@project" ValueChanged="v => project = v" Spec="Required" Placeholder="the plugin's .csproj or its folder" />
+        <ArgInput Name="dir" Value="@dir" ValueChanged="v => dir = v" Spec="Required" Placeholder="the service's plugin folder on the host" />
+        <ArgInput Name="appsettings" Value="@appsettings" ValueChanged="v => appsettings = v" Spec="Required" />
+        <ArgInput Name="key" Value="@key" ValueChanged="v => key = v" Placeholder="Plugins:Assemblies" />
+        <ArgInput Name="assemblies" Value="@assemblies" ValueChanged="v => assemblies = v" Placeholder="(the project's own assembly)" />
+        <ArgInput Name="configuration" Value="@configuration" ValueChanged="v => configuration = v" Placeholder="Debug" />
+    </div>
+    @if (service.Length > 0)
+    {
+        var deps = cat.Dependants(service);
+        <div class="meta" style="margin-top:6px">
+            Bind mounts of @service: @foreach (var m in Binds()) { <button class="mini" title="use as the plugin folder" @onclick="() => dir = m.Resolved!">@m.Target</button> }
+            &middot; restart would include: <b>@service@(deps.Count > 0 ? ", " + string.Join(", ", deps) : "")</b>@(deps.Count > 0 ? " (they depend on it)" : "")
+        </div>
+    }
+    @if (problem is not null) { <div class="err">@problem</div> }
+    <div class="row" style="margin-top:10px">
+        <label><input type="checkbox" @bind="dry" /> dry run</label>
+        <button class="act primary" disabled="@(Session.Running || !Ready)" @onclick="() => Go(1)">1. Publish</button>
+        <button class="act" disabled="@(Session.Running || service.Length == 0)" @onclick="() => Go(2)">2. Restart</button>
+        <button class="act" disabled="@(Session.Running || service.Length == 0 || appsettings.Length == 0)" @onclick="() => Go(3)">3. Check logs</button>
+        <button class="act primary" disabled="@(Session.Running || !Ready)" @onclick="() => Go(0)">Publish, restart and check</button>
+    </div>
+    <div class="meta">Publish and restart change the deployment, so the switch in the header must be red. The appsettings file is backed up before it is rewritten.</div>
+
+    <h3>What the scan found <span class="meta">names listed in appsettings vs .dll files in the service's bind-mounted folders</span></h3>
+    @{ var reports = cat.Scan.Stacks.SelectMany(s => s.Plugins).ToList(); }
+    @if (reports.Count == 0) { <div class="meta">No appsettings file under the deployment lists assemblies that could be recognised.</div> }
+    @foreach (var r in reports)
+    {
+        <details class="card @(r.Missing > 0 ? "fail" : "ok")" open="@(r.Missing > 0)">
+            <summary><span @onclick:stopPropagation="true"><FileLink Path="@r.AppSettings" Text="@Rel(cat.Root, r.AppSettings)" /></span> &middot; service @(r.Service ?? "(not bind-mounted by a service)") &middot; @(r.Items.Count - r.Missing)/@r.Items.Count found, @r.Unlisted.Count unlisted
+                @if (r.Service is not null) { <button class="mini" @onclick="() => Pick(r.Service)" @onclick:stopPropagation="true">use</button> }</summary>
+            <table>
+                @foreach (var i in r.Items)
+                {
+                    <tr><td class="o"><span class="badge @(i.FoundAt is null ? "undefined" : "ok")">@(i.FoundAt is null ? "missing" : "found")</span></td>
+                        <td class="k">@i.Name</td><td class="meta">@i.JsonPath</td><td class="meta">@(i.FoundAt is null ? "" : Rel(cat.Root, i.FoundAt))</td></tr>
+                }
+                @foreach (var u in r.Unlisted)
+                {
+                    <tr><td class="o"><span class="badge unused">unlisted</span></td><td class="k">@System.IO.Path.GetFileName(u)</td><td></td><td class="meta">@Rel(cat.Root, u)</td></tr>
+                }
+            </table>
+        </details>
+    }
+    <button class="act" disabled="@Ws.Scanning" @onclick="Ws.RescanAsync">@(Ws.Scanning ? "scanning..." : "rescan")</button>
+</section>
+
+<section>
+    <h3>Output @if (Session.Title is not null) { <span class="meta">@Session.Title &middot; @(Session.Running ? "running..." : $"exit {Session.Exit}")</span> }</h3>
+    @if (Session.Title is null) { <div class="meta">Nothing has run yet in this session.</div> }
+    else { <Cards Lines="@Session.Log" /> }
+</section>
+</div>
+}
+
+@code {
+    private static readonly Arg Required = new("x", "string", "", true);
+    private string service = "", project = "", dir = "", appsettings = "", key = "", assemblies = "", configuration = "";
+    private bool dry;
+    private string? problem;
+
+    private bool Ready => service.Length > 0 && project.Trim().Length > 0 && dir.Trim().Length > 0 && appsettings.Trim().Length > 0;
+    private IEnumerable<MountRef> Binds() => Ws.StackOf(service)?.Mounts.Where(m => m.Service == service && m is { Kind: "bind", Resolved: not null }) ?? [];
+    private string Saved(string name) => Live.State.Vars.TryGetValue($"services.{service}.{name}", out var v) ? Live.State.Expand(v) : "";
+
+    /// Fills the form for a service: what was saved for it last time, else what the scan suggests.
+    private void Pick(string name)
+    {
+        service = name; problem = null;
+        if (name.Length == 0) return;
+        var report = Ws.Catalog?.Scan.Stacks.SelectMany(s => s.Plugins).FirstOrDefault(r => r.Service == name);
+        var firstFound = report?.Items.FirstOrDefault(i => i.FoundAt is not null)?.FoundAt;
+        project = Saved("pluginProject");
+        appsettings = Saved("pluginSettings") is { Length: > 0 } a ? a : report?.AppSettings ?? "";
+        dir = Saved("pluginDir") is { Length: > 0 } d ? d
+            : firstFound is not null ? firstFound[..firstFound.LastIndexOf('/')]
+            : Binds().FirstOrDefault(m => m.Target.Contains("plugin", StringComparison.OrdinalIgnoreCase))?.Resolved ?? "";
+        // "Plugins:Assemblies:0" -> "Plugins:Assemblies"
+        key = Saved("pluginKey") is { Length: > 0 } k ? k
+            : report?.Items.FirstOrDefault()?.JsonPath is { } path && path.LastIndexOf(':') is > 0 and var i && int.TryParse(path[(i + 1)..], out _) ? path[..i] : "";
+    }
+
+    private JsonObject PublishArgs()
+    {
+        var a = new JsonObject { ["verb"] = "publish", ["project"] = project.Trim(), ["dir"] = dir.Trim(), ["appsettings"] = appsettings.Trim() };
+        if (key.Trim().Length > 0) a["key"] = key.Trim();
+        if (configuration.Trim().Length > 0) a["configuration"] = configuration.Trim();
+        if (assemblies.Trim().Length > 0) a["assemblies"] = new JsonArray(assemblies.Split(';', ',').Select(x => x.Trim()).Where(x => x.Length > 0).Select(x => (JsonNode)JsonValue.Create(x)!).ToArray());
+        return a;
+    }
+
+    private JsonObject LoadedArgs()
+    {
+        var a = new JsonObject { ["verb"] = "loaded", ["service"] = service, ["appsettings"] = appsettings.Trim() };
+        if (key.Trim().Length > 0) a["key"] = key.Trim();
+        return a;
+    }
+
+    /// 1 publish, 2 restart the service and its dependants, 3 check the logs, 0 all three in order.
+    private Task Go(int what)
+    {
+        problem = null;
+        try
+        {
+            // remember this service's set-up in your layer, so next time the form is already filled
+            if (what is 0 or 1)
+                foreach (var (name, value) in new[] { ("pluginProject", project), ("pluginDir", dir), ("pluginSettings", appsettings), ("pluginKey", key) })
+                    if (value.Trim().Length > 0 && value.Trim() != Saved(name)) ConfigWriter.SetUserVar(Live.Dir, $"services.{service}.{name}", value.Trim().Replace('\\', '/'));
+            Live.Reload();
+        }
+        catch (Exception ex) when (ex is IOException or ArgumentException) { problem = ex.Message; return Task.CompletedTask; }
+
+        var restart = new StepDef { Run = "compose", With = Ws.ComposeArgs("restart", service, Ws.Catalog?.Dependants(service)) };
+        var steps = what switch
+        {
+            1 => new List<StepDef> { new() { Run = "plugins", With = PublishArgs() } },
+            2 => new List<StepDef> { restart },
+            3 => new List<StepDef> { new() { Run = "plugins", With = LoadedArgs() } },
+            _ => new List<StepDef> { new() { Run = "plugins", With = PublishArgs() }, restart, new() { Run = "plugins", With = LoadedArgs() } }
+        };
+        var title = what switch { 1 => "publish plugin", 2 => "restart", 3 => "check plugin logs", _ => "publish, restart, check" } + $" ({service})";
+        var isDry = dry;
+        return Task.Run(() => Session.RunAsync(title, steps, new Dictionary<string, string>(), isDry, ["(plugins)", title]));
+    }
+}

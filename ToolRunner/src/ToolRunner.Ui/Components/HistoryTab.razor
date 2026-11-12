@@ -1,0 +1,128 @@
+@inherits LiveComponent
+
+<div class="cols">
+<section>
+    <h3>Runs and notes <span class="meta">newest first; from this UI and from the command line. Add a note with the box in the header.</span></h3>
+    @{ var runs = History.Last(Live.Dir, 30).Reverse().ToList(); }
+    @if (runs.Count == 0) { <div class="meta">No runs recorded yet.</div> }
+    @foreach (var r in runs)
+    {
+        if (History.IsRemark(r)) { <div class="remark"><span class="meta">note &middot; @r.At.ToLocalTime().ToString("g")</span><br />@r.Log</div> continue; }
+        <details class="card @(r.Exit == 0 ? "ok" : "fail")">
+            <summary>toolrunner @string.Join(' ', r.Argv) <span class="meta">@r.At.ToLocalTime().ToString("g") &middot; @r.Host &middot; exit @r.Exit</span></summary>
+            <Cards Lines="@r.Log.Split('\n')" />
+        </details>
+    }
+</section>
+
+<section>
+    <h3>Spool for Copilot <span class="meta">one plain-text file: instructions, your question, runs, variables, scans, files, answer format</span></h3>
+    <div class="row">
+        <button class="chip @(mode == "ask" ? "on" : "")" @onclick="@(() => mode = "ask")">ask a question</button>
+        <button class="chip @(mode == "plan" ? "on" : "")" @onclick="@(() => mode = "plan")">ask for a plan</button>
+        <span class="meta">@(mode == "plan" ? "Copilot is told everything the tool can do and must answer with steps chosen from that list; paste its reply below to load them." : "Copilot answers in prose.")</span>
+    </div>
+    <label class="arg wide"><span>@(mode == "plan" ? "my intent" : "my question")</span><textarea rows="3" @bind="note" placeholder="@(mode == "plan" ? "What do you want to achieve? e.g. find out why gateway cannot reach pluginhost" : "What do you want to know?")"></textarea></label>
+    <div class="row">
+        last <input type="number" min="0" max="30" style="width:52px" @bind="last" /> run(s)
+        <label><input type="checkbox" @bind="withScan" /> deployment scan</label>
+        <label><input type="checkbox" @bind="withCompare" disabled="@(Ws.Comparison is null)" /> comparison with reference@(Ws.Comparison is null ? " (run it on the compare tab first)" : "")</label>
+        <label><input type="checkbox" @bind="withRuntime" disabled="@(Ws.Runtime is null)" /> runtime check@(Ws.Runtime is null ? " (run it on the deployment tab first)" : "")</label>
+        <label><input type="checkbox" @bind="withConfig" /> toolrunner config</label>
+        <label><input type="checkbox" @bind="defang" /> replace &lt; &gt; (for tools that reject XML)</label>
+    </div>
+    <label class="arg wide"><span>files to include (one per line)</span><textarea rows="3" @bind="files" placeholder="C:/deploy/stack/docker-compose.yml"></textarea></label>
+    @if (Ws.Catalog is { } cat)
+    {
+        <div class="meta">add:
+            @foreach (var f in cat.ComposeFiles.Concat(cat.AppSettings).Take(12))
+            {
+                <button class="mini" @onclick="() => AddFile(f)">@Rel(cat.Root, f)</button>
+            }
+        </div>
+    }
+    <label class="arg wide"><span>previous summary (paste the model's CARRY-FORWARD here; it is sent back next time)</span><textarea rows="3" @bind="carry"></textarea></label>
+    <div class="row">
+        <button class="act primary" @onclick="Build">build spool file</button>
+        @if (path is not null) { <span class="note">wrote <FileLink Path="@path" /> (@text!.Length.ToString("N0") chars)</span> }
+    </div>
+    @if (error is not null) { <div class="err">@error</div> }
+    @if (text is not null) { <textarea class="spool" readonly rows="22">@text</textarea> }
+
+    <h3>Copilot's plan <span class="meta">paste the whole reply; the PLAN block is found, checked against what exists, and loaded onto the run tab</span></h3>
+    <label class="arg wide"><span>reply</span><textarea rows="6" @bind="reply" placeholder="paste Copilot's answer here"></textarea></label>
+    <div class="row">
+        <button class="act primary" disabled="@string.IsNullOrWhiteSpace(reply)" @onclick="Check">check plan</button>
+        <button class="act" disabled="@(plan is null || plan.Problems.Count > 0 || plan.Steps.Count == 0)" @onclick="Load">load onto the run tab</button>
+        @if (loaded) { <span class="note">loaded: open the run tab, review the chain, dry-run it, then run it</span> }
+    </div>
+    @if (plan is not null)
+    {
+        <div class="card @(plan.Problems.Count > 0 ? "fail" : "ok")" style="padding:8px 10px">
+            @if (plan.Intent is not null) { <div><b>intent</b> @plan.Intent</div> }
+            @if (plan.Expect is not null) { <div><b>expect</b> @plan.Expect</div> }
+            <div><span class="badge @(plan.Changes ? "changed" : "ok")">@(plan.Changes ? "changes the deployment" : "only reads")</span>
+                @foreach (var (k, v) in plan.Vars) { <span class="badge default">@k = @v</span> }</div>
+            <ol style="margin:6px 0 0 18px;padding:0">
+                @foreach (var s in plan.Steps) { <li><code>@s.Run</code> @if (s.With is { } w) { <Code Text="@w.ToJsonString(ConfigLoader.JsonOptions)" /> }</li> }
+            </ol>
+            @if (plan.Steps.Count == 0 && plan.Problems.Count == 0) { <div class="meta">No steps: Copilot thinks nothing should be run. Read its ASSESSMENT and QUESTIONS.</div> }
+            @foreach (var p in plan.Problems) { <div class="err">@p</div> }
+        </div>
+    }
+</section>
+</div>
+
+@code {
+    private string? note, files, carry, path, text, error, reply;
+    private string mode = "ask";
+    private Plan? plan;
+    private bool loaded;
+
+    private void Check() { plan = Planning.Parse(reply ?? string.Empty, ToolRunner.Tools.Registry.Default(), Live.Cfg, Ws.State()); loaded = false; }
+
+    /// The plan becomes the chain on the run tab (reviewed and run there, under the read-only switch like anything else),
+    /// and a note in the history, so the next spool shows the intent beside the outcome.
+    private void Load()
+    {
+        if (plan is null) return;
+        Ws.Chain.Clear(); Ws.Chain.AddRange(plan.Steps);
+        (Ws.ChainName, Ws.ChainDescription) = (null, plan.Intent);
+        foreach (var (k, v) in plan.Vars) Ws.RunVars[k] = v;
+        Ws.Remark($"plan loaded ({plan.Steps.Count} step(s)). intent: {plan.Intent ?? note ?? "(not stated)"}. expect: {plan.Expect ?? "(not stated)"}");
+        loaded = true;
+    }
+    private int last = 5;
+    private bool withScan = true, withCompare = true, withRuntime = true, withConfig, defang;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        var c = Path.Combine(History.Dir(Live.Dir), "carry.txt");
+        if (File.Exists(c)) carry = File.ReadAllText(c);
+    }
+
+    private void AddFile(string f) => files = string.IsNullOrWhiteSpace(files) ? f : files.TrimEnd() + "\n" + f;
+
+    private void Build()
+    {
+        try
+        {
+            error = null;
+            var dir = History.Dir(Live.Dir);
+            Directory.CreateDirectory(dir);
+            var carryPath = Path.Combine(dir, "carry.txt");
+            if (string.IsNullOrWhiteSpace(carry)) File.Delete(carryPath); else File.WriteAllText(carryPath, carry);
+
+            var list = (files ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+            var o = new SpoolOptions(last, list, withConfig, defang, note, mode);
+            var extra = new List<(string, string)>();
+            if (withRuntime && Ws.Runtime is { } rt) extra.Add(("RUNTIME CHECK (the configuration tallied against docker inspect: what is NOT in effect in the running containers)", RuntimeCheck.Text(rt, Ws.Root)));
+            if (mode == "plan") extra.Add(Planning.OptionsSection(ToolRunner.Tools.Registry.Default(), Live.Cfg, Ws.State()));
+            text = Spool.Build(Live.Dir, Ws.State(), History.Last(Live.Dir, last), o, null, withScan ? Ws.Catalog?.Scan : null, withCompare ? Ws.Comparison : null, extra);
+            path = Path.Combine(dir, "spool.txt").Replace('\\', '/');
+            File.WriteAllText(path, text, new System.Text.UTF8Encoding(false));
+        }
+        catch (Exception ex) when (ex is IOException or ArgumentException or InvalidOperationException) { error = ex.Message; }
+    }
+}

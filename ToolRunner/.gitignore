@@ -1,0 +1,9 @@
+bin/
+obj/
+.vs/
+*.user
+src/ToolRunner/config/globals.user.json
+.toolrunner/
+sandbox/work/
+history/
+sandbox/samples/

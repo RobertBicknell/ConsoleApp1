@@ -1,0 +1,1102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>toolrunner documentation</title>
+<style>
+  :root { --bg:#f5f6f8; --panel:#fff; --text:#1d2330; --muted:#6b7488; --border:#e3e6ee; --accent:#1d6fd6; --code:#eef1f6; --ok:#2e9d57; --okbg:#d5f0df; --warn:#9a6400; --warnbg:#fdecc8; --bad:#c2261c; --badbg:#fbd5d5; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14171d; --panel:#1e232c; --text:#dfe4ee; --muted:#9aa5ba; --border:#323a49; --accent:#5aa7ff; --code:#262c38; --ok:#4cc27c; --okbg:#163a26; --warn:#f0b541; --warnbg:#46350f; --bad:#ff7168; --badbg:#4b1f1f; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.55 "Segoe UI", system-ui, sans-serif; background:var(--bg); color:var(--text); }
+  nav { position:fixed; top:0; left:0; bottom:0; width:270px; overflow:auto; padding:16px 14px; background:var(--panel); border-right:1px solid var(--border); }
+  nav h1 { font-size:17px; margin:0 0 4px; } nav .dim { font-size:12px; }
+  nav input { width:100%; margin:10px 0 6px; padding:5px 10px; border:1px solid var(--border); border-radius:12px; background:var(--bg); color:var(--text); font:inherit; }
+  nav button { font:inherit; font-size:12px; padding:2px 10px; border-radius:12px; border:1px solid var(--border); background:var(--bg); color:var(--text); cursor:pointer; }
+  nav a { display:block; padding:3px 6px; color:var(--text); text-decoration:none; border-radius:5px; font-size:14px; }
+  nav a:hover { background:var(--code); } nav a.l2 { padding-left:20px; font-size:13px; color:var(--muted); }
+  main { margin-left:270px; padding:22px 34px 80px; max-width:1180px; }
+  details { background:var(--panel); border:1px solid var(--border); border-radius:8px; margin:10px 0; padding:0 16px; }
+  details[open] { padding-bottom:12px; }
+  summary { cursor:pointer; padding:11px 0; font-weight:600; font-size:17px; }
+  details.sub { background:transparent; margin:8px 0; } details.sub > summary { font-size:15px; padding:8px 0; }
+  h2 { margin:30px 0 4px; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  h3 { font-size:15.5px; margin:18px 0 4px; } h4 { font-size:14px; margin:16px 0 2px; }
+  p, li { max-width:900px; } ul, ol { padding-left:22px; margin:6px 0; }
+  code { font:13px Consolas, monospace; background:var(--code); padding:1px 5px; border-radius:4px; }
+  pre { font:13px/1.45 Consolas, monospace; background:var(--code); padding:10px 12px; border-radius:6px; overflow:auto; margin:8px 0; }
+  pre code { background:none; padding:0; }
+  table { border-collapse:collapse; width:100%; margin:8px 0; font-size:14px; }
+  th, td { text-align:left; vertical-align:top; padding:5px 10px 5px 0; border-bottom:1px solid var(--border); }
+  th { font-size:12px; color:var(--muted); font-weight:600; }
+  .dim { color:var(--muted); font-weight:400; font-size:13px; }
+  .tag { font-size:11px; padding:1px 7px; border-radius:9px; font-weight:600; white-space:nowrap; }
+  .tag.reads { background:var(--okbg); color:var(--ok); } .tag.changes { background:var(--warnbg); color:var(--warn); }
+  .note { border-left:4px solid var(--warn); background:var(--warnbg); padding:8px 12px; border-radius:4px; margin:10px 0; max-width:900px; }
+  .hide { display:none !important; }
+  @media (max-width: 860px) { nav { position:static; width:auto; border-right:0; border-bottom:1px solid var(--border); } main { margin-left:0; padding:14px; } }
+</style>
+</head>
+<body>
+<nav>
+  <h1>toolrunner</h1>
+  <div class="dim">11 tools, 40 verbs, 33 saved commands, 12 workflows</div>
+  <input id="filter" placeholder="filter sections..." oninput="filterDocs(this.value)">
+  <button onclick="setAll(true)">expand all</button> <button onclick="setAll(false)">collapse all</button>
+  <div id="toc" style="margin-top:10px"></div>
+</nav>
+<main>
+
+<h2>Start here</h2>
+
+<details open id="overview"><summary>What toolrunner is</summary>
+<p>toolrunner is a desk tool for someone who develops, tests, deploys and debugs an application that runs as docker-compose stacks.
+It reads a deployment folder (compose files, env files, appsettings, plugin folders), shows what is configured and what is actually running,
+and runs the routine operations on it as named, repeatable steps: suppress a service to debug it locally, publish plugins, swap in a debuggable image,
+build a new deployment for a product, generate CI pipelines, and hand a complete picture to a chat assistant.</p>
+<p>It has three faces over one engine:</p>
+<ul>
+  <li><b>Command line</b> (<code>toolrunner ...</code>): every operation, scriptable, with exit codes.</li>
+  <li><b>Web UI</b> (Blazor, <code>http://localhost:5180</code>): the same operations with forms, a map of the system, live variables and history.</li>
+  <li><b>Copilot hand-off</b>: one plain-text file with state and, in plan mode, everything the tool can do, so a chat assistant can answer with steps the tool then checks and runs.</li>
+</ul>
+<div class="note"><b>Verified against what.</b> Everything was developed without Docker, Keycloak, Azure DevOps or Artifactory available: it runs against a stand-in docker,
+sample folders and stubbed servers, covered by automated tests. Expect the first contact with each real system to need adjustment; the section
+<a href="#limits">Limits and unverified areas</a> lists where.</div>
+</details>
+
+<details id="ethos"><summary>Ethos: the rules the tool keeps</summary>
+<ul>
+  <li><b>Never edit in place.</b> A change to a compose file, env file or Dockerfile is written as a copy or an override beside the original
+      (<code>.toolrunner/docker-compose.debug.yml</code>, <code>Dockerfile.debug</code>, <code>docker-compose.debug-image.yml</code>). Undo is deleting the copy.
+      The one exception, plugin publishing, backs the appsettings file up first.</li>
+  <li><b>Read before write.</b> The header switch starts on <i>read-only</i>. Every verb is declared as <span class="tag reads">reads</span> or
+      <span class="tag changes">changes</span>; a run that contains a changing step is refused before its first step while the switch is green.</li>
+  <li><b>Everything is a variable.</b> Paths, service names, versions, registry addresses and credentials are named values in layered files.
+      Steps refer to them as <code>${NAME}</code>; tools write results back as variables for later steps.</li>
+  <li><b>Declare once, use everywhere.</b> Each tool describes its verbs and arguments in code. That one description validates steps, generates the JSON
+      Schemas for editor completion, builds the UI forms, enforces read-only mode, tells Copilot what exists and produces the reference in this document.</li>
+  <li><b>Validate everything first.</b> A workflow is checked in full (tools, verbs, saved commands) before step one runs, so a typo in step six cannot
+      strike after step five changed something.</li>
+  <li><b>Say what was not checked.</b> Output states what is a heuristic (plugin "loaded" from log lines, service matching by name) and what could not be read.</li>
+  <li><b>Local and remote are the same.</b> Tools talk to a host abstraction; the same workflow runs on this machine or on a Linux server over ssh.</li>
+</ul>
+</details>
+
+<details id="design"><summary>Design: how it is put together</summary>
+<pre>
+ command line (Program.cs)      web UI (ToolRunner.Ui)      Copilot spool / plan
+            \                         |                         /
+             +------------ WorkflowRunner (Core/Runner.cs) ----+
+                              |   validates all steps, expands ${...}, enforces read-only, logs
+                    tools (Tools/*.cs)  one class per tool, each with a Spec: verbs + arguments
+                              |
+                    IHost (Hosts/Hosts.cs)   LocalHost | SshHost   exec, read, write, find, hash
+                              |
+                 docker / podman, git, dotnet, the file system
+</pre>
+<h3>The pieces</h3>
+<table>
+<tr><th>piece</th><th>where</th><th>role</th></tr>
+<tr><td>State</td><td><code>Core/State.cs</code></td><td>A dictionary of string variables. <code>${NAME}</code>, <code>${NAME:-default}</code> and computed names
+    (<code>${services.${service}.image}</code>) are expanded at the moment a step runs.</td></tr>
+<tr><td>Config</td><td><code>config/*.json</code></td><td><code>globals.json</code> (shared), <code>globals.user.json</code> (yours, not shared), <code>globals.NAME.json</code> (one per ssh host),
+    <code>args.json</code> (saved commands), <code>workflows.json</code>. Reloaded live by the UI.</td></tr>
+<tr><td>Tool</td><td><code>Tools/*.cs</code></td><td>A name, a <code>Spec</code> (verbs, arguments, reads/changes) and <code>RunAsync</code>. Returns ok/fail, a message and output variables.</td></tr>
+<tr><td>Saved command</td><td><code>args.json</code></td><td>A tool, a verb and arguments under a name: <code>compose/up-all</code>. Arguments usually hold <code>${variables}</code>.</td></tr>
+<tr><td>Workflow</td><td><code>workflows.json</code></td><td>An ordered list of steps (saved commands, or a tool with inline arguments) with positional parameters.</td></tr>
+<tr><td>Scanner</td><td><code>Core/Scan.cs</code>, <code>StackScan.cs</code>, <code>Plugins.cs</code></td><td>Reads a folder: stacks, services, images, variables and where each is defined, ports, mounts, appsettings, plugin assemblies.</td></tr>
+<tr><td>Catalog</td><td><code>Core/Catalog.cs</code></td><td>The scan plus docker's images and containers; feeds suggestions, the map and most tabs.</td></tr>
+<tr><td>History</td><td><code>config/history</code></td><td>Every run and note, appended. The spool and the history tab read it.</td></tr>
+</table>
+<h3>Variable layers (later wins)</h3>
+<ol>
+  <li><code>globals.json</code></li>
+  <li><code>globals.user.json</code> (what the UI writes when you edit a value)</li>
+  <li><code>globals.HOST.json</code> when a host is selected</li>
+  <li><code>--set NAME=value</code> on the command line</li>
+  <li>workflow parameters</li>
+  <li>values tools produce during the run ("the tool wins")</li>
+</ol>
+<h3>Repository layout</h3>
+<pre>
+src/ToolRunner         engine + command line        src/ToolRunner/config   shipped configuration, templates, this document's template
+src/ToolRunner.Ui      web UI                       src/FakeDocker          stand-in docker.exe for machines without Docker
+src/SamplePlugin       example of your own commands plugins/                where your command assemblies are dropped
+tests/ToolRunner.Tests xUnit tests                  sandbox/                scripts that create sample deployments to try things on
+</pre>
+</details>
+
+<details open id="quickstart"><summary>Quick start</summary>
+<h3>1. Prerequisites</h3>
+<ul>
+  <li>.NET SDK 10 (the projects target <code>net10.0</code>), git, and docker or podman on the machine or the ssh host you will work against.</li>
+  <li>No Docker on this machine? <code>sandbox\setup.ps1</code> and <code>sandbox\samples.ps1</code> create sample deployments, and the launch profile "ui" puts a fake docker on PATH.</li>
+</ul>
+<h3>2. Start the UI</h3>
+<pre>start-ui.cmd                      <span class="dim"># real docker/podman; opens http://localhost:5180</span>
+start-ui.cmd D:\my-config         <span class="dim"># the same with another config folder</span></pre>
+<p>From Visual Studio: project <code>ToolRunner.Ui</code>, launch profile <b>ui (real containers)</b>. The profile <b>ui</b> is for the fake docker.
+To use the UI beside another solution, add the existing project to it or just run <code>start-ui.cmd</code>; the UI does not need to be in the solution you debug.</p>
+<h3>3. Point it at a deployment</h3>
+<ol>
+  <li><b>deployment</b> tab: type the folder or press <b>browse...</b>, then <b>scan</b>. It is saved as <code>DEPLOY_ROOT</code>.</li>
+  <li><b>variables</b> tab: set <code>APP_ROOT</code> to the stack you work on most (commands default to it).</li>
+  <li><b>map</b> tab: look at the system. Press <b>colour by running state</b> to compare with the running containers.</li>
+</ol>
+<h3>4. Stay read-only until you mean it</h3>
+<p>The header shows <b>read-only</b> (green). Scans, the map, comparisons, logs, versions and the Copilot spool all work. Click it to allow changes before a run that edits files or starts containers.</p>
+<h3>5. The same from the command line</h3>
+<pre>set TOOLRUNNER_CONFIG=C:\Claude\ToolRunner\src\ToolRunner\config
+toolrunner doctor                       <span class="dim"># are git, docker and the config reachable?</span>
+toolrunner scan dir=C:\deploy format=text
+toolrunner runtime format=text          <span class="dim"># configuration vs running containers</span>
+toolrunner digest gateway               <span class="dim"># a workflow: condensed logs of a service</span>
+toolrunner --read-only suppress pluginhost   <span class="dim"># refused: it would change the deployment</span></pre>
+<div class="note">The UI and the command line share saved commands and workflows only when they use the same config folder. Set <code>TOOLRUNNER_CONFIG</code> once for your account.</div>
+<h3>6. Moving to another machine</h3>
+<ol>
+  <li>Copy the repository. Build with <code>dotnet build</code>.</li>
+  <li>Delete <code>config\globals.user.json</code> (it holds this machine's paths) or edit it.</li>
+  <li>Set <code>TOOLRUNNER_CONFIG</code>; run <code>toolrunner doctor</code>.</li>
+  <li>Fill in what is real there: registry (<code>REGISTRY_API</code>...), version scheme (<code>VERSION_*</code>), <code>services</code> in <code>globals.json</code>.</li>
+</ol>
+</details>
+
+<h2>Operations</h2>
+
+<details id="op-look"><summary>Understand a deployment: scan, map, runtime check, compare</summary>
+<table>
+<tr><th>question</th><th>UI</th><th>command</th></tr>
+<tr><td>What is in this folder?</td><td>deployment tab</td><td><code>toolrunner scan dir=PATH format=text</code></td></tr>
+<tr><td>How do the services connect?</td><td>map tab</td><td></td></tr>
+<tr><td>Is the configuration in effect in the running containers?</td><td>deployment tab, "check running containers"; map, "colour by running state"</td><td><code>toolrunner runtime format=text</code></td></tr>
+<tr><td>How does it differ from a known-good copy or from the last commit?</td><td>compare tab</td><td><code>toolrunner compare ref=PATH</code> or <code>ref=git:HEAD</code></td></tr>
+</table>
+<p>The scan reports, per stack: every environment variable and where it is defined or used (status <code>ok</code>, <code>default</code>, <code>undefined</code>,
+<code>unused</code>...), published ports and conflicts, bind mounts and whether their source exists, named volumes, appsettings files, and plugin assemblies
+listed in appsettings against the <code>.dll</code> files in bind-mounted folders.</p>
+<p>The runtime check runs <code>docker inspect</code> on every container and tallies image, ports, mounts and environment per service:
+<code>differs</code> / <code>missing</code> = configured but not what runs; <code>extra</code> = running but not configured; <code>taken</code> = the port is held by another container.
+It tells you that something is not in effect, not why (usually: files were edited and nothing was restarted).</p>
+<p><code>compare</code> exits 0 when identical, 1 when different, 2 on trouble, and compares env, JSON and compose files by meaning.</p>
+</details>
+
+<details id="op-logs"><summary>Read logs</summary>
+<ul>
+  <li><b>logs</b> tab: several services side by side, level filter, text filter with highlighted matches, digest mode.</li>
+  <li><code>toolrunner digest SERVICE</code>: repeated lines collapsed into patterns with counts, errors first.</li>
+  <li><code>toolrunner run docker verb=logs service=gateway contains="Connected to" waitSeconds=60</code>: wait for a line (fails if it never appears).
+      <code>expect=absent</code> fails if it does appear.</li>
+  <li>Lines from stderr are tagged <code>(stderr)</code>; docker and git write ordinary progress there, so it is a label, not an alarm.</li>
+</ul>
+</details>
+
+<details id="op-suppress"><summary>Take a service out of the stack to debug it locally, and put it back</summary>
+<pre>toolrunner suppress pluginhost      <span class="dim"># needs changes allowed</span>
+toolrunner unsuppress pluginhost</pre>
+<p><code>suppress</code> comments the service out of a <i>copy</i> of the compose file, relaxes every <code>depends_on</code> that points at it, writes a copy of the env
+file in which the consumer's host and port point at your debug session (<code>services.NAME.debugHost</code> / <code>debugPort</code> in <code>globals.json</code>),
+and starts the rest from the copies. <code>unsuppress</code> deletes the copies and starts everything from the originals.</p>
+<p>Per service you describe once, in <code>globals.json</code>:</p>
+<pre>"services": { "pluginhost": {
+    "hostKey": "PLUGINHOST_HOST", "portKey": "PLUGINHOST_PORT",
+    "debugHost": "host.docker.internal", "debugPort": "5005",
+    "consumer": "gateway", "logProbe": "Connected to host.docker.internal:5005" } }</pre>
+<p>With podman the host is <code>host.containers.internal</code>.</p>
+</details>
+
+<details id="op-plugins"><summary>Publish plugins to a service</summary>
+<p><b>plugins</b> tab, or:</p>
+<pre>toolrunner run plugins verb=publish project=C:\src\Acme.Loyalty dir=C:\deploy\core\plugins appsettings=C:\deploy\core\config\pluginhost\appsettings.json
+toolrunner run plugins verb=loaded service=pluginhost appsettings=...</pre>
+<p><code>publish</code> builds the project, copies changed files (by content hash) to the plugin folder unless that folder is the build output, and makes sure the
+appsettings list names the assembly (backup in <code>.toolrunner/</code> beside it). Then restart the service and what depends on it, and run <code>loaded</code>,
+which reports per assembly whether the logs mention it and whether any such line is an error.</p>
+</details>
+
+<details id="op-debugimage"><summary>Debug a service that runs on a hardened image</summary>
+<pre>toolrunner debug-image-plan C:\src\Acme.Gateway      <span class="dim"># reads only</span>
+toolrunner debug-image C:\src\Acme.Gateway
+toolrunner restore-image gateway</pre>
+<ol>
+  <li>Finds the service the project belongs to (by project, assembly and image names; <code>--set service=NAME</code> to say).</li>
+  <li>Picks an unhardened base: for a <code>dhi.</code> image the <code>-dev</code> variant of the same tag; otherwise same kind and .NET version, same distro family first.</li>
+  <li>Writes <code>Dockerfile.debug</code> beside the Dockerfile: base swapped, root, <code>ps</code>/<code>curl</code>/<code>unzip</code>, diagnostics on, Release becomes Debug.</li>
+  <li>Builds it as <code>&lt;repo&gt;:&lt;version&gt;-debug</code>, adds the service to a compose <i>override</i> file, recreates that one service.</li>
+</ol>
+<p><b>vsdbg</b> is not built into the image. Like Visual Studio's own container debugging, the folder <code>%USERPROFILE%\vsdbg\vs2017u5</code>
+(its <code>linux-musl-x64</code> subfolder for alpine) is bind-mounted at <code>/remote_debugger</code>.</p>
+<h3>Attaching</h3>
+<table>
+<tr><th>route</th><th>how</th><th>needs</th></tr>
+<tr><td>DES</td><td>Debug &gt; Attach to Process, connection type "Docker (Linux Container)", pick the container and the dotnet process, code type Managed (.NET Core for Unix).</td>
+    <td>Visual Studio fetches the debugger itself: the container or the laptop must reach <code>download.visualstudio.microsoft.com</code>.</td></tr>
+<tr><td>YL</td><td>View &gt; Other Windows &gt; Command Window, paste the line the run printed:<br><code>DebugAdapterHost.Launch /LaunchJson:"...\attach-gateway.launch.json" /EngineGuid:541B8A8A-6081-4506-9F0A-1CE771DEBC04</code></td>
+    <td>No network. Uses the mounted vsdbg; the copy must be recent enough for the service's .NET version.</td></tr>
+</table>
+<p>Breakpoints bind only when the image is the Debug build and the local source is the version the image was built from; <code>debug-image</code> checks the latter and warns.</p>
+</details>
+
+<details id="op-versions"><summary>Versions: what the stack is on, and source that matches</summary>
+<p>The version is the <b>application's</b>: the tag its images were pushed with. Base-image fragments (<code>alpine3.20</code>, <code>net8.0</code>) are never read as the version.</p>
+<pre>toolrunner versions                                <span class="dim"># per service; the stack's version; who differs</span>
+toolrunner run version/available repo=PATH image=IMAGE
+toolrunner checkout-version C:\src\plugins         <span class="dim"># git checkout of the version's ref; refuses a dirty tree</span></pre>
+<p>"The version in use" is <code>VERSION</code> when pinned (versions tab), else the detected one. Four variables carry everything site-specific:</p>
+<table>
+<tr><th>variable</th><th>default</th><th>meaning</th></tr>
+<tr><td><code>VERSION_PATTERN</code></td><td><code>\d+(\.\d+)+|latest</code></td><td>regex: the version inside an image tag</td></tr>
+<tr><td><code>VERSION_IGNORE</code></td><td><code>(alpine|debian|...)[-_.]?v?\d+(\.\d+)*</code></td><td>parts of a tag that describe the base image</td></tr>
+<tr><td><code>VERSION_GIT_REFS</code></td><td><code>v{version};{version};release/{version};origin/release/{version}</code></td><td>git refs tried in order</td></tr>
+<tr><td><code>VERSION_LATEST_REFS</code></td><td><code>origin/master;origin/main;master;main</code></td><td>what <code>latest</code> means in git</td></tr>
+</table>
+<p>Example: tags like <code>2026.10-hotfix3</code> and branches <code>rel-2026.10</code> need <code>VERSION_PATTERN=\d{4}\.\d+</code> and <code>VERSION_GIT_REFS=rel-{version}</code>.</p>
+</details>
+
+<details id="op-build"><summary>Build a deployment for a product</summary>
+<p>Creates a folder that <code>docker compose up</code> can start. The choices flow downwards:</p>
+<pre>product.json  -&gt;  entities
+PRODUCT_TITLE -&gt;  product.env, container-name prefix, Keycloak realm and client prefix
+version       -&gt;  image tags in .env, plugin packages from JFrog
+templates     -&gt;  docker-compose.yml, .env, each service's appsettings.json   ({{PLACEHOLDERS}} filled in)
+Keycloak      -&gt;  realm file: clients with redirect URLs, roles, users, a privilege string naming every entity</pre>
+<pre>toolrunner build plan      <span class="dim"># what would be written; what is still to choose</span>
+toolrunner build write     <span class="dim"># write the folder, then check it</span>
+toolrunner build fetch     <span class="dim"># plugin packages of the version into each service's plugins folder</span>
+toolrunner build check     <span class="dim"># variables defined, bind sources exist, plugins present, images named, no port clash</span>
+toolrunner build test      <span class="dim"># start, verify Keycloak, deploy product.json as the admin, read the portal as the user</span></pre>
+<h3>Keycloak is its own stack</h3>
+<p>The sample template writes <code>keycloak/docker-compose.yml</code> with a named docker network; the product's stack joins that network as <code>external</code>.
+Containers reach Keycloak as <code>http://keycloak:8080</code> (<code>{{keycloak.internalUrl}}</code>); browsers use the published URL (<code>{{keycloak.url}}</code>).
+The test starts the stacks in the order <code>template.json</code> lists. A Keycloak that starts fresh imports the realm file; one that was already running gets the realm
+through its admin API.</p>
+<h3>The test, step by step</h3>
+<ol>
+  <li><code>docker compose up</code> for each stack (the product's with <code>--env-file .env --env-file product.env</code>).</li>
+  <li>Keycloak answers; its admin signs in.</li>
+  <li>The realm exists; clients, roles, users, role assignments are there; each user's privilege string names every entity.</li>
+  <li>The product admin gets a token and sends <code>product.json</code> to the config service.</li>
+  <li>The end user opens the portal through the sign-in form; the page contains <code>view instances of X</code> for every entity.</li>
+</ol>
+<h3>template.json</h3>
+<pre>{
+  "values":   { "IDENTITY_NETWORK": "identity" },             <span class="dim">// placeholders of the template's own</span>
+  "stacks":   [ "keycloak", "." ],                              <span class="dim">// compose folders, in start order</span>
+  "services": { "webportal": { "client": "{{product_title}}-webportal", "url": "http://{{HOST}}:{{PORT+2}}",
+                               "pluginsDir": "webportal/plugins", "plugins": [ "Acme.Portal.Widgets" ] } },
+  "keycloak": { "url": "http://{{HOST}}:{{PORT+0}}", "internalUrl": "http://keycloak:8080",
+                "admin": "admin", "adminPassword": "{{SECRET:keycloak-admin}}", "importFile": "keycloak/import/realm.json",
+                "privilegeAttribute": "privileges", "roles": [ "product-admin", "product-user" ],
+                "users": [ { "username": "{{product_title}}-admin", "roles": [ "product-admin" ], "privileges": true } ] },
+  "test":     { "deployClient": "{{productconfig.client}}", "deployUser": "{{product_title}}-admin",
+                "deployMethod": "POST", "deployUrl": "{{productconfig.url}}/api/product",
+                "portalUser": "{{product_title}}-user", "portalUrl": "{{webportal.url}}/" }
+}</pre>
+<h3>Placeholders</h3>
+<table>
+<tr><th>placeholder</th><th>value</th></tr>
+<tr><td><code>{{PRODUCT_TITLE}}</code>, <code>{{product_title}}</code></td><td>the title in upper and lower case</td></tr>
+<tr><td><code>{{VERSION}}</code>, <code>{{REGISTRY}}</code>, <code>{{HOST}}</code>, <code>{{REALM}}</code></td><td>the choices on the build tab</td></tr>
+<tr><td><code>{{ENTITIES}}</code>, <code>{{PRIVILEGES}}</code></td><td>comma-separated entity names; the privilege string</td></tr>
+<tr><td><code>{{PORT+n}}</code></td><td>first port + n</td></tr>
+<tr><td><code>{{SECRET:name}}</code></td><td>a generated password, stable across builds of the same folder (<code>.toolrunner/build-secrets.json</code>)</td></tr>
+<tr><td><code>{{SERVICE.url}}</code>, <code>{{SERVICE.client}}</code>, <code>{{SERVICE.pluginsDir}}</code>, <code>{{PLUGINS:SERVICE}}</code></td><td>from <code>services</code> in template.json; the last is <code>"A", "B"</code> for a JSON array</td></tr>
+<tr><td><code>{{keycloak.url}}</code>, <code>{{keycloak.internalUrl}}</code>, <code>{{keycloak.admin}}</code>, <code>{{keycloak.adminPassword}}</code></td><td>from <code>keycloak</code></td></tr>
+<tr><td><code>{{user.ROLE.name}}</code>, <code>{{user.ROLE.password}}</code></td><td>the user holding that role</td></tr>
+<tr><td>anything else</td><td><code>values</code> in template.json, or <code>BUILD_VALUES</code> (<code>NAME=value;NAME=value</code>). Unknown names are reported.</td></tr>
+</table>
+<p>Compose's own <code>${VARIABLES}</code> are never touched.</p>
+<h3>Settings</h3>
+<table><tr><th>variable</th><th>what</th><th>meaning</th><th>default</th></tr>
+<tr><td><code>BUILD_PRODUCT_JSON</code></td><td>product.json<br><span class="dim">1. product</span></td><td>The product&#39;s data model file. Everything else flows from it.</td><td></td></tr>
+<tr><td><code>BUILD_ENTITIES_PATH</code></td><td>where the entities are<br><span class="dim">1. product</span></td><td>Path inside product.json to the list of entities, e.g. model:entities. Empty = found automatically.</td><td></td></tr>
+<tr><td><code>BUILD_TITLE</code></td><td>PRODUCT_TITLE<br><span class="dim">2. identity</span></td><td>A short code for the product, about three letters: written to product.env, used as the prefix of container names.</td><td></td></tr>
+<tr><td><code>BUILD_REALM</code></td><td>Keycloak realm<br><span class="dim">2. identity</span></td><td>Empty = the product title in lower case.</td><td></td></tr>
+<tr><td><code>BUILD_VERSION</code></td><td>baseline version<br><span class="dim">3. version</span></td><td>Selects the images and the plugin packages. Empty = the version in use (versions tab).</td><td></td></tr>
+<tr><td><code>BUILD_REGISTRY</code></td><td>image registry<br><span class="dim">3. version</span></td><td>What precedes image names, e.g. HOST/docker-dev-local.</td><td><code>registry.example.com</code></td></tr>
+<tr><td><code>BUILD_NUGET_REPO</code></td><td>plugin package repository<br><span class="dim">3. version</span></td><td>Artifactory NuGet repository the plugin packages come from (with JFROG_URL / JFROG_USER / JFROG_TOKEN).</td><td></td></tr>
+<tr><td><code>BUILD_TEMPLATE_DIR</code></td><td>template folder<br><span class="dim">4. wiring</span></td><td>docker-compose, .env, appsettings ... with {{PLACEHOLDERS}}, and template.json describing services, Keycloak and the test. Empty = the sample that ships with toolrunner.</td><td></td></tr>
+<tr><td><code>BUILD_OUTPUT_DIR</code></td><td>deployment folder to create<br><span class="dim">4. wiring</span></td><td>Where the finished deployment is written. Existing files are overwritten; nothing is deleted.</td><td></td></tr>
+<tr><td><code>BUILD_HOST</code></td><td>host name in URLs<br><span class="dim">4. wiring</span></td><td>The name browsers and services use to reach this machine.</td><td><code>localhost</code></td></tr>
+<tr><td><code>BUILD_PORT_BASE</code></td><td>first port<br><span class="dim">4. wiring</span></td><td>{{PORT+0}}, {{PORT+1}} ... in the templates count from here.</td><td><code>8080</code></td></tr>
+<tr><td><code>BUILD_VALUES</code></td><td>more template values<br><span class="dim">4. wiring</span></td><td>`;`-separated NAME=value pairs for placeholders of your own.</td><td></td></tr>
+<tr><td><code>BUILD_PRIVILEGE_FORMAT</code></td><td>privilege of one entity<br><span class="dim">5. keycloak</span></td><td>{entity} is replaced by each entity name.</td><td><code>{entity}:CRUD</code></td></tr>
+<tr><td><code>BUILD_PRIVILEGE_SEPARATOR</code></td><td>between privileges<br><span class="dim">5. keycloak</span></td><td>Joins the entities&#39; privileges into the one string users carry.</td><td><code>;</code></td></tr>
+<tr><td><code>BUILD_EXPECT</code></td><td>text the portal must show per entity<br><span class="dim">6. test</span></td><td>{entity} is replaced by each entity name; the test passes when all are on the page.</td><td><code>view instances of {entity}</code></td></tr>
+</table>
+
+</details>
+
+<details id="op-pipelines"><summary>Pipelines: Azure DevOps Server and JFrog</summary>
+<pre>toolrunner azdo explore            <span class="dim"># read both servers (GETs only); saved to history\exploration.json</span>
+toolrunner azdo assess             <span class="dim"># the readiness checklist again</span>
+toolrunner azdo yaml out=DIR       <span class="dim"># the YAML and Dockerfiles, one folder per repository</span>
+toolrunner azdo apply confirm=true <span class="dim"># register the two pipelines once the files are committed</span></pre>
+<table>
+<tr><th>pipeline</th><th>repository</th><th>steps</th></tr>
+<tr><td>plugins</td><td>the .NET plugin projects</td><td>version from the git tag, restore, build, unit tests, pack, push to the JFrog NuGet repository</td></tr>
+<tr><td>product</td><td>the config repository (and the Selenium tests repository as a second checkout)</td><td>fetch the plugins of the same version, docker login, start the stack, wait for the portal,
+    Selenium tests, build final images with config and plugins copied in, push; always collect logs and stop the stack</td></tr>
+</table>
+<p>Both take a run-time parameter <code>environment</code> (<code>dev</code> | <code>prod</code>) that selects the JFrog repositories. A release is a build of the tag
+<code>&lt;prefix&gt;&lt;version&gt;</code>; other builds are <code>&lt;last version&gt;-ci.&lt;build id&gt;</code>; prod accepts releases only.</p>
+<p>The exploration reads: REST version, projects, repositories (files, branches, tags; classified plugins / config / tests), agent pools and each agent's capabilities,
+service connections, variable groups, extensions, tasks, existing pipelines, recent build numbers; in Artifactory the repositories and the versions in the chosen NuGet and Docker ones.
+The checklist marks each prerequisite ok, missing or unknown, with the evidence.</p>
+<h3>Settings</h3>
+<table><tr><th>variable</th><th>what</th><th>meaning</th><th>default</th></tr>
+<tr><td><code>AZDO_URL</code></td><td>collection URL<br><span class="dim">azure devops</span></td><td>https://server/tfs/DefaultCollection (on-prem) or https://dev.azure.com/org</td><td></td></tr>
+<tr><td><code>AZDO_PROJECT</code></td><td>project<br><span class="dim">azure devops</span></td><td>The team project that holds the three repositories.</td><td></td></tr>
+<tr><td><code>AZDO_PAT</code></td><td>personal access token<br><span class="dim">azure devops</span></td><td>Empty = sign in as the current Windows account. Kept in your own layer.</td><td></td></tr>
+<tr><td><code>PIPELINE_POOL</code></td><td>agent pool<br><span class="dim">azure devops</span></td><td>Where both pipelines run. Needs dotnet; the product pipeline also needs docker with compose, bash and a browser.</td><td></td></tr>
+<tr><td><code>PIPELINE_PLUGINS_REPO</code></td><td>plugins repository<br><span class="dim">repositories</span></td><td>The .NET plugin projects: built, tested, packed and pushed as NuGet.</td><td></td></tr>
+<tr><td><code>PIPELINE_CONFIG_REPO</code></td><td>config repository<br><span class="dim">repositories</span></td><td>docker-compose, .env, appsettings, product.json.</td><td></td></tr>
+<tr><td><code>PIPELINE_TESTS_REPO</code></td><td>tests repository<br><span class="dim">repositories</span></td><td>The Selenium test projects run against the webportal.</td><td></td></tr>
+<tr><td><code>PIPELINE_MAIN_BRANCH</code></td><td>main branch<br><span class="dim">repositories</span></td><td>Builds of this branch and of release/* run automatically.</td><td><code>main</code></td></tr>
+<tr><td><code>PIPELINE_TAG_PREFIX</code></td><td>version tag prefix<br><span class="dim">versions</span></td><td>A git tag &lt;prefix&gt;&lt;version&gt; marks a release: v gives v2.4.1. Empty = the tag is the version.</td><td><code>v</code></td></tr>
+<tr><td><code>PIPELINE_PACKAGES</code></td><td>plugin package ids<br><span class="dim">versions</span></td><td>`;`-separated ids of the NuGet packages the product pipeline fetches. Empty = every package the plugins pipeline produced cannot be known; name them.</td><td></td></tr>
+<tr><td><code>JFROG_URL</code></td><td>artifactory URL<br><span class="dim">jfrog</span></td><td>https://HOST/artifactory</td><td></td></tr>
+<tr><td><code>JFROG_USER</code></td><td>artifactory user<br><span class="dim">jfrog</span></td><td>For exploring from this machine. The pipelines read JFROG_USER / JFROG_TOKEN from the variable group.</td><td></td></tr>
+<tr><td><code>JFROG_TOKEN</code></td><td>artifactory token<br><span class="dim">jfrog</span></td><td>Kept in your own layer.</td><td></td></tr>
+<tr><td><code>PIPELINE_CREDENTIALS_GROUP</code></td><td>variable group with JFROG_USER and JFROG_TOKEN<br><span class="dim">jfrog</span></td><td>A library variable group in the project; the token marked secret.</td><td><code>jfrog-credentials</code></td></tr>
+<tr><td><code>PIPELINE_NUGET_REPO_DEV</code></td><td>NuGet repository, dev<br><span class="dim">jfrog</span></td><td>Artifactory repository key the plugins are pushed to for dev.</td><td></td></tr>
+<tr><td><code>PIPELINE_NUGET_REPO_PROD</code></td><td>NuGet repository, prod<br><span class="dim">jfrog</span></td><td>The same for prod.</td><td></td></tr>
+<tr><td><code>PIPELINE_DOCKER_REGISTRY_DEV</code></td><td>Docker registry, dev<br><span class="dim">jfrog</span></td><td>What precedes an image name when pushing for dev, e.g. HOST/docker-dev-local.</td><td></td></tr>
+<tr><td><code>PIPELINE_DOCKER_REGISTRY_PROD</code></td><td>Docker registry, prod<br><span class="dim">jfrog</span></td><td>The same for prod.</td><td></td></tr>
+<tr><td><code>PIPELINE_DOCKER_REPO_DEV</code></td><td>Docker repository key, dev<br><span class="dim">jfrog</span></td><td>Artifactory key behind the dev registry (for looking up tags).</td><td></td></tr>
+<tr><td><code>PIPELINE_DOCKER_REPO_PROD</code></td><td>Docker repository key, prod<br><span class="dim">jfrog</span></td><td>The same for prod.</td><td></td></tr>
+<tr><td><code>PIPELINE_PRODUCT</code></td><td>product name<br><span class="dim">product</span></td><td>Names the final images: &lt;registry&gt;/&lt;product&gt;-&lt;service&gt;:&lt;version&gt;.</td><td><code>product</code></td></tr>
+<tr><td><code>PIPELINE_COMPOSE_FILE</code></td><td>compose file in the config repo<br><span class="dim">product</span></td><td>Path from the repository root.</td><td><code>docker-compose.yml</code></td></tr>
+<tr><td><code>PIPELINE_ENV_FILE</code></td><td>env file in the config repo<br><span class="dim">product</span></td><td>Path from the repository root.</td><td><code>.env</code></td></tr>
+<tr><td><code>PIPELINE_PLUGINS_DIR</code></td><td>plugins folder in the config repo<br><span class="dim">product</span></td><td>The bind-mount source the plugin assemblies are unpacked into before the stack starts.</td><td><code>plugins</code></td></tr>
+<tr><td><code>PIPELINE_BAKE_SERVICES</code></td><td>services to bake<br><span class="dim">product</span></td><td>`;`-separated services whose bind-mounted config and plugins are copied into a final image.</td><td></td></tr>
+<tr><td><code>PIPELINE_HEALTH_URL</code></td><td>portal URL on the agent<br><span class="dim">product</span></td><td>Polled until it answers before the tests start, and handed to the tests as PORTAL_URL.</td><td><code>http://localhost:8080/</code></td></tr>
+<tr><td><code>PIPELINE_TESTS_PROJECTS</code></td><td>test projects<br><span class="dim">product</span></td><td>Glob inside the tests repository.</td><td><code>**/*.csproj</code></td></tr>
+</table>
+
+</details>
+
+<details id="op-copilot"><summary>Copilot: ask a question, or ask for a plan</summary>
+<p><b>history</b> tab, or <code>toolrunner spool</code>. The result is one plain-text file to paste; secret-looking values are hidden in it (and only there).</p>
+<h3>Ask</h3>
+<pre>toolrunner spool note="why does gateway not reach pluginhost?" last=5 scanDir=${DEPLOY_ROOT} compareRef=${REFERENCE_ROOT}</pre>
+<p>Sections: instructions, your question, the previous summary, recent runs and notes, variables, scans, comparison, files, the required answer format
+(<code>spool.header.txt</code> / <code>spool.footer.txt</code>). Paste the answer's CARRY-FORWARD back so the next spool includes it.</p>
+<h3>Plan</h3>
+<pre>toolrunner spool intent="find out why gateway restarts"
+toolrunner plan reply.txt              <span class="dim"># check the reply against what exists</span>
+toolrunner plan reply.txt run=true     <span class="dim"># run it (honours --read-only and --dry-run)</span></pre>
+<p>The cycle is STATE &gt; INTENT &gt; OPTIONS &gt; PLAN &gt; ACTION &gt; OUTCOME. The spool gains an OPTIONS section listing every workflow, saved command and tool verb,
+marked <code>[reads]</code> or <code>[CHANGES]</code>. Copilot must answer with one JSON object:</p>
+<pre>{ "intent": "...", "vars": { "service": "gateway" },
+  "steps": [ { "workflow": "digest", "params": { "service": "gateway" } },
+             { "run": "compose/ps" },
+             { "run": "docker", "with": { "verb": "logs", "service": "gateway", "tail": 200 } } ],
+  "expect": "what the output shows if the intent is fulfilled" }</pre>
+<p>A plan with any unknown name, unknown or missing argument, or value nobody supplies is shown with its problems and cannot be run. In the UI, a checked plan
+is loaded onto the run tab as a chain; the next spool carries its outcome for Copilot to assess.</p>
+</details>
+
+<details id="op-hosts"><summary>Hosts, podman, the safety switch, notes</summary>
+<h3>A server over ssh</h3>
+<p>Create <code>config/globals.NAME.json</code> with <code>ssh.target</code> (<code>user@host</code>), optionally <code>ssh.port</code>, <code>ssh.identity</code>, and the server's own
+<code>APP_ROOT</code> as a POSIX path. Select it in the header or with <code>--host NAME</code>. Key authentication only.</p>
+<h3>Podman</h3>
+<p>The blue button in the header, or <code>CONTAINER_ENGINE=podman</code>: every <code>docker ...</code> the tool runs goes to <code>podman ...</code>. Watch for: which compose provider
+<code>podman compose</code> uses (container names and labels differ with podman-compose), <code>host.containers.internal</code>, rootless limits on ports below 1024.</p>
+<h3>Safety switch</h3>
+<p>Green = read-only: a run with any <span class="tag changes">changes</span> step is refused before it starts; dry runs are always allowed. Command line: <code>--read-only</code>, <code>--dry-run</code>.
+The tool's own data (history, your variables, saved commands) is never blocked.</p>
+<h3>Notes</h3>
+<p>The box in the header, or <code>toolrunner remark text...</code>, puts a note into the history stream; it appears between runs and in the spool.</p>
+</details>
+
+<h2>Reference</h2>
+
+<details id="ref-cli"><summary>Command line</summary>
+<pre>toolrunner [--config DIR] [--host NAME] [--set NAME=value]... [--dry-run] [--read-only] COMMAND</pre>
+<table>
+<tr><th>command</th><th>does</th></tr>
+<tr><td><code>WORKFLOW [param...]</code></td><td>runs a workflow from workflows.json with positional parameters</td></tr>
+<tr><td><code>run TOOL/NAME [k=v...]</code></td><td>runs one saved command, with overrides</td></tr>
+<tr><td><code>run TOOL verb=VERB [k=v...]</code></td><td>runs one tool verb directly; a value that parses as JSON (<code>[..]</code>, <code>{..}</code>) is passed as a list or object</td></tr>
+<tr><td><code>doctor</code></td><td>checks git, docker, compose and the config on the selected host</td></tr>
+<tr><td><code>tools</code> | <code>workflows</code> | <code>args</code> | <code>vars</code></td><td>lists what exists</td></tr>
+<tr><td><code>scan</code> | <code>scan dir=PATH [depth=6] [format=text]</code></td><td>environment variables of the configured stack | everything under a folder</td></tr>
+<tr><td><code>runtime [dir=] [format=text]</code></td><td>configuration vs <code>docker inspect</code></td></tr>
+<tr><td><code>compare [dir=] ref=PATH|git:REF [format=text]</code></td><td>exit 0 same, 1 different, 2 trouble</td></tr>
+<tr><td><code>spool [note=|intent=] [last=5] [scan=true] [scanDir=] [compareRef=] [withConfig=true] [defang=true] [out=] [files...]</code></td><td>the Copilot file</td></tr>
+<tr><td><code>plan FILE [run=true]</code></td><td>checks (and runs) the plan in a Copilot reply</td></tr>
+<tr><td><code>remark TEXT</code></td><td>a note in the history</td></tr>
+<tr><td><code>build plan|write|fetch|check|test</code></td><td>a new deployment folder</td></tr>
+<tr><td><code>azdo explore|assess|yaml|apply</code></td><td>Azure DevOps + JFrog exploration and pipelines</td></tr>
+<tr><td><code>schema</code></td><td>regenerates <code>config/schemas/*.schema.json</code> (editor completion; a test checks they are current)</td></tr>
+<tr><td><code>docs [out=FILE]</code></td><td>regenerates this document</td></tr>
+</table>
+<p>Exit codes: 0 success, 1 a step or check failed, 2 usage or configuration problem. The transcript goes to stderr; machine-readable results (JSON) to stdout.</p>
+</details>
+
+<details id="ref-ui"><summary>The UI, tab by tab</summary>
+<table>
+<tr><th>tab</th><th>for</th></tr>
+<tr><td>deployment</td><td>pick and scan the folder; git state; runtime check; services, ports, mounts, variables, plugins; every file (click to view)</td></tr>
+<tr><td>map</td><td>the services and their connections; click a service for details; colour by running state</td></tr>
+<tr><td>compare</td><td>differences from a reference folder or a git ref, grouped by file and kind</td></tr>
+<tr><td>versions</td><td>detected version per stack, pin a version, list what exists in git and the registry</td></tr>
+<tr><td>run</td><td>run a workflow, saved command or tool verb with a form; build a chain and save it as a workflow; watch variables</td></tr>
+<tr><td>workflows / commands</td><td>read what each workflow and command does; every tool verb with its arguments</td></tr>
+<tr><td>plugins</td><td>publish, restart, check the logs</td></tr>
+<tr><td>build</td><td>a new deployment for a product</td></tr>
+<tr><td>pipelines</td><td>explore Azure DevOps and JFrog, readiness, generated YAML</td></tr>
+<tr><td>variables</td><td>every variable, its origin layer, edit and reset</td></tr>
+<tr><td>logs</td><td>several services at once, filters, digest</td></tr>
+<tr><td>history</td><td>runs and notes; the Copilot spool; load a Copilot plan</td></tr>
+</table>
+<p>Header: host picker, connection test, light/dark, docker/podman, read-only switch, note box, version in use.</p>
+</details>
+
+<details id="ref-files"><summary>Configuration files, with examples</summary>
+<h3>args.json: saved commands</h3>
+<pre>{ "args": { "compose": {
+    "up-service":  { "verb": "up", "service": "${service}" },
+    "up-suppressed": { "verb": "up", "files": [ "${COMPOSE_DEBUG}" ], "envFile": "${ENV_DEBUG}" } } } }</pre>
+<h3>workflows.json</h3>
+<pre>{ "workflows": { "unsuppress": {
+    "description": "Undo suppress: delete the generated copies and start everything from the originals.",
+    "params": [ "service" ],
+    "steps": [ { "run": "file/remove-derived" },
+               { "run": "compose/up-all" },
+               { "run": "docker", "with": { "verb": "logs", "service": "${service}", "tail": 50 }, "continueOnError": true } ] } } }</pre>
+<p>A step is <code>"run": "TOOL/NAME"</code> (saved command) or <code>"run": "TOOL"</code> with <code>"with"</code> holding the verb and arguments. <code>with</code> also overrides single arguments of a saved command.</p>
+<h3>Variable syntax</h3>
+<table>
+<tr><td><code>${NAME}</code></td><td>the value; an undefined name stops the step with a message</td></tr>
+<tr><td><code>${NAME:-fallback}</code></td><td>the value, or the fallback when undefined (<code>${service:-}</code> = optional)</td></tr>
+<tr><td><code>${services.${service}.image}</code></td><td>a computed name: nested objects in globals are reached with dots</td></tr>
+</table>
+<h3>file derive: the edits that make a copy</h3>
+<pre>{ "verb": "derive", "source": "${COMPOSE_FILE}", "target": "${COMPOSE_DEBUG}",
+  "edits": [ { "commentService": "pluginhost" }, { "dropDependsOn": "pluginhost" } ] }
+{ "verb": "derive", "source": "${ENV_FILE}", "target": "${ENV_DEBUG}",
+  "edits": [ { "set": "PLUGINHOST_HOST", "value": "host.docker.internal" } ] }</pre>
+</details>
+
+<details id="ref-variables"><summary>Variables</summary>
+<p>Known names and their meaning. Any other name can be added freely. Build and pipeline settings are listed in their own sections.</p>
+<table><tr><th>variable</th><th>meaning</th></tr>
+<tr><td><code>APP_ROOT</code></td><td>Root of the application; on a server, an absolute POSIX path.</td></tr>
+<tr><td><code>DEPLOY_ROOT</code></td><td>The deployment folder the UI scans for stacks (default: APP_ROOT).</td></tr>
+<tr><td><code>REFERENCE_ROOT</code></td><td>A known-good copy of the deployment folder that `compare` checks against.</td></tr>
+<tr><td><code>COMPOSE_FILE</code></td><td>Compose file the compose verbs use by default.</td></tr>
+<tr><td><code>ENV_FILE</code></td><td>Env file the compose verbs use by default.</td></tr>
+<tr><td><code>COMPOSE_PROJECT</code></td><td>Compose project name (-p).</td></tr>
+<tr><td><code>WORK_DIR</code></td><td>Where generated files go; must stay gitignored.</td></tr>
+<tr><td><code>COMPOSE_DEBUG</code></td><td>Generated compose file.</td></tr>
+<tr><td><code>ENV_DEBUG</code></td><td>Generated env file.</td></tr>
+<tr><td><code>COMPOSE_DEBUG_IMAGE</code></td><td>Generated compose override file naming the services that run a debug image.</td></tr>
+<tr><td><code>REGISTRY_API</code></td><td>Registry v2 API base used to find base images; Artifactory: https://HOST/artifactory/api/docker/REPO-KEY.</td></tr>
+<tr><td><code>REGISTRY_PREFIX</code></td><td>What precedes a repository name in an image reference pulled from that registry, e.g. HOST/REPO-KEY.</td></tr>
+<tr><td><code>REGISTRY_USER</code></td><td>Registry user (basic auth). Keep it in globals.user.json.</td></tr>
+<tr><td><code>REGISTRY_TOKEN</code></td><td>Registry password or token (Bearer when there is no user). Keep it in globals.user.json.</td></tr>
+<tr><td><code>AZDO_URL</code></td><td>https://server/tfs/DefaultCollection (on-prem) or https://dev.azure.com/org</td></tr>
+<tr><td><code>AZDO_PROJECT</code></td><td>The team project that holds the three repositories.</td></tr>
+<tr><td><code>AZDO_PAT</code></td><td>Empty = sign in as the current Windows account. Kept in your own layer.</td></tr>
+<tr><td><code>JFROG_URL</code></td><td>https://HOST/artifactory</td></tr>
+<tr><td><code>JFROG_USER</code></td><td>For exploring from this machine. The pipelines read JFROG_USER / JFROG_TOKEN from the variable group.</td></tr>
+<tr><td><code>JFROG_TOKEN</code></td><td>Kept in your own layer.</td></tr>
+<tr><td><code>CONTAINER_ENGINE</code></td><td>The container CLI used wherever a tool runs docker: docker (default), podman, or a full path.</td></tr>
+<tr><td><code>VERSION</code></td><td>The version builds and checkouts use. Unset: the version detected from the stack&#39;s image tags.</td></tr>
+<tr><td><code>VERSION_PATTERN</code></td><td>Regex that finds the version inside an image tag.</td></tr>
+<tr><td><code>VERSION_IGNORE</code></td><td>Regex for the parts of an image tag that describe the base image (alpine3.20 ...); never read as the application version.</td></tr>
+<tr><td><code>VERSION_GIT_REFS</code></td><td>`;`-separated git ref templates tried in order for a version; {version} is replaced.</td></tr>
+<tr><td><code>VERSION_LATEST_REFS</code></td><td>`;`-separated git refs that the version `latest` means.</td></tr>
+<tr><td><code>VSDBG_DIR</code></td><td>Folder holding an unpacked vsdbg that debug images copy in (must match the image&#39;s libc: linux-x64 or linux-musl-x64).</td></tr>
+<tr><td><code>VSDBG_URL</code></td><td>GetVsDbg.sh location used when VSDBG_DIR is not set (default https://aka.ms/getvsdbgsh).</td></tr>
+<tr><td><code>ssh</code></td><td>Used with --host: connect to a Linux server over ssh (key auth only).</td></tr>
+<tr><td><code>services</code></td><td></td></tr>
+</table>
+
+</details>
+
+<details id="ref-workflows"><summary>Workflows</summary>
+<table><tr><th>workflow</th><th>what it does</th><th>steps</th></tr>
+<tr><td><code>checkout-version &lt;repo&gt;</code></td><td>Put the source repo &lt;repo&gt; on the commit that matches the version (VERSION, else the detected one): the first existing ref of VERSION_GIT_REFS. Refuses if the tree has uncommitted changes.</td><td><code>version/checkout</code><br><code>version/source-matches</code></td></tr>
+<tr><td><code>debug &lt;service&gt;</code></td><td>Point &lt;service&gt;&#39;s consumer at a local debug session. Original files are never modified.</td><td><code>git/app-clean</code><br><code>source/verify-service</code><br><code>file/derive-env-debug</code><br><code>compose/validate-debug-env</code><br><code>git/diff-env</code><br><code>compose/stop-service</code><br><code>compose/up-consumer-debug</code><br><code>docker/consumer-link-probe</code> <span class="dim">(carries on if it fails)</span></td></tr>
+<tr><td><code>debug-image &lt;source&gt;</code></td><td>Run a service on a debuggable image instead of its hardened one: write Dockerfile.debug (unhardened base, root, ps, vsdbg), build and tag it, point the service at it through a compose override file, and recreate that one service. The stack keeps running until the build has succeeded. Undo with `restore-image`.</td><td><code>debugimage/prepare</code><br><code>version/debug-source-matches</code> <span class="dim">(carries on if it fails)</span><br><code>docker/build-debug-image</code><br><code>debugimage/use</code><br><code>compose/up-debug-service</code></td></tr>
+<tr><td><code>debug-image-plan &lt;source&gt;</code></td><td>Show what `debug-image` would do for the Dockerfile (or project folder) &lt;source&gt;: which service, which unhardened base image, which tag. Writes nothing. Optional variables: service, baseImage.</td><td><code>debugimage/plan</code></td></tr>
+<tr><td><code>digest &lt;service&gt;</code></td><td>Condensed logs of &lt;service&gt;: repeated lines collapsed into patterns with counts, errors first.</td><td><code>docker/service-digest</code></td></tr>
+<tr><td><code>isolate &lt;service&gt;</code></td><td>Start the stack from a copy of the compose file with &lt;service&gt; commented out.</td><td><code>git/app-clean</code><br><code>file/derive-compose-without-service</code><br><code>compose/validate-debug-files</code><br><code>git/diff-compose</code><br><code>compose/stop-service</code></td></tr>
+<tr><td><code>logs &lt;service&gt;</code></td><td>Recent logs of &lt;service&gt;&#39;s consumer.</td><td><code>docker/consumer-logs</code></td></tr>
+<tr><td><code>restore &lt;service&gt;</code></td><td>Undo `debug`: delete the generated files and start both services from the originals.</td><td><code>file/remove-derived</code><br><code>compose/up-service</code><br><code>compose/up-consumer</code></td></tr>
+<tr><td><code>restore-image &lt;service&gt;</code></td><td>Undo `debug-image`: take &lt;service&gt; out of the compose override file and recreate it from its original (hardened) image.</td><td><code>debugimage/restore</code><br><code>compose/up-restored-service</code></td></tr>
+<tr><td><code>suppress &lt;service&gt;</code></td><td>Take &lt;service&gt; out of the stack so it can run in a local debug session: comment it out of a COPY of the compose file, relax every depends_on that points at it, point its consumer at the debug host and port, and start the rest. Undo with `unsuppress`.</td><td><code>git/app-clean</code><br><code>file/derive-compose-suppressed</code><br><code>file/derive-env-debug</code><br><code>compose/validate-suppressed</code><br><code>git/diff-compose</code><br><code>git/diff-env</code><br><code>compose/stop-service</code><br><code>compose/up-suppressed</code><br><code>docker/consumer-link-probe</code> <span class="dim">(carries on if it fails)</span></td></tr>
+<tr><td><code>unsuppress &lt;service&gt;</code></td><td>Undo `suppress`: delete the generated compose and env copies and start the whole stack from the originals.</td><td><code>file/remove-derived</code><br><code>compose/up-all</code></td></tr>
+<tr><td><code>versions</code></td><td>The version each service&#39;s image carries, and the version the stack is on. Set the variable VERSION to pin the version that builds and checkouts use; without it they use the detected one.</td><td><code>version/detect</code></td></tr>
+</table>
+
+</details>
+
+<details id="ref-commands"><summary>Saved commands</summary>
+<table><tr><th>saved command</th><th>runs</th><th>arguments</th></tr>
+<tr><td><code>compose/validate-debug-env</code></td><td><code>compose config</code> <span class="tag reads">reads</span></td><td><code>{&quot;envFile&quot;:&quot;${ENV_DEBUG}&quot;,&quot;quiet&quot;:true}</code></td></tr>
+<tr><td><code>compose/validate-debug-files</code></td><td><code>compose config</code> <span class="tag reads">reads</span></td><td><code>{&quot;files&quot;:[&quot;${COMPOSE_DEBUG}&quot;],&quot;quiet&quot;:true}</code></td></tr>
+<tr><td><code>compose/stop-service</code></td><td><code>compose stop</code> <span class="tag changes">changes</span></td><td><code>{&quot;service&quot;:&quot;${service}&quot;}</code></td></tr>
+<tr><td><code>compose/up-consumer-debug</code></td><td><code>compose up</code> <span class="tag changes">changes</span></td><td><code>{&quot;envFile&quot;:&quot;${ENV_DEBUG}&quot;,&quot;service&quot;:&quot;${services.${service}.consumer}&quot;}</code></td></tr>
+<tr><td><code>compose/up-service</code></td><td><code>compose up</code> <span class="tag changes">changes</span></td><td><code>{&quot;service&quot;:&quot;${service}&quot;}</code></td></tr>
+<tr><td><code>compose/up-consumer</code></td><td><code>compose up</code> <span class="tag changes">changes</span></td><td><code>{&quot;service&quot;:&quot;${services.${service}.consumer}&quot;}</code></td></tr>
+<tr><td><code>compose/validate-suppressed</code></td><td><code>compose config</code> <span class="tag reads">reads</span></td><td><code>{&quot;files&quot;:[&quot;${COMPOSE_DEBUG}&quot;],&quot;envFile&quot;:&quot;${ENV_DEBUG}&quot;,&quot;quiet&quot;:true}</code></td></tr>
+<tr><td><code>compose/up-suppressed</code></td><td><code>compose up</code> <span class="tag changes">changes</span></td><td><code>{&quot;files&quot;:[&quot;${COMPOSE_DEBUG}&quot;],&quot;envFile&quot;:&quot;${ENV_DEBUG}&quot;}</code></td></tr>
+<tr><td><code>compose/up-all</code></td><td><code>compose up</code> <span class="tag changes">changes</span></td><td><code>{}</code></td></tr>
+<tr><td><code>compose/ps</code></td><td><code>compose ps</code> <span class="tag reads">reads</span></td><td><code>{}</code></td></tr>
+<tr><td><code>compose/up-debug-service</code></td><td><code>compose up</code> <span class="tag changes">changes</span></td><td><code>{&quot;service&quot;:&quot;${DEBUG_SERVICE}&quot;,&quot;optionalFiles&quot;:[&quot;${COMPOSE_DEBUG_IMAGE}&quot;]}</code></td></tr>
+<tr><td><code>compose/up-restored-service</code></td><td><code>compose up</code> <span class="tag changes">changes</span></td><td><code>{&quot;service&quot;:&quot;${service}&quot;,&quot;optionalFiles&quot;:[&quot;${COMPOSE_DEBUG_IMAGE}&quot;]}</code></td></tr>
+<tr><td><code>debugimage/plan</code></td><td><code>debugimage plan</code> <span class="tag reads">reads</span></td><td><code>{&quot;source&quot;:&quot;${source}&quot;,&quot;service&quot;:&quot;${service:-}&quot;,&quot;baseImage&quot;:&quot;${baseImage:-}&quot;}</code></td></tr>
+<tr><td><code>debugimage/prepare</code></td><td><code>debugimage prepare</code> <span class="tag changes">changes</span></td><td><code>{&quot;source&quot;:&quot;${source}&quot;,&quot;service&quot;:&quot;${service:-}&quot;,&quot;baseImage&quot;:&quot;${baseImage:-}&quot;}</code></td></tr>
+<tr><td><code>debugimage/use</code></td><td><code>debugimage use</code> <span class="tag changes">changes</span></td><td><code>{&quot;service&quot;:&quot;${DEBUG_SERVICE}&quot;,&quot;image&quot;:&quot;${DEBUG_IMAGE}&quot;}</code></td></tr>
+<tr><td><code>debugimage/restore</code></td><td><code>debugimage restore</code> <span class="tag changes">changes</span></td><td><code>{&quot;service&quot;:&quot;${service}&quot;}</code></td></tr>
+<tr><td><code>docker/consumer-link-probe</code></td><td><code>docker logs</code> <span class="tag reads">reads</span></td><td><code>{&quot;service&quot;:&quot;${services.${service}.consumer}&quot;,&quot;contains&quot;:&quot;${services.${service}.logProbe}&quot;,&quot;waitSeconds&quot;:60}</code></td></tr>
+<tr><td><code>docker/build-debug-image</code></td><td><code>docker build</code> <span class="tag changes">changes</span></td><td><code>{&quot;context&quot;:&quot;${DEBUG_CONTEXT}&quot;,&quot;file&quot;:&quot;${DEBUG_DOCKERFILE}&quot;,&quot;tag&quot;:[&quot;${DEBUG_IMAGE}&quot;]}</code></td></tr>
+<tr><td><code>docker/consumer-logs</code></td><td><code>docker logs</code> <span class="tag reads">reads</span></td><td><code>{&quot;service&quot;:&quot;${services.${service}.consumer}&quot;,&quot;tail&quot;:50}</code></td></tr>
+<tr><td><code>docker/service-digest</code></td><td><code>docker logs</code> <span class="tag reads">reads</span></td><td><code>{&quot;service&quot;:&quot;${service}&quot;,&quot;tail&quot;:2000,&quot;since&quot;:&quot;${since:-24h}&quot;,&quot;digest&quot;:true}</code></td></tr>
+<tr><td><code>file/derive-env-debug</code></td><td><code>file derive</code> <span class="tag changes">changes</span></td><td><code>{&quot;source&quot;:&quot;${ENV_FILE}&quot;,&quot;target&quot;:&quot;${ENV_DEBUG}&quot;,&quot;edits&quot;:[{&quot;set&quot;:&quot;${services.${service}.hostKey}&quot;,&quot;value&quot;:&quot;${services.${service}.debugHost}&quot;},{&quot;set&quot;:&quot;${services.${service}.portKey}&quot;,&quot;value&quot;:&quot;${services.${service}.debugPort}&quot;}]}</code></td></tr>
+<tr><td><code>file/derive-compose-without-service</code></td><td><code>file derive</code> <span class="tag changes">changes</span></td><td><code>{&quot;source&quot;:&quot;${COMPOSE_FILE}&quot;,&quot;target&quot;:&quot;${COMPOSE_DEBUG}&quot;,&quot;edits&quot;:[{&quot;commentService&quot;:&quot;${service}&quot;}]}</code></td></tr>
+<tr><td><code>file/derive-compose-suppressed</code></td><td><code>file derive</code> <span class="tag changes">changes</span></td><td><code>{&quot;source&quot;:&quot;${COMPOSE_FILE}&quot;,&quot;target&quot;:&quot;${COMPOSE_DEBUG}&quot;,&quot;edits&quot;:[{&quot;commentService&quot;:&quot;${service}&quot;},{&quot;dropDependsOn&quot;:&quot;${service}&quot;}]}</code></td></tr>
+<tr><td><code>file/remove-derived</code></td><td><code>file delete</code> <span class="tag changes">changes</span></td><td><code>{&quot;paths&quot;:[&quot;${COMPOSE_DEBUG}&quot;,&quot;${ENV_DEBUG}&quot;]}</code></td></tr>
+<tr><td><code>git/app-clean</code></td><td><code>git require-clean</code> <span class="tag reads">reads</span></td><td><code>{&quot;path&quot;:&quot;${APP_ROOT}&quot;}</code></td></tr>
+<tr><td><code>git/diff-env</code></td><td><code>git diff</code> <span class="tag reads">reads</span></td><td><code>{&quot;a&quot;:&quot;${ENV_FILE}&quot;,&quot;b&quot;:&quot;${ENV_DEBUG}&quot;}</code></td></tr>
+<tr><td><code>git/diff-compose</code></td><td><code>git diff</code> <span class="tag reads">reads</span></td><td><code>{&quot;a&quot;:&quot;${COMPOSE_FILE}&quot;,&quot;b&quot;:&quot;${COMPOSE_DEBUG}&quot;}</code></td></tr>
+<tr><td><code>source/verify-service</code></td><td><code>source verify</code> <span class="tag reads">reads</span></td><td><code>{&quot;strategy&quot;:&quot;${services.${service}.verify}&quot;,&quot;image&quot;:&quot;${services.${service}.image}&quot;,&quot;src&quot;:&quot;${services.${service}.src}&quot;}</code></td></tr>
+<tr><td><code>version/detect</code></td><td><code>version detect</code> <span class="tag reads">reads</span></td><td><code>{}</code></td></tr>
+<tr><td><code>version/available</code></td><td><code>version available</code> <span class="tag reads">reads</span></td><td><code>{&quot;repo&quot;:&quot;${repo:-}&quot;,&quot;image&quot;:&quot;${image:-}&quot;}</code></td></tr>
+<tr><td><code>version/checkout</code></td><td><code>version checkout</code> <span class="tag changes">changes</span></td><td><code>{&quot;repo&quot;:&quot;${repo}&quot;}</code></td></tr>
+<tr><td><code>version/source-matches</code></td><td><code>version verify-source</code> <span class="tag reads">reads</span></td><td><code>{&quot;repo&quot;:&quot;${repo}&quot;}</code></td></tr>
+<tr><td><code>version/debug-source-matches</code></td><td><code>version verify-source</code> <span class="tag reads">reads</span></td><td><code>{&quot;repo&quot;:&quot;${DEBUG_CONTEXT}&quot;,&quot;version&quot;:&quot;${DEBUG_VERSION:-}&quot;}</code></td></tr>
+</table>
+
+</details>
+
+<details id="ref-tools"><summary>Tools and verbs</summary>
+<p>Every verb with its arguments. <span class="tag reads">reads</span> runs in read-only mode; <span class="tag changes">changes</span> does not.</p>
+<details class="sub" id="tool-compose"><summary><code>compose</code> <span class="dim">up, down, stop, start, restart, ps, config</span></summary>
+<h4><code>compose up</code> <span class="tag changes">changes</span></h4><p>Start services detached (-d).</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>projectDir</code></td><td>string</td><td>--project-directory (default ${APP_ROOT}).</td></tr>
+<tr><td><code>project</code></td><td>string</td><td>Compose project name (-p); default ${COMPOSE_PROJECT}.</td></tr>
+<tr><td><code>envFile</code></td><td>string</td><td>--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched.</td></tr>
+<tr><td><code>files</code></td><td>list</td><td>Compose files (-f); default ${COMPOSE_FILE}.</td></tr>
+<tr><td><code>optionalFiles</code></td><td>list</td><td>Override files added after `files`, each only if it exists (e.g. the debug-image override).</td></tr>
+<tr><td><code>service</code></td><td>string</td><td>One service to act on.</td></tr>
+<tr><td><code>services</code></td><td>list</td><td>Services to act on.</td></tr>
+<tr><td><code>extra</code></td><td>list</td><td>Extra arguments passed through to docker compose.</td></tr>
+<tr><td><code>noDeps</code></td><td>bool</td><td>Pass --no-deps when services are named (default true).</td></tr>
+<tr><td><code>build</code></td><td>bool</td><td>Pass --build.</td></tr>
+<tr><td><code>removeOrphans</code></td><td>bool</td><td>Pass --remove-orphans.</td></tr>
+<tr><td><code>into</code></td><td>string</td><td>State variable for the start time (default STARTED_AT_UTC).</td></tr>
+</table>
+<h4><code>compose down</code> <span class="tag changes">changes</span></h4><p>Stop and remove the stack.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>projectDir</code></td><td>string</td><td>--project-directory (default ${APP_ROOT}).</td></tr>
+<tr><td><code>project</code></td><td>string</td><td>Compose project name (-p); default ${COMPOSE_PROJECT}.</td></tr>
+<tr><td><code>envFile</code></td><td>string</td><td>--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched.</td></tr>
+<tr><td><code>files</code></td><td>list</td><td>Compose files (-f); default ${COMPOSE_FILE}.</td></tr>
+<tr><td><code>optionalFiles</code></td><td>list</td><td>Override files added after `files`, each only if it exists (e.g. the debug-image override).</td></tr>
+<tr><td><code>service</code></td><td>string</td><td>One service to act on.</td></tr>
+<tr><td><code>services</code></td><td>list</td><td>Services to act on.</td></tr>
+<tr><td><code>extra</code></td><td>list</td><td>Extra arguments passed through to docker compose.</td></tr>
+<tr><td><code>removeOrphans</code></td><td>bool</td><td>Pass --remove-orphans.</td></tr>
+</table>
+<h4><code>compose stop</code> <span class="tag changes">changes</span></h4><p>Stop services.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>projectDir</code></td><td>string</td><td>--project-directory (default ${APP_ROOT}).</td></tr>
+<tr><td><code>project</code></td><td>string</td><td>Compose project name (-p); default ${COMPOSE_PROJECT}.</td></tr>
+<tr><td><code>envFile</code></td><td>string</td><td>--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched.</td></tr>
+<tr><td><code>files</code></td><td>list</td><td>Compose files (-f); default ${COMPOSE_FILE}.</td></tr>
+<tr><td><code>optionalFiles</code></td><td>list</td><td>Override files added after `files`, each only if it exists (e.g. the debug-image override).</td></tr>
+<tr><td><code>service</code></td><td>string</td><td>One service to act on.</td></tr>
+<tr><td><code>services</code></td><td>list</td><td>Services to act on.</td></tr>
+<tr><td><code>extra</code></td><td>list</td><td>Extra arguments passed through to docker compose.</td></tr>
+</table>
+<h4><code>compose start</code> <span class="tag changes">changes</span></h4><p>Start existing services.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>projectDir</code></td><td>string</td><td>--project-directory (default ${APP_ROOT}).</td></tr>
+<tr><td><code>project</code></td><td>string</td><td>Compose project name (-p); default ${COMPOSE_PROJECT}.</td></tr>
+<tr><td><code>envFile</code></td><td>string</td><td>--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched.</td></tr>
+<tr><td><code>files</code></td><td>list</td><td>Compose files (-f); default ${COMPOSE_FILE}.</td></tr>
+<tr><td><code>optionalFiles</code></td><td>list</td><td>Override files added after `files`, each only if it exists (e.g. the debug-image override).</td></tr>
+<tr><td><code>service</code></td><td>string</td><td>One service to act on.</td></tr>
+<tr><td><code>services</code></td><td>list</td><td>Services to act on.</td></tr>
+<tr><td><code>extra</code></td><td>list</td><td>Extra arguments passed through to docker compose.</td></tr>
+</table>
+<h4><code>compose restart</code> <span class="tag changes">changes</span></h4><p>Restart services.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>projectDir</code></td><td>string</td><td>--project-directory (default ${APP_ROOT}).</td></tr>
+<tr><td><code>project</code></td><td>string</td><td>Compose project name (-p); default ${COMPOSE_PROJECT}.</td></tr>
+<tr><td><code>envFile</code></td><td>string</td><td>--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched.</td></tr>
+<tr><td><code>files</code></td><td>list</td><td>Compose files (-f); default ${COMPOSE_FILE}.</td></tr>
+<tr><td><code>optionalFiles</code></td><td>list</td><td>Override files added after `files`, each only if it exists (e.g. the debug-image override).</td></tr>
+<tr><td><code>service</code></td><td>string</td><td>One service to act on.</td></tr>
+<tr><td><code>services</code></td><td>list</td><td>Services to act on.</td></tr>
+<tr><td><code>extra</code></td><td>list</td><td>Extra arguments passed through to docker compose.</td></tr>
+</table>
+<h4><code>compose ps</code> <span class="tag reads">reads</span></h4><p>List containers.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>projectDir</code></td><td>string</td><td>--project-directory (default ${APP_ROOT}).</td></tr>
+<tr><td><code>project</code></td><td>string</td><td>Compose project name (-p); default ${COMPOSE_PROJECT}.</td></tr>
+<tr><td><code>envFile</code></td><td>string</td><td>--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched.</td></tr>
+<tr><td><code>files</code></td><td>list</td><td>Compose files (-f); default ${COMPOSE_FILE}.</td></tr>
+<tr><td><code>optionalFiles</code></td><td>list</td><td>Override files added after `files`, each only if it exists (e.g. the debug-image override).</td></tr>
+<tr><td><code>service</code></td><td>string</td><td>One service to act on.</td></tr>
+<tr><td><code>services</code></td><td>list</td><td>Services to act on.</td></tr>
+<tr><td><code>extra</code></td><td>list</td><td>Extra arguments passed through to docker compose.</td></tr>
+<tr><td><code>all</code></td><td>bool</td><td>Include stopped containers (default true).</td></tr>
+</table>
+<h4><code>compose config</code> <span class="tag reads">reads</span></h4><p>Validate and render the merged model.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>projectDir</code></td><td>string</td><td>--project-directory (default ${APP_ROOT}).</td></tr>
+<tr><td><code>project</code></td><td>string</td><td>Compose project name (-p); default ${COMPOSE_PROJECT}.</td></tr>
+<tr><td><code>envFile</code></td><td>string</td><td>--env-file; default ${ENV_FILE}. Name a generated file here to leave the original untouched.</td></tr>
+<tr><td><code>files</code></td><td>list</td><td>Compose files (-f); default ${COMPOSE_FILE}.</td></tr>
+<tr><td><code>optionalFiles</code></td><td>list</td><td>Override files added after `files`, each only if it exists (e.g. the debug-image override).</td></tr>
+<tr><td><code>service</code></td><td>string</td><td>One service to act on.</td></tr>
+<tr><td><code>services</code></td><td>list</td><td>Services to act on.</td></tr>
+<tr><td><code>extra</code></td><td>list</td><td>Extra arguments passed through to docker compose.</td></tr>
+<tr><td><code>quiet</code></td><td>bool</td><td>Only report errors (-q).</td></tr>
+</table>
+</details>
+<details class="sub" id="tool-debugimage"><summary><code>debugimage</code> <span class="dim">candidates, plan, prepare, use, restore</span></summary>
+<h4><code>debugimage candidates</code> <span class="tag reads">reads</span></h4><p>List unhardened base images that could stand in for a hardened one, best first.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>like</code> <span class="tag changes">required</span></td><td>string</td><td>The hardened image to replace (its name gives the kind and the .NET version).</td></tr>
+<tr><td><code>registryApi</code></td><td>string</td><td>Registry v2 API base (default ${REGISTRY_API}); Artifactory: https://HOST/artifactory/api/docker/REPO-KEY.</td></tr>
+<tr><td><code>registryPrefix</code></td><td>string</td><td>What goes in front of a repository name in an image reference (default ${REGISTRY_PREFIX}).</td></tr>
+<tr><td><code>registryUser</code></td><td>string</td><td>User for basic auth (default ${REGISTRY_USER}).</td></tr>
+<tr><td><code>registryToken</code></td><td>string</td><td>Password / token; sent as Bearer when there is no user (default ${REGISTRY_TOKEN}).</td></tr>
+<tr><td><code>repoFilter</code></td><td>string</td><td>Regex a repository name must match to be read (default: dotnet|aspnet|runtime).</td></tr>
+<tr><td><code>localImages</code></td><td>bool</td><td>Also consider the images `docker image ls` reports (default true).</td></tr>
+</table>
+<h4><code>debugimage plan</code> <span class="tag reads">reads</span></h4><p>Work out service, base image, context and tag for a debug image. Writes nothing.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>source</code> <span class="tag changes">required</span></td><td>string</td><td>The Dockerfile, or the project folder that contains it.</td></tr>
+<tr><td><code>service</code></td><td>string</td><td>The compose service whose image this replaces. Default: matched by name.</td></tr>
+<tr><td><code>baseImage</code></td><td>string</td><td>The unhardened base image to build on. Default: the best candidate.</td></tr>
+<tr><td><code>context</code></td><td>string</td><td>Build context. Default: worked out from the project paths the Dockerfile copies.</td></tr>
+<tr><td><code>composeFile</code></td><td>string</td><td>Compose file that defines the service (default ${COMPOSE_FILE}).</td></tr>
+<tr><td><code>tag</code></td><td>string</td><td>The debug image, repo:tag. Default: the service&#39;s image repo with tag ${VERSION}-debug (without VERSION: the tag the service has now, plus -debug).</td></tr>
+<tr><td><code>asRoot</code></td><td>bool</td><td>Run as root in the debug image (default true).</td></tr>
+<tr><td><code>packages</code></td><td>bool</td><td>Install ps, curl and unzip with the base image&#39;s package manager (default true).</td></tr>
+<tr><td><code>configuration</code></td><td>string</td><td>Build configuration that replaces Release (default Debug; empty = leave as is).</td></tr>
+<tr><td><code>vsdbg</code></td><td>string<br><span class="dim">mount | copy | download</span></td><td>How the debugger gets in. mount (default): bind-mount the vsdbg folder at /remote_debugger when the service starts, as Visual Studio does. copy: bake that folder into the image. download: run GetVsDbg.sh at build time (needs internet).</td></tr>
+<tr><td><code>vsdbgDir</code></td><td>string</td><td>Folder that holds vsdbg (default ${VSDBG_DIR}, then %USERPROFILE%/vsdbg/vs2017u5, where Visual Studio keeps it). Its linux-musl-x64 subfolder is used for an alpine base.</td></tr>
+<tr><td><code>vsdbgUrl</code></td><td>string</td><td>For vsdbg=download: the GetVsDbg.sh script (default ${VSDBG_URL}, then https://aka.ms/getvsdbgsh).</td></tr>
+<tr><td><code>registryApi</code></td><td>string</td><td>Registry v2 API base (default ${REGISTRY_API}); Artifactory: https://HOST/artifactory/api/docker/REPO-KEY.</td></tr>
+<tr><td><code>registryPrefix</code></td><td>string</td><td>What goes in front of a repository name in an image reference (default ${REGISTRY_PREFIX}).</td></tr>
+<tr><td><code>registryUser</code></td><td>string</td><td>User for basic auth (default ${REGISTRY_USER}).</td></tr>
+<tr><td><code>registryToken</code></td><td>string</td><td>Password / token; sent as Bearer when there is no user (default ${REGISTRY_TOKEN}).</td></tr>
+<tr><td><code>repoFilter</code></td><td>string</td><td>Regex a repository name must match to be read (default: dotnet|aspnet|runtime).</td></tr>
+<tr><td><code>localImages</code></td><td>bool</td><td>Also consider the images `docker image ls` reports (default true).</td></tr>
+</table>
+<h4><code>debugimage prepare</code> <span class="tag changes">changes</span></h4><p>plan, then write Dockerfile.debug beside the Dockerfile.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>source</code> <span class="tag changes">required</span></td><td>string</td><td>The Dockerfile, or the project folder that contains it.</td></tr>
+<tr><td><code>service</code></td><td>string</td><td>The compose service whose image this replaces. Default: matched by name.</td></tr>
+<tr><td><code>baseImage</code></td><td>string</td><td>The unhardened base image to build on. Default: the best candidate.</td></tr>
+<tr><td><code>context</code></td><td>string</td><td>Build context. Default: worked out from the project paths the Dockerfile copies.</td></tr>
+<tr><td><code>composeFile</code></td><td>string</td><td>Compose file that defines the service (default ${COMPOSE_FILE}).</td></tr>
+<tr><td><code>tag</code></td><td>string</td><td>The debug image, repo:tag. Default: the service&#39;s image repo with tag ${VERSION}-debug (without VERSION: the tag the service has now, plus -debug).</td></tr>
+<tr><td><code>asRoot</code></td><td>bool</td><td>Run as root in the debug image (default true).</td></tr>
+<tr><td><code>packages</code></td><td>bool</td><td>Install ps, curl and unzip with the base image&#39;s package manager (default true).</td></tr>
+<tr><td><code>configuration</code></td><td>string</td><td>Build configuration that replaces Release (default Debug; empty = leave as is).</td></tr>
+<tr><td><code>vsdbg</code></td><td>string<br><span class="dim">mount | copy | download</span></td><td>How the debugger gets in. mount (default): bind-mount the vsdbg folder at /remote_debugger when the service starts, as Visual Studio does. copy: bake that folder into the image. download: run GetVsDbg.sh at build time (needs internet).</td></tr>
+<tr><td><code>vsdbgDir</code></td><td>string</td><td>Folder that holds vsdbg (default ${VSDBG_DIR}, then %USERPROFILE%/vsdbg/vs2017u5, where Visual Studio keeps it). Its linux-musl-x64 subfolder is used for an alpine base.</td></tr>
+<tr><td><code>vsdbgUrl</code></td><td>string</td><td>For vsdbg=download: the GetVsDbg.sh script (default ${VSDBG_URL}, then https://aka.ms/getvsdbgsh).</td></tr>
+<tr><td><code>registryApi</code></td><td>string</td><td>Registry v2 API base (default ${REGISTRY_API}); Artifactory: https://HOST/artifactory/api/docker/REPO-KEY.</td></tr>
+<tr><td><code>registryPrefix</code></td><td>string</td><td>What goes in front of a repository name in an image reference (default ${REGISTRY_PREFIX}).</td></tr>
+<tr><td><code>registryUser</code></td><td>string</td><td>User for basic auth (default ${REGISTRY_USER}).</td></tr>
+<tr><td><code>registryToken</code></td><td>string</td><td>Password / token; sent as Bearer when there is no user (default ${REGISTRY_TOKEN}).</td></tr>
+<tr><td><code>repoFilter</code></td><td>string</td><td>Regex a repository name must match to be read (default: dotnet|aspnet|runtime).</td></tr>
+<tr><td><code>localImages</code></td><td>bool</td><td>Also consider the images `docker image ls` reports (default true).</td></tr>
+</table>
+<h4><code>debugimage use</code> <span class="tag changes">changes</span></h4><p>Point a service at its debug image through the generated compose override file; write the Visual Studio launch.json.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>service</code> <span class="tag changes">required</span></td><td>string</td><td>Compose service.</td></tr>
+<tr><td><code>image</code> <span class="tag changes">required</span></td><td>string</td><td>The debug image.</td></tr>
+<tr><td><code>override</code></td><td>string</td><td>The override file (default ${COMPOSE_DEBUG_IMAGE}, then ${WORK_DIR}/docker-compose.debug-image.yml).</td></tr>
+<tr><td><code>composeFile</code></td><td>string</td><td>Compose file that defines the service (default ${COMPOSE_FILE}).</td></tr>
+<tr><td><code>asRoot</code></td><td>bool</td><td>Set `user: root` on the service (default true).</td></tr>
+<tr><td><code>vsdbgMount</code></td><td>string</td><td>Host folder to bind-mount at /remote_debugger (default ${DEBUG_VSDBG_MOUNT}; none = vsdbg is in the image).</td></tr>
+<tr><td><code>vsdbgPath</code></td><td>string</td><td>vsdbg inside the container (default ${DEBUG_VSDBG_PATH}, then /remote_debugger/vsdbg).</td></tr>
+<tr><td><code>sourceInContainer</code></td><td>string</td><td>Where the sources were during the build (default ${DEBUG_SOURCE_ROOT}).</td></tr>
+<tr><td><code>sourceOnDisk</code></td><td>string</td><td>The same sources on this machine (default ${DEBUG_CONTEXT}).</td></tr>
+<tr><td><code>launchJson</code></td><td>string</td><td>Where to write the launch file (on this machine).</td></tr>
+</table>
+<h4><code>debugimage restore</code> <span class="tag changes">changes</span></h4><p>Take a service out of the compose override file, so the next `up` uses its original image.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>service</code> <span class="tag changes">required</span></td><td>string</td><td>Compose service.</td></tr>
+<tr><td><code>override</code></td><td>string</td><td>The override file (default ${COMPOSE_DEBUG_IMAGE}, then ${WORK_DIR}/docker-compose.debug-image.yml).</td></tr>
+</table>
+</details>
+<details class="sub" id="tool-docker"><summary><code>docker</code> <span class="dim">ps, inspect, history, logs, events, build, run</span></summary>
+<h4><code>docker ps</code> <span class="tag reads">reads</span></h4><p>docker ps.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>all</code></td><td>bool</td><td>Include stopped containers (-a).</td></tr>
+<tr><td><code>filter</code></td><td>list</td><td>--filter expressions.</td></tr>
+<tr><td><code>format</code></td><td>string</td><td>--format template.</td></tr>
+<tr><td><code>into</code></td><td>string</td><td>State variable for the output (default DOCKER_PS).</td></tr>
+</table>
+<h4><code>docker inspect</code> <span class="tag reads">reads</span></h4><p>docker inspect a container.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>target</code></td><td>string</td><td>Container name or id.</td></tr>
+<tr><td><code>service</code></td><td>string</td><td>Compose service; resolved through the com.docker.compose.* labels.</td></tr>
+<tr><td><code>project</code></td><td>string</td><td>Compose project to narrow `service` (default ${COMPOSE_PROJECT}).</td></tr>
+<tr><td><code>format</code></td><td>string</td><td>--format template.</td></tr>
+<tr><td><code>into</code></td><td>string</td><td>State variable (default DOCKER_INSPECT).</td></tr>
+</table>
+<h4><code>docker history</code> <span class="tag reads">reads</span></h4><p>docker history of an image.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>image</code> <span class="tag changes">required</span></td><td>string</td><td>Image name.</td></tr>
+<tr><td><code>format</code></td><td>string</td><td>--format template.</td></tr>
+<tr><td><code>into</code></td><td>string</td><td>State variable (default DOCKER_HISTORY).</td></tr>
+</table>
+<h4><code>docker logs</code> <span class="tag reads">reads</span></h4><p>Container logs, optionally waiting for text.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>target</code></td><td>string</td><td>Container name or id.</td></tr>
+<tr><td><code>service</code></td><td>string</td><td>Compose service; resolved through the com.docker.compose.* labels.</td></tr>
+<tr><td><code>project</code></td><td>string</td><td>Compose project to narrow `service` (default ${COMPOSE_PROJECT}).</td></tr>
+<tr><td><code>contains</code></td><td>string</td><td>Text a line must contain to match.</td></tr>
+<tr><td><code>regex</code></td><td>string</td><td>Regular expression a line must match.</td></tr>
+<tr><td><code>expect</code></td><td>string<br><span class="dim">present | absent</span></td><td>present (default): fail if nothing matches; absent: fail if anything matches.</td></tr>
+<tr><td><code>into</code></td><td>string</td><td>State variable that receives the full text.</td></tr>
+<tr><td><code>save</code></td><td>string</td><td>File (on this machine) to write the full text to.</td></tr>
+<tr><td><code>show</code></td><td>bool</td><td>Echo the text to the log when there is no pattern (default true).</td></tr>
+<tr><td><code>digest</code></td><td>bool</td><td>Log a digest instead of the raw text: repeats collapsed into patterns with counts, errors first.</td></tr>
+<tr><td><code>since</code></td><td>string</td><td>Default: STARTED_AT_UTC from the last compose up.</td></tr>
+<tr><td><code>until</code></td><td>string</td><td>Upper bound.</td></tr>
+<tr><td><code>tail</code></td><td>int</td><td>Number of lines from the end.</td></tr>
+<tr><td><code>timestamps</code></td><td>bool</td><td>Show timestamps (default true).</td></tr>
+<tr><td><code>waitSeconds</code></td><td>int</td><td>Poll up to this long for the expectation to hold.</td></tr>
+</table>
+<h4><code>docker events</code> <span class="tag reads">reads</span></h4><p>docker events between since and now.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>since</code></td><td>string</td><td>Default: STARTED_AT_UTC.</td></tr>
+<tr><td><code>until</code></td><td>string</td><td>Default: now on the host.</td></tr>
+<tr><td><code>filter</code></td><td>list</td><td>--filter expressions.</td></tr>
+<tr><td><code>format</code></td><td>string</td><td>--format template (default {{json .}}).</td></tr>
+<tr><td><code>contains</code></td><td>string</td><td>Text a line must contain to match.</td></tr>
+<tr><td><code>regex</code></td><td>string</td><td>Regular expression a line must match.</td></tr>
+<tr><td><code>expect</code></td><td>string<br><span class="dim">present | absent</span></td><td>present (default): fail if nothing matches; absent: fail if anything matches.</td></tr>
+<tr><td><code>into</code></td><td>string</td><td>State variable that receives the full text.</td></tr>
+<tr><td><code>save</code></td><td>string</td><td>File (on this machine) to write the full text to.</td></tr>
+<tr><td><code>show</code></td><td>bool</td><td>Echo the text to the log when there is no pattern (default true).</td></tr>
+<tr><td><code>digest</code></td><td>bool</td><td>Log a digest instead of the raw text: repeats collapsed into patterns with counts, errors first.</td></tr>
+</table>
+<h4><code>docker build</code> <span class="tag changes">changes</span></h4><p>docker build.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>context</code> <span class="tag changes">required</span></td><td>string</td><td>Build context.</td></tr>
+<tr><td><code>tag</code></td><td>list</td><td>Image tags (-t).</td></tr>
+<tr><td><code>file</code></td><td>string</td><td>Dockerfile (-f).</td></tr>
+<tr><td><code>noCache</code></td><td>bool</td><td>--no-cache.</td></tr>
+<tr><td><code>buildArgs</code></td><td>object</td><td>--build-arg KEY=VALUE pairs.</td></tr>
+<tr><td><code>labels</code></td><td>object</td><td>--label KEY=VALUE pairs.</td></tr>
+<tr><td><code>revisionFrom</code></td><td>string</td><td>Git working tree whose HEAD is stamped as org.opencontainers.image.revision.</td></tr>
+</table>
+<h4><code>docker run</code> <span class="tag changes">changes</span></h4><p>docker run.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>image</code> <span class="tag changes">required</span></td><td>string</td><td>Image.</td></tr>
+<tr><td><code>cmd</code></td><td>list</td><td>Command and arguments.</td></tr>
+<tr><td><code>rm</code></td><td>bool</td><td>--rm (default true).</td></tr>
+<tr><td><code>detach</code></td><td>bool</td><td>-d.</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>--name.</td></tr>
+<tr><td><code>network</code></td><td>string</td><td>--network.</td></tr>
+<tr><td><code>env</code></td><td>object</td><td>-e KEY=VALUE pairs.</td></tr>
+<tr><td><code>ports</code></td><td>list</td><td>-p mappings.</td></tr>
+<tr><td><code>volumes</code></td><td>list</td><td>-v mappings.</td></tr>
+<tr><td><code>extra</code></td><td>list</td><td>Extra docker run arguments.</td></tr>
+<tr><td><code>into</code></td><td>string</td><td>State variable (default DOCKER_RUN).</td></tr>
+</table>
+</details>
+<details class="sub" id="tool-dotnet"><summary><code>dotnet</code> <span class="dim">list, ExtractText, UpperCaseFile</span></summary>
+<h4><code>dotnet list</code> <span class="tag reads">reads</span></h4><p>List the commands found in the plugins folder, and anything that could not be loaded.</p>
+<h4><code>dotnet ExtractText</code> <span class="tag reads">reads</span></h4><p>Finds the first match of a regular expression in a text. [SamplePlugin.dll] returns variables.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>Text</code> <span class="tag changes">required</span></td><td>string</td><td>Argument 1 of ExtractText.ExecAsync.</td></tr>
+<tr><td><code>Pattern</code> <span class="tag changes">required</span></td><td>string</td><td>Argument 2 of ExtractText.ExecAsync.</td></tr>
+</table>
+<h4><code>dotnet UpperCaseFile</code> <span class="tag changes">changes</span></h4><p>Copies a text file, upper-casing it. An example of a command that writes. [SamplePlugin.dll] returns variables.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>InputFilePath</code> <span class="tag changes">required</span></td><td>string</td><td>Argument 1 of UpperCaseFile.ExecAsync.</td></tr>
+<tr><td><code>OutputFilePath</code> <span class="tag changes">required</span></td><td>string</td><td>Argument 2 of UpperCaseFile.ExecAsync.</td></tr>
+</table>
+</details>
+<details class="sub" id="tool-file"><summary><code>file</code> <span class="dim">derive, delete</span></summary>
+<h4><code>file derive</code> <span class="tag changes">changes</span></h4><p>Write a modified copy of a file; the source is never touched.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>source</code> <span class="tag changes">required</span></td><td>string</td><td>File to copy from.</td></tr>
+<tr><td><code>target</code> <span class="tag changes">required</span></td><td>string</td><td>File to write.</td></tr>
+<tr><td><code>edits</code> <span class="tag changes">required</span></td><td>edits</td><td>Edits; each must match exactly its expected number of lines.</td></tr>
+</table>
+<h4><code>file delete</code> <span class="tag changes">changes</span></h4><p>Delete files (typically generated copies).</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>paths</code></td><td>list</td><td>Files to delete.</td></tr>
+<tr><td><code>path</code></td><td>string</td><td>One file to delete.</td></tr>
+</table>
+</details>
+<details class="sub" id="tool-git"><summary><code>git</code> <span class="dim">head, status, require-clean, diff, pull</span></summary>
+<h4><code>git head</code> <span class="tag reads">reads</span></h4><p>Commit id of HEAD.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>path</code></td><td>string</td><td>Working tree (default ${APP_ROOT}).</td></tr>
+<tr><td><code>into</code></td><td>string</td><td>State variable (default GIT_HEAD).</td></tr>
+</table>
+<h4><code>git status</code> <span class="tag reads">reads</span></h4><p>Report changed files.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>path</code></td><td>string</td><td>Working tree (default ${APP_ROOT}).</td></tr>
+<tr><td><code>untracked</code></td><td>bool</td><td>Count untracked files as changes (default false).</td></tr>
+<tr><td><code>paths</code></td><td>list</td><td>Limit to these paths.</td></tr>
+</table>
+<h4><code>git require-clean</code> <span class="tag reads">reads</span></h4><p>Fail if there are uncommitted changes.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>path</code></td><td>string</td><td>Working tree (default ${APP_ROOT}).</td></tr>
+<tr><td><code>untracked</code></td><td>bool</td><td>Count untracked files as changes (default false).</td></tr>
+<tr><td><code>paths</code></td><td>list</td><td>Limit to these paths.</td></tr>
+</table>
+<h4><code>git diff</code> <span class="tag reads">reads</span></h4><p>Working-tree diff, or compare two files (even outside a repo) with a and b.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>path</code></td><td>string</td><td>Working tree (default ${APP_ROOT}).</td></tr>
+<tr><td><code>a</code></td><td>string</td><td>First file.</td></tr>
+<tr><td><code>b</code></td><td>string</td><td>Second file.</td></tr>
+<tr><td><code>paths</code></td><td>list</td><td>Limit to these paths.</td></tr>
+</table>
+<h4><code>git pull</code> <span class="tag changes">changes</span></h4><p>git pull --ff-only; refuses if the tree is dirty.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>path</code></td><td>string</td><td>Working tree (default ${APP_ROOT}).</td></tr>
+<tr><td><code>untracked</code></td><td>bool</td><td>Count untracked files as changes (default false).</td></tr>
+<tr><td><code>paths</code></td><td>list</td><td>Limit to these paths.</td></tr>
+</table>
+</details>
+<details class="sub" id="tool-logfile"><summary><code>logfile</code> <span class="dim">search</span></summary>
+<h4><code>logfile search</code> <span class="tag reads">reads</span></h4><p>Search a log file on the host, windowed by the leading timestamp of each line.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>file</code> <span class="tag changes">required</span></td><td>string</td><td>Log file path on the host.</td></tr>
+<tr><td><code>since</code></td><td>string</td><td>Default: STARTED_AT_UTC.</td></tr>
+<tr><td><code>until</code></td><td>string</td><td>Upper bound.</td></tr>
+<tr><td><code>waitSeconds</code></td><td>int</td><td>Poll up to this long for the expectation to hold.</td></tr>
+<tr><td><code>contains</code></td><td>string</td><td>Text a line must contain to match.</td></tr>
+<tr><td><code>regex</code></td><td>string</td><td>Regular expression a line must match.</td></tr>
+<tr><td><code>expect</code></td><td>string<br><span class="dim">present | absent</span></td><td>present (default): fail if nothing matches; absent: fail if anything matches.</td></tr>
+<tr><td><code>into</code></td><td>string</td><td>State variable that receives the full text.</td></tr>
+<tr><td><code>save</code></td><td>string</td><td>File (on this machine) to write the full text to.</td></tr>
+<tr><td><code>show</code></td><td>bool</td><td>Echo the text to the log when there is no pattern (default true).</td></tr>
+<tr><td><code>digest</code></td><td>bool</td><td>Log a digest instead of the raw text: repeats collapsed into patterns with counts, errors first.</td></tr>
+</table>
+</details>
+<details class="sub" id="tool-plugins"><summary><code>plugins</code> <span class="dim">verify, publish, loaded</span></summary>
+<h4><code>plugins verify</code> <span class="tag reads">reads</span></h4><p>Check that every assembly an appsettings file lists exists under the given directories.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>appsettings</code> <span class="tag changes">required</span></td><td>string</td><td>The appsettings file the container loads.</td></tr>
+<tr><td><code>dirs</code> <span class="tag changes">required</span></td><td>list</td><td>Host directories to search for the .dll files (the bind-mount sources).</td></tr>
+<tr><td><code>key</code></td><td>string</td><td>Config path whose strings are the assembly names, e.g. Plugins:Assemblies. Omit to detect them.</td></tr>
+<tr><td><code>into</code></td><td>string</td><td>State variable for the number of missing assemblies (default PLUGINS_MISSING).</td></tr>
+</table>
+<h4><code>plugins publish</code> <span class="tag changes">changes</span></h4><p>Build a plugin project, copy its output to the service&#39;s plugin folder and list its assemblies in appsettings.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>project</code> <span class="tag changes">required</span></td><td>string</td><td>The .csproj, or the folder that contains it.</td></tr>
+<tr><td><code>dir</code> <span class="tag changes">required</span></td><td>string</td><td>The plugin folder on the host (the source of the service&#39;s plugin bind mount).</td></tr>
+<tr><td><code>appsettings</code> <span class="tag changes">required</span></td><td>string</td><td>The appsettings file the service loads.</td></tr>
+<tr><td><code>key</code></td><td>string</td><td>Config path of the list of plugin assemblies (default Plugins:Assemblies).</td></tr>
+<tr><td><code>assemblies</code></td><td>list</td><td>The plugin assemblies to list (not their dependencies). Default: the project&#39;s own assembly.</td></tr>
+<tr><td><code>configuration</code></td><td>string</td><td>Build configuration (default Debug).</td></tr>
+<tr><td><code>build</code></td><td>bool</td><td>Run `dotnet build` first (default true).</td></tr>
+<tr><td><code>output</code></td><td>string</td><td>The build output folder, if it cannot be found under the project&#39;s bin folder.</td></tr>
+</table>
+<h4><code>plugins loaded</code> <span class="tag reads">reads</span></h4><p>Check a service&#39;s logs for evidence that the plugin assemblies loaded.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>service</code></td><td>string</td><td>Compose service whose logs to read.</td></tr>
+<tr><td><code>target</code></td><td>string</td><td>Container name or id (instead of service).</td></tr>
+<tr><td><code>project</code></td><td>string</td><td>Compose project to narrow `service`.</td></tr>
+<tr><td><code>assemblies</code></td><td>list</td><td>Assembly names to look for. Default: the ones the appsettings file lists.</td></tr>
+<tr><td><code>appsettings</code></td><td>string</td><td>Appsettings file to take the names from.</td></tr>
+<tr><td><code>key</code></td><td>string</td><td>Config path of the list of plugin assemblies.</td></tr>
+<tr><td><code>since</code></td><td>string</td><td>Only logs since this time (default: STARTED_AT_UTC from the last restart or up).</td></tr>
+<tr><td><code>allowSilent</code></td><td>bool</td><td>Do not fail when an assembly is never mentioned in the logs (default false).</td></tr>
+</table>
+</details>
+<details class="sub" id="tool-shell"><summary><code>shell</code> <span class="dim">run, query</span></summary>
+<h4><code>shell run</code> <span class="tag changes">changes</span></h4><p>Run a shell command; capture its output into variables.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>command</code> <span class="tag changes">required</span></td><td>string</td><td>The command line (or several lines). ${NAME} is replaced with the variable&#39;s value first.</td></tr>
+<tr><td><code>shell</code></td><td>string<br><span class="dim">cmd | powershell | sh | bash</span></td><td>Which shell runs it. Default: cmd locally on Windows, sh otherwise.</td></tr>
+<tr><td><code>workDir</code></td><td>string</td><td>Directory to run in.</td></tr>
+<tr><td><code>into</code></td><td>string</td><td>Variable that receives everything printed to stdout, trimmed (default SHELL_OUT).</td></tr>
+<tr><td><code>capture</code></td><td>string<br><span class="dim">none | lines | json</span></td><td>Turn the output into variables. lines: every NAME=value line. json: stdout is a JSON object; each property becomes a variable. Default none.</td></tr>
+<tr><td><code>regex</code></td><td>string</td><td>A regular expression applied to stdout; each named group (?&lt;NAME&gt;...) of the first match becomes a variable.</td></tr>
+<tr><td><code>prefix</code></td><td>string</td><td>Put this in front of every captured variable name.</td></tr>
+<tr><td><code>expectExit</code></td><td>int</td><td>The exit code that means success (default 0).</td></tr>
+<tr><td><code>show</code></td><td>bool</td><td>Echo the output to the log (default true).</td></tr>
+</table>
+<h4><code>shell query</code> <span class="tag reads">reads</span></h4><p>Run a shell command that only reads (your responsibility); capture its output into variables.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>command</code> <span class="tag changes">required</span></td><td>string</td><td>The command line (or several lines). ${NAME} is replaced with the variable&#39;s value first.</td></tr>
+<tr><td><code>shell</code></td><td>string<br><span class="dim">cmd | powershell | sh | bash</span></td><td>Which shell runs it. Default: cmd locally on Windows, sh otherwise.</td></tr>
+<tr><td><code>workDir</code></td><td>string</td><td>Directory to run in.</td></tr>
+<tr><td><code>into</code></td><td>string</td><td>Variable that receives everything printed to stdout, trimmed (default SHELL_OUT).</td></tr>
+<tr><td><code>capture</code></td><td>string<br><span class="dim">none | lines | json</span></td><td>Turn the output into variables. lines: every NAME=value line. json: stdout is a JSON object; each property becomes a variable. Default none.</td></tr>
+<tr><td><code>regex</code></td><td>string</td><td>A regular expression applied to stdout; each named group (?&lt;NAME&gt;...) of the first match becomes a variable.</td></tr>
+<tr><td><code>prefix</code></td><td>string</td><td>Put this in front of every captured variable name.</td></tr>
+<tr><td><code>expectExit</code></td><td>int</td><td>The exit code that means success (default 0).</td></tr>
+<tr><td><code>show</code></td><td>bool</td><td>Echo the output to the log (default true).</td></tr>
+</table>
+</details>
+<details class="sub" id="tool-source"><summary><code>source</code> <span class="dim">verify</span></summary>
+<h4><code>source verify</code> <span class="tag reads">reads</span></h4><p>Check that local source equals what the image was built from.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>strategy</code></td><td>string<br><span class="dim">none | label | tag</span></td><td>How the image records its commit: none, label (org.opencontainers.image.revision) or tag (commit-id prefix).</td></tr>
+<tr><td><code>src</code></td><td>string</td><td>Local git working tree.</td></tr>
+<tr><td><code>image</code></td><td>string</td><td>Image to compare.</td></tr>
+<tr><td><code>allowDirty</code></td><td>bool</td><td>Skip the uncommitted-changes check.</td></tr>
+</table>
+</details>
+<details class="sub" id="tool-version"><summary><code>version</code> <span class="dim">detect, available, verify-source, checkout</span></summary>
+<h4><code>version detect</code> <span class="tag reads">reads</span></h4><p>Read the version from each service&#39;s image tag; report the stack&#39;s version and any service that is on another.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>composeFile</code></td><td>string</td><td>Compose file (default ${COMPOSE_FILE}).</td></tr>
+<tr><td><code>requireSame</code></td><td>bool</td><td>Fail when product images are on different versions (default false).</td></tr>
+</table>
+<h4><code>version available</code> <span class="tag reads">reads</span></h4><p>List the versions that exist: git refs of a source repo and/or registry tags of an image.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>repo</code></td><td>string</td><td>A git working tree.</td></tr>
+<tr><td><code>image</code></td><td>string</td><td>An image whose registry tags to list (needs REGISTRY_API).</td></tr>
+<tr><td><code>fetch</code></td><td>bool</td><td>Run `git fetch --tags` first (default false).</td></tr>
+</table>
+<h4><code>version verify-source</code> <span class="tag reads">reads</span></h4><p>Check that a source repo&#39;s HEAD is the commit of the version.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>repo</code> <span class="tag changes">required</span></td><td>string</td><td>The git working tree.</td></tr>
+<tr><td><code>version</code></td><td>string</td><td>The version (default ${VERSION}, then the one detected from the compose file).</td></tr>
+<tr><td><code>composeFile</code></td><td>string</td><td>Compose file to detect the version from (default ${COMPOSE_FILE}).</td></tr>
+</table>
+<h4><code>version checkout</code> <span class="tag changes">changes</span></h4><p>Check out the version&#39;s ref in a source repo. Refuses if tracked files have uncommitted changes.</p>
+<table><tr><th>argument</th><th>type</th><th>meaning</th></tr>
+<tr><td><code>repo</code> <span class="tag changes">required</span></td><td>string</td><td>The git working tree.</td></tr>
+<tr><td><code>fetch</code></td><td>bool</td><td>Run `git fetch --tags` first (default false).</td></tr>
+<tr><td><code>version</code></td><td>string</td><td>The version (default ${VERSION}, then the one detected from the compose file).</td></tr>
+<tr><td><code>composeFile</code></td><td>string</td><td>Compose file to detect the version from (default ${COMPOSE_FILE}).</td></tr>
+</table>
+</details>
+
+</details>
+
+<h2>Extending</h2>
+
+<details id="ext-dotnet"><summary>Your own .NET commands</summary>
+<p>Drop assemblies into <code>plugins\</code> beside <code>ToolRunner.sln</code> (or the folder <code>TOOLRUNNER_PLUGINS</code> names). Each public class with a parameterless constructor
+that implements an interface <i>named</i> <code>IDotnetTool</code> becomes a verb of the tool <code>dotnet</code>.</p>
+<pre>public interface IDotnetTool { Task&lt;Dictionary&lt;string, string&gt;&gt; ExecAsync(string[] args); }
+
+[Args(new[] { "InputFilePath", "OutputFilePath" })]
+[Description("Copies a text file, upper-casing it.")]
+public sealed class UpperCaseFile : IDotnetTool
+{
+    public async Task&lt;Dictionary&lt;string, string&gt;&gt; ExecAsync(string[] args)
+    {
+        var text = await File.ReadAllTextAsync(args[0]);
+        await File.WriteAllTextAsync(args[1], text.ToUpperInvariant());
+        return new() { ["OUTPUT_FILE"] = args[1] };       // becomes ${OUTPUT_FILE} for later steps
+    }
+}</pre>
+<ul>
+  <li>The class name is the verb; <code>[Args]</code> names the arguments in the order <code>ExecAsync</code> reads them; a missing one arrives as an empty string.</li>
+  <li>Every returned pair becomes a variable. Throwing fails the step with the message.</li>
+  <li><code>[ReadOnly]</code> lets it run in read-only mode; without it the command counts as changing things.</li>
+  <li>Types are matched by name: copy <code>src\SamplePlugin\Contract.cs</code> into your assembly. Nothing references toolrunner.</li>
+  <li>The folder is re-read when a file changes; files are never locked, so a post-build copy works while the UI runs.</li>
+</ul>
+<pre>toolrunner run dotnet verb=list
+toolrunner run dotnet verb=UpperCaseFile InputFilePath=a.txt OutputFilePath=b.txt</pre>
+</details>
+
+<details id="ext-shell"><summary>Shell commands as steps</summary>
+<pre>toolrunner run shell verb=query "command=git -C ${APP_ROOT} describe --tags" into=DESCRIBED
+{ "run": "shell", "with": { "verb": "query", "command": "my-version.cmd", "capture": "lines", "prefix": "APP_" } }</pre>
+<ul>
+  <li><code>${NAME}</code> is replaced before the command runs; write the shell's own variables as <code>%NAME%</code>, <code>$env:NAME</code> or <code>$NAME</code>.</li>
+  <li>Output: stdout in <code>into</code> (default <code>SHELL_OUT</code>), exit code in <code>SHELL_EXIT</code>; <code>capture=lines</code> (every <code>NAME=value</code> line),
+      <code>capture=json</code> (each property), <code>regex</code> (each named group).</li>
+  <li><code>run</code> counts as changing; <code>query</code> is your statement that the command only reads.</li>
+</ul>
+</details>
+
+<details id="ext-code"><summary>Adding a tool in code</summary>
+<pre>public sealed class EchoTool : ITool
+{
+    public string Name =&gt; "echo";
+    public IReadOnlyList&lt;VerbSpec&gt; Spec { get; } = new[]
+    {
+        A.Verb("say", "Log a text and return it.", A.Args(A.Str("text", "What to say.", true), A.Str("into", "Variable (default ECHO).")))
+    };
+    public Task&lt;ToolResult&gt; RunAsync(ToolContext c)
+    {
+        c.Log(c.Str("text"));
+        return Task.FromResult(ToolResult.Success("said", new() { [c.Str("into", "ECHO")] = c.Str("text") }));
+    }
+}</pre>
+<ol>
+  <li>Add it to <code>Tools/Registry.cs</code>. Use <code>A.Change</code> for a verb that changes the deployment.</li>
+  <li>Run <code>toolrunner schema</code> and <code>toolrunner docs</code>.</li>
+  <li><code>dotnet test</code>: one test checks that the arguments a tool declares are exactly the ones its code reads, another that the schemas are current.</li>
+</ol>
+</details>
+
+<h2>Know before you rely on it</h2>
+
+<details id="limits"><summary>Limits and unverified areas</summary>
+<table>
+<tr><th>area</th><th>state</th></tr>
+<tr><td>Real Docker / Podman</td><td>Never run. Developed against <code>src/FakeDocker</code>, which implements only what the tool calls.</td></tr>
+<tr><td>ssh hosts</td><td>Only the failure path was exercised (no ssh server available).</td></tr>
+<tr><td>Compose parsing</td><td>Line-based, for conventional block YAML. Anchors, merges and unusual flow style are not followed.</td></tr>
+<tr><td>Runtime check</td><td>Matches containers by compose labels and project name; knows containers only, not other processes holding a port.</td></tr>
+<tr><td>Plugin "loaded"</td><td>A log heuristic: the assembly name appears, and no such line is an error.</td></tr>
+<tr><td>Debug image</td><td>Package install needs a reachable package mirror; the attach file assumes the process is PID 1; the vsdbg copy on a machine may be too old.</td></tr>
+<tr><td>Registry / Artifactory / Azure DevOps</td><td>Tested against stubbed HTTP answers only. Windows sign-in to Azure DevOps (no token) has never run.</td></tr>
+<tr><td>Deployment builder</td><td>The template, the product-deploy call, where privileges are stored and the portal text are assumptions. A portal that draws content in the browser needs a browser test.</td></tr>
+<tr><td>Pipelines</td><td>Generated YAML has not run on an agent. Steps are bash. No update or delete of existing pipeline definitions.</td></tr>
+<tr><td>Copilot plan mode</td><td>Not tried with a real assistant; the answer format may need tuning in <code>spool.plan.footer.txt</code>.</td></tr>
+</table>
+</details>
+
+<details id="trouble"><summary>Troubleshooting</summary>
+<table>
+<tr><th>symptom</th><th>cause and fix</th></tr>
+<tr><td>The UI shows, but nothing is clickable</td><td>Static assets are not served. Run through <code>start-ui.cmd</code> or a launch profile; a published copy needs its <code>wwwroot</code>.</td></tr>
+<tr><td>Commands "work" but nothing happens in Docker</td><td>The fake docker is first on PATH (launch profile "ui", or <code>sandbox\run.ps1</code>). Use "ui (real containers)".</td></tr>
+<tr><td>The command line does not see what the UI saved</td><td>Different config folders. Set <code>TOOLRUNNER_CONFIG</code>.</td></tr>
+<tr><td><code>BLOCKED ... read-only mode is on</code></td><td>The run contains a changing step. Click the switch, or drop <code>--read-only</code>.</td></tr>
+<tr><td>A test fails with "schema is stale"</td><td>Tool specs, <code>args.json</code>, <code>workflows.json</code> or the plugins folder changed. Run <code>toolrunner schema</code>.</td></tr>
+<tr><td><code>Undefined variable</code> in a step</td><td>Nothing defines that name. Set it on the variables tab, pass <code>--set</code>, or write <code>${NAME:-}</code> if it is optional.</td></tr>
+<tr><td>The runtime check says "missing" for everything</td><td>The compose project name differs from the stack folder's name. Set <code>COMPOSE_PROJECT</code>.</td></tr>
+<tr><td>Breakpoints stay hollow</td><td>Release build, or source at another version than the image. Use <code>debug-image</code> and <code>checkout-version</code>; untick "Just My Code".</td></tr>
+</table>
+</details>
+
+</main>
+<script>
+  const sections = [...document.querySelectorAll('main > details')];
+  const toc = document.getElementById('toc');
+  let group = null;
+  for (const el of document.querySelector('main').children) {
+    if (el.tagName === 'H2') { group = document.createElement('div'); group.innerHTML = '<div class="dim" style="margin:10px 0 2px;text-transform:uppercase;font-size:11px;letter-spacing:.08em">' + el.textContent + '</div>'; toc.appendChild(group); }
+    else if (el.tagName === 'DETAILS' && group) {
+      const a = document.createElement('a'); a.href = '#' + el.id; a.textContent = el.querySelector('summary').textContent;
+      a.onclick = () => { el.open = true; }; group.appendChild(a);
+    }
+  }
+  function setAll(open) { document.querySelectorAll('main details').forEach(d => d.open = open); }
+  function filterDocs(q) {
+    q = q.trim().toLowerCase();
+    for (const d of sections) { const hit = !q || d.textContent.toLowerCase().includes(q); d.classList.toggle('hide', !hit); if (q && hit) d.open = true; }
+    toc.querySelectorAll('a').forEach(a => a.classList.toggle('hide', document.querySelector(a.getAttribute('href')).classList.contains('hide')));
+  }
+  function openTarget() { const el = location.hash && document.querySelector(location.hash); if (el) { let d = el.closest('details'); while (d) { d.open = true; d = d.parentElement.closest('details'); } el.scrollIntoView(); } }
+  addEventListener('hashchange', openTarget); openTarget();
+</script>
+</body>
+</html>

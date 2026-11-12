@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>ToolRunner.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ToolRunner\ToolRunner.csproj" />
+    <!-- Build-order only: the sandbox fixture puts the fake docker on PATH. Never copied beside the tests. -->
+    <ProjectReference Include="..\..\src\FakeDocker\FakeDocker.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <!-- Build-order only: building it copies it into the plugins folder, where the tests find its commands. -->
+    <ProjectReference Include="..\..\src\SamplePlugin\SamplePlugin.csproj" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>

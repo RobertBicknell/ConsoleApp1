@@ -1,0 +1,35 @@
+{
+  // Every profile runs against the FAKE docker (src\FakeDocker) and the sandbox repos (run sandbox\setup.ps1 once).
+  // Paths are relative to the working directory, which VS sets to this project's folder.
+  // For real docker, copy a profile and drop the environmentVariables block.
+  "profiles": {
+    "doctor": {
+      "commandName": "Project", "commandLineArgs": "doctor",
+      "environmentVariables": { "PATH": "..\\FakeDocker\\bin\\Debug\\net10.0;%PATH%", "FAKEDOCKER_STATE": "..\\..\\sandbox\\work\\fakedocker-state.json" }
+    },
+    "vars": {
+      "commandName": "Project", "commandLineArgs": "vars",
+      "environmentVariables": { "PATH": "..\\FakeDocker\\bin\\Debug\\net10.0;%PATH%", "FAKEDOCKER_STATE": "..\\..\\sandbox\\work\\fakedocker-state.json" }
+    },
+    "workflows": {
+      "commandName": "Project", "commandLineArgs": "workflows",
+      "environmentVariables": { "PATH": "..\\FakeDocker\\bin\\Debug\\net10.0;%PATH%", "FAKEDOCKER_STATE": "..\\..\\sandbox\\work\\fakedocker-state.json" }
+    },
+    "debug pluginhost (dry run)": {
+      "commandName": "Project", "commandLineArgs": "--dry-run debug pluginhost",
+      "environmentVariables": { "PATH": "..\\FakeDocker\\bin\\Debug\\net10.0;%PATH%", "FAKEDOCKER_STATE": "..\\..\\sandbox\\work\\fakedocker-state.json" }
+    },
+    "debug pluginhost": {
+      "commandName": "Project", "commandLineArgs": "debug pluginhost",
+      "environmentVariables": { "PATH": "..\\FakeDocker\\bin\\Debug\\net10.0;%PATH%", "FAKEDOCKER_STATE": "..\\..\\sandbox\\work\\fakedocker-state.json" }
+    },
+    "spool (last 5, with config)": {
+      "commandName": "Project", "commandLineArgs": "spool last=5 withConfig=true",
+      "environmentVariables": { "PATH": "..\\FakeDocker\\bin\\Debug\\net10.0;%PATH%", "FAKEDOCKER_STATE": "..\\..\\sandbox\\work\\fakedocker-state.json" }
+    },
+    "restore pluginhost": {
+      "commandName": "Project", "commandLineArgs": "restore pluginhost",
+      "environmentVariables": { "PATH": "..\\FakeDocker\\bin\\Debug\\net10.0;%PATH%", "FAKEDOCKER_STATE": "..\\..\\sandbox\\work\\fakedocker-state.json" }
+    }
+  }
+}

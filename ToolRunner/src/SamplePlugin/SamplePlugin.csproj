@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!-- The post-build step a real plugin project needs: drop the binaries into toolrunner's plugins folder. -->
+  <Target Name="CopyToPlugins" AfterTargets="Build">
+    <ItemGroup>
+      <PluginFiles Include="$(TargetDir)$(TargetName).dll;$(TargetDir)$(TargetName).pdb" />
+    </ItemGroup>
+    <Copy SourceFiles="@(PluginFiles)" DestinationFolder="$(MSBuildProjectDirectory)\..\..\plugins" SkipUnchangedFiles="true" Retries="3" />
+  </Target>
+
+</Project>

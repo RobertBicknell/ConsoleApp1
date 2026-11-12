@@ -1,0 +1,149 @@
+@inherits LiveComponent
+@using ToolRunner.Tools
+@using System.Text.RegularExpressions
+
+@{
+    var term = Highlight.Compile(Ws.LogFilter, out var filterError);
+    var total = Ws.LogPanes.Sum(p => p.Lines.Count);
+}
+<div class="row">
+    <ArgInput Name="service" Value="@newService" ValueChanged="v => newService = v" Placeholder="service to add" />
+    <button class="act primary" disabled="@(newService.Trim().Length == 0)" @onclick="Add">+ add log</button>
+    @if (Ws.Catalog is { } cat)
+    {
+        <span class="meta">or:</span>
+        @foreach (var s in cat.Services.Where(s => Ws.LogPanes.All(p => p.Service != s)).Take(10))
+        {
+            <button class="mini" @onclick="() => AddPane(s)">@s</button>
+        }
+    }
+    @if (Ws.LogPanes.Count > 1) { <button class="act" disabled="@Ws.LogPanes.Any(p => p.Busy)" @onclick="FetchAll">&#8635; fetch all</button> }
+</div>
+
+@if (Ws.LogPanes.Count == 0)
+{
+    <div class="meta" style="margin-top:12px">No logs open. Add one or more services; they are shown side by side and share the filter below.</div>
+}
+else
+{
+    <div class="row" style="margin-top:10px">
+        @foreach (var l in LogLens.Levels)
+        {
+            var n = Ws.LogPanes.Sum(p => p.Lines.Count(x => x.Level == l));
+            if (n > 0) { <button class="chip @l @(Ws.LogLevels.Contains(l) ? "on" : "")" @onclick="() => Toggle(l)">@l @n</button> }
+        }
+        <input style="width:340px" placeholder="filter all logs: text, or /regex/" value="@Ws.LogFilter" @oninput="e => Ws.LogFilter = e.Value?.ToString() ?? string.Empty" />
+        <label><input type="checkbox" checked="@Ws.LogDigest" @onchange="e => Ws.LogDigest = (bool)e.Value!" /> digest (collapse repeats)</label>
+        <span class="meta">@total line(s) loaded; matches are highlighted</span>
+    </div>
+    @if (filterError is not null) { <div class="err">@filterError</div> }
+
+    <div class="panes">
+        @foreach (var p in Ws.LogPanes.ToList())
+        {
+            var shown = Shown(p, term);
+            <div class="pane">
+                <div class="head">
+                    <b>@p.Service</b>
+                    <span class="meta">@shown.Count of @p.Lines.Count@(p.FetchedAt is { } at ? $" · {at:HH:mm:ss}" : "")</span>
+                    <span class="right">
+                        tail <input style="width:58px" value="@p.Tail" @onchange="e => p.Tail = e.Value?.ToString() ?? string.Empty" />
+                        since <input style="width:70px" placeholder="(all)" value="@p.Since" @onchange="e => p.Since = e.Value?.ToString() ?? string.Empty" />
+                        <button class="mini" disabled="@p.Busy" title="fetch again" @onclick="() => Fetch(p)">@(p.Busy ? "..." : "↻ fetch")</button>
+                        @if (p.Lines.Count > 0) { <button class="mini" title="save the lines shown to a file" @onclick="() => Save(p, shown)">save</button> }
+                        <button class="mini" title="close" @onclick="() => Ws.LogPanes.Remove(p)">&times;</button>
+                    </span>
+                </div>
+                @if (p.Error is not null) { <div class="err" style="margin:6px">@p.Error</div> }
+                @if (p.SavedTo is not null) { <div class="note" style="margin:6px">Saved to <FileLink Path="@p.SavedTo" /> &mdash; add it to a spool on the History tab.</div> }
+                @if (Ws.LogDigest)
+                {
+                    <div class="lines">
+                        <table class="log">
+                            @foreach (var d in LogLens.Digest(shown.Select(x => x.Text)).Take(400))
+                            {
+                                <tr class="@d.Level"><td class="o">@d.Level</td><td class="o">&times;@d.Count</td>
+                                    <td><Highlight Text="@(d.Count == 1 ? d.Sample.Trim() : d.Template)" Term="term" /></td></tr>
+                            }
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="lines">
+                        @foreach (var x in shown.Take(Max))
+                        {
+                            var (ts, rest) = Split(x.Text);
+                            <div class="ll @x.Level">@if (ts.Length > 0) { <span class="ts" title="@ts">@Clock(ts)</span> }<span class="tx"><Highlight Text="@rest" Term="term" /></span></div>
+                        }
+                    </div>
+                    @if (shown.Count > Max) { <div class="meta" style="padding:4px 10px">showing the first @Max; narrow it with the filter or the level buttons</div> }
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private const int Max = 1200;
+    private static readonly Regex Stamp = new(@"^\s*\[?(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)\]?\s+", RegexOptions.Compiled);
+    private string newService = "";
+
+    private void Toggle(string l) { if (!Ws.LogLevels.Remove(l)) Ws.LogLevels.Add(l); }
+
+    private List<(string Level, string Text)> Shown(LogPane p, Regex? term) =>
+        p.Lines.Where(x => Ws.LogLevels.Contains(x.Level) && (term is null || term.IsMatch(x.Text))).ToList();
+
+    /// The leading timestamp is shown in its own dimmed column (time of day only; hover for the full value).
+    private static (string Stamp, string Body) Split(string line) => Stamp.Match(line) is { Success: true } m ? (m.Groups[1].Value, line[m.Length..]) : ("", line);
+    private static string Clock(string stamp) => stamp.Length >= 19 ? stamp[11..Math.Min(stamp.Length, 23)].TrimEnd('Z') : stamp;
+
+    private Task Add() { var s = newService.Trim(); newService = ""; return AddPane(s); }
+
+    private Task AddPane(string service)
+    {
+        if (Ws.LogPanes.FirstOrDefault(p => p.Service == service) is { } existing) return Fetch(existing);
+        var pane = new LogPane(service);
+        Ws.LogPanes.Add(pane);
+        return Fetch(pane);
+    }
+
+    private Task FetchAll() => Task.WhenAll(Ws.LogPanes.Select(Fetch));
+
+    /// Uses the docker tool itself (so `service` resolves through the compose labels, on the selected host).
+    private async Task Fetch(LogPane p)
+    {
+        (p.Busy, p.Error, p.SavedTo) = (true, null, null);
+        StateHasChanged();
+        try
+        {
+            var args = new JsonObject { ["verb"] = "logs", ["service"] = p.Service, ["into"] = "LOG_TEXT", ["show"] = false };
+            if (p.Tail.Trim().Length > 0) args["tail"] = p.Tail.Trim();
+            if (p.Since.Trim().Length > 0) args["since"] = p.Since.Trim();
+            var state = Ws.State();
+            var r = await Task.Run(() => new DockerTool().RunAsync(new ToolContext
+            {
+                State = state, Args = (JsonObject)state.ExpandNode(args)!, Host = Live.CreateHost(), Log = _ => { }
+            }));
+            if (!r.Ok) { p.Error = r.Message; p.Lines = new(); }
+            else
+            {
+                p.Lines = (r.Outputs?.GetValueOrDefault("LOG_TEXT") ?? "").Split('\n').Select(l => l.TrimEnd('\r')).Where(l => l.Length > 0)
+                    .Select(l => (LogLens.Level(l), l)).ToList();
+                p.FetchedAt = DateTimeOffset.Now;
+                Ws.Remember("service", p.Service);
+            }
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or IOException or System.ComponentModel.Win32Exception) { p.Error = ex.Message; }
+        p.Busy = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void Save(LogPane p, List<(string Level, string Text)> shown)
+    {
+        var path = Path.Combine(History.Dir(Live.Dir), $"logs-{p.Service}.txt").Replace('\\', '/');
+        Directory.CreateDirectory(History.Dir(Live.Dir));
+        File.WriteAllLines(path, shown.Select(x => x.Text));
+        p.SavedTo = path;
+    }
+}

@@ -1,0 +1,220 @@
+@inherits LiveComponent
+
+<div class="row">
+    <span>deployment folder</span>
+    <input style="width:460px" placeholder="folder on the selected host" @bind="root" />
+    <button class="act" @onclick="() => picking = !picking">browse...</button>
+    depth <input type="number" min="0" max="20" style="width:52px" @bind="Ws.Depth" />
+    <button class="act primary" disabled="@Ws.Scanning" @onclick="Scan">@(Ws.Scanning ? "scanning..." : "scan")</button>
+    <span class="meta">Saved as DEPLOY_ROOT in your layer. Everything found here is offered as suggestions on the other tabs.</span>
+</div>
+@if (picking) { <FolderPicker Start="@(root.Trim().Length > 0 ? root : null)" OnPick="Picked" /> }
+@if (Ws.ScanError is not null) { <div class="err">@Ws.ScanError</div> }
+
+@if (Ws.Catalog is not { } cat)
+{
+    <div class="meta" style="margin-top:12px">@(Ws.Scanning ? "Scanning..." : "No scan yet. Enter the folder that holds your stacks and press scan.")</div>
+}
+else
+{
+    var ds = cat.Scan;
+    var ports = ds.Stacks.SelectMany(s => s.Ports.Select(p => (Stack: s, Port: p)))
+        .OrderBy(x => x.Port.Published is null).ThenBy(x => int.TryParse(x.Port.Published, out var n) ? n : int.MaxValue).ToList();
+    var mounts = ds.Stacks.SelectMany(s => s.Mounts.Select(m => (Stack: s, Mount: m))).ToList();
+    var plugins = ds.Stacks.SelectMany(s => s.Plugins).ToList();
+
+    <div class="meta" style="margin-top:10px">
+        <span class="badge">@ds.Stacks.Count stack(s)</span>
+        <span class="badge">@cat.Services.Count services</span>
+        <span class="badge">@cat.Images.Count images (@cat.LocalImages.Count local)</span>
+        <span class="badge">@ports.Count(p => p.Port.Kind == "publish") published ports</span>
+        <span class="badge @(ds.Conflicts.Count > 0 ? "undefined" : "ok")">@ds.Conflicts.Count port conflict(s)</span>
+        <span class="badge @(mounts.Any(m => m.Mount.Exists == false) ? "undefined" : "ok")">@mounts.Count(m => m.Mount.Exists == false) missing bind sources</span>
+        <span class="badge @(plugins.Sum(p => p.Missing) > 0 ? "undefined" : "ok")">@plugins.Sum(p => p.Missing) missing plugin assemblies</span>
+        <span class="badge">@cat.AppSettings.Count appsettings</span>
+        scanned @cat.At.ToString("HH:mm:ss")
+    </div>
+    @foreach (var n in ds.Notes) { <div class="err">@n</div> }
+    @foreach (var c in ds.Conflicts)
+    {
+        <div class="err"><b>Port conflict</b> @c.HostIp:@c.Published/@c.Protocol is published by @string.Join("; ", c.Users.Select(u => Rel(ds.Root, u)))</div>
+    }
+
+    @foreach (var g in cat.Repos)
+    {
+        <details class="card @(g.Changed.Count > 0 ? "running" : "ok")">
+            <summary>git: @Rel(ds.Root, g.Root) <span class="badge default">@g.Branch</span><span class="badge">@g.Head</span>
+                <span class="badge @(g.Changed.Count > 0 ? "changed" : "ok")">@(g.Changed.Count == 0 ? "clean" : $"{g.Changed.Count} uncommitted change(s)")</span>
+                <span class="meta">@g.Subject &middot; compare with the commit on the compare tab: reference <b>git:HEAD</b></span></summary>
+            <table>
+                @foreach (var line in g.Changed)
+                {
+                    var path = line[3..].Trim('"');
+                    <tr><td class="o"><span class="badge @(line.StartsWith("??") ? "added" : line.Contains('D') ? "removed" : "changed")">@(line.StartsWith("??") ? "untracked" : line.Contains('D') ? "deleted" : "modified")</span></td>
+                        <td class="k">@if (line.Contains('D')) { @path } else { <FileLink Path="@($"{g.Root}/{path.TrimEnd('/')}")" Text="@path" /> }</td></tr>
+                }
+            </table>
+        </details>
+    }
+
+    <h3>Is it in effect? <span class="meta">the configuration above, tallied against docker inspect on the selected host (read-only)</span>
+        <button class="act" disabled="@Ws.CheckingRuntime" @onclick="Ws.CheckRuntimeAsync">@(Ws.CheckingRuntime ? "inspecting..." : Ws.Runtime is null ? "check running containers" : "check again")</button></h3>
+    @if (Ws.Runtime is { } rt)
+    {
+        @foreach (var n in rt.Notes) { <div class="err">@n</div> }
+        <div class="row">
+            <span class="badge">@rt.Containers.Count container(s) inspected</span>
+            <span class="badge ok">@rt.Findings.Count(f => f.Status == "ok") in effect</span>
+            <span class="badge @(rt.Problems > 0 ? "undefined" : "ok")">@rt.Problems not in effect</span>
+            <label><input type="checkbox" @bind="showOk" /> also show what matches</label>
+        </div>
+        @foreach (var g in rt.Findings.GroupBy(f => (f.Stack, f.Service)))
+        {
+            var bad = g.Count(f => f.Status != "ok");
+            <details class="card @(bad > 0 ? "fail" : "ok")" open="@(bad > 0)">
+                <summary>@Rel(ds.Root, g.Key.Stack) / @g.Key.Service <span class="meta">@g.Count(f => f.Status == "ok") ok, @bad to look at</span></summary>
+                <table class="diffs">
+                    @foreach (var f in g.Where(f => showOk || f.Status != "ok"))
+                    {
+                        <tr>
+                            <td class="o"><span class="badge @(f.Status == "ok" ? "ok" : f.Status is "differs" or "not-running" or "extra" ? "changed" : "undefined")">@f.Status</span></td>
+                            <td class="k"><span class="meta">@f.Area</span> @f.Item</td>
+                            <td class="v">@(f.Expected is null ? "" : "configured: " + f.Expected)</td>
+                            <td class="ref">@(f.Actual is null ? "" : "actual: " + f.Actual)</td>
+                        </tr>
+                    }
+                </table>
+            </details>
+        }
+        <div class="meta">differs / missing = configured but not what is running; extra = running but not configured; taken = the host port is held by another container.
+            It shows that something is not in effect, not why (often: the files were edited and nothing was restarted).</div>
+    }
+
+    <h3>Services</h3>
+    <table>
+        @foreach (var st in ds.Stacks)
+        {
+            @foreach (var v in st.Services)
+            {
+                <tr>
+                    <td class="k">@v.Name</td>
+                    <td class="k">@(v.Image ?? (v.HasBuild ? "(built locally)" : "(no image)")) @if (v.Image is not null && cat.LocalImages.Count > 0 && !cat.LocalImages.Contains(v.Image)) { <span class="badge unused" title="docker on this host does not have this image; it would be pulled">not local</span> }</td>
+                    <td>@(v.DependsOn.Count > 0 ? "depends on " + string.Join(", ", v.DependsOn) : "")</td>
+                    <td class="meta">@Rel(ds.Root, st.Dir) &middot; <FileLink Path="@v.File" Text="@System.IO.Path.GetFileName(v.File)" />:@v.Line</td>
+                </tr>
+            }
+        }
+    </table>
+
+    @if (plugins.Count > 0)
+    {
+        <h3>Plugin assemblies <span class="meta">names listed in appsettings vs .dll files in the service's bind-mounted folders</span></h3>
+        @foreach (var r in plugins)
+        {
+            <details class="card @(r.Missing > 0 ? "fail" : "ok")" open="@(r.Missing > 0)">
+                <summary><span @onclick:stopPropagation="true"><FileLink Path="@r.AppSettings" Text="@Rel(ds.Root, r.AppSettings)" /></span> &middot; service @(r.Service ?? "(not bind-mounted by a service)") &middot; @(r.Items.Count - r.Missing)/@r.Items.Count found, @r.Unlisted.Count unlisted</summary>
+                <table>
+                    @foreach (var i in r.Items)
+                    {
+                        <tr><td><span class="badge @(i.FoundAt is null ? "undefined" : "ok")">@(i.FoundAt is null ? "missing" : "found")</span></td>
+                            <td class="k">@i.Name</td><td class="meta">@i.JsonPath</td><td class="meta">@(i.FoundAt is null ? "" : Rel(ds.Root, i.FoundAt))</td></tr>
+                    }
+                    @foreach (var u in r.Unlisted)
+                    {
+                        <tr><td><span class="badge unused">unlisted</span></td><td class="k">@System.IO.Path.GetFileName(u)</td><td></td><td class="meta">@Rel(ds.Root, u)</td></tr>
+                    }
+                </table>
+                <div class="meta">searched: @string.Join(", ", r.SearchedDirs.Select(d => Rel(ds.Root, d)))</div>
+            </details>
+        }
+    }
+
+    <h3>Ports <span class="meta">host &rarr; container</span></h3>
+    <table>
+        @foreach (var (st, p) in ports)
+        {
+            var clash = p.Kind == "publish" && ds.Conflicts.Any(c => c.Published == p.Published && c.HostIp == (p.HostIp ?? "*") && c.Protocol == p.Protocol);
+            <tr>
+                <td class="k">@(p.Kind == "expose" ? "(internal)" : $"{p.HostIp ?? "*"}:{p.Published ?? "(random)"}") @if (clash) { <span class="badge undefined">conflict</span> }</td>
+                <td class="k">&rarr; @p.Target/@p.Protocol</td>
+                <td>@p.Service</td>
+                <td class="meta">@Rel(ds.Root, st.Dir) &middot; <FileLink Path="@p.File" Text="@System.IO.Path.GetFileName(p.File)" />:@p.Line</td>
+            </tr>
+        }
+    </table>
+
+    <h3>Bind mounts <span class="meta">host path &rarr; container path</span></h3>
+    <table>
+        @foreach (var (st, m) in mounts.Where(x => x.Mount.Kind is "bind" or "unresolved"))
+        {
+            <tr>
+                <td class="k">@(m.Resolved is null ? m.Source : Rel(ds.Root, m.Resolved))</td>
+                <td class="k">&rarr; @m.Target @(m.ReadOnly ? "(ro)" : "")</td>
+                <td>@m.Service</td>
+                <td class="meta">
+                    @switch (m.Exists)
+                    {
+                        case true: <span class="badge ok">exists</span> break;
+                        case false: <span class="badge undefined">missing</span> break;
+                        default: <span class="badge">@(m.Kind == "unresolved" ? "unresolved ${...}" : "unchecked")</span> break;
+                    }
+                    @Rel(ds.Root, st.Dir)
+                </td>
+            </tr>
+        }
+    </table>
+
+    <h3>Volumes <span class="meta">named, anonymous and tmpfs</span></h3>
+    <table>
+        @foreach (var (st, m) in mounts.Where(x => x.Mount.Kind is "volume" or "anonymous" or "tmpfs"))
+        {
+            var decl = st.DeclaredVolumes.FirstOrDefault(v => v.Name == m.Source);
+            <tr>
+                <td class="k">@(m.Kind == "volume" ? m.Source : $"({m.Kind})")</td>
+                <td class="k">&rarr; @m.Target @(m.ReadOnly ? "(ro)" : "")</td>
+                <td>@m.Service</td>
+                <td class="meta">
+                    @Rel(ds.Root, st.Dir)
+                    @if (m.Kind == "volume") { if (decl is null) { <span class="badge undefined">not declared</span> } else if (decl.External) { <span class="badge">external</span> } }
+                </td>
+            </tr>
+        }
+    </table>
+
+    @foreach (var st in ds.Stacks)
+    {
+        <details class="card"><summary>Environment variables in @Rel(ds.Root, st.Dir) <span class="meta">@st.Variables.Count &middot; @st.Variables.Count(v => v.Status == "undefined") undefined</span></summary>
+            <table>
+                @foreach (var r in st.Variables)
+                {
+                    <tr><td class="k">@r.Name</td><td><span class="badge @r.Status">@r.Status</span></td><td class="v">@r.Value</td>
+                        <td class="meta">@foreach (var x in r.Refs) { <div>@x.Kind@(x.Service is null ? "" : $" [{x.Service}]") &middot; <FileLink Path="@x.File" Text="@System.IO.Path.GetFileName(x.File)" />:@x.Line</div> }</td></tr>
+                }
+            </table>
+        </details>
+    }
+    @foreach (var f in ds.UnreferencedEnvFiles) { <div class="meta">env file not used by any compose file found: <FileLink Path="@f" Text="@Rel(ds.Root, f)" /></div> }
+    <h3>Files found <span class="meta">click to view</span></h3>
+    <div class="row">
+        @foreach (var f in cat.ComposeFiles.Concat(cat.EnvFiles).Concat(cat.AppSettings).Distinct()) { <FileLink Path="@f" Text="@Rel(ds.Root, f)" /> }
+    </div>
+    <details class="card"><summary>All files <span class="meta">@cat.AllFiles.Count &middot; click one to view it</span></summary>
+        @foreach (var folder in cat.AllFiles.GroupBy(f => f[..f.LastIndexOf('/')]).OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            <details class="folder" open="@(cat.AllFiles.Count <= 80)">
+                <summary>@Rel(ds.Root, folder.Key)/ <span class="meta">@folder.Count()</span></summary>
+                <div class="files">@foreach (var f in folder) { <FileLink Path="@f" Text="@System.IO.Path.GetFileName(f)" /> }</div>
+            </details>
+        }
+    </details>
+    <details class="card"><summary>plain-text summary (for copying)</summary><pre>@StackScanner.Text(ds)</pre></details>
+}
+
+@code {
+    private string root = "";
+    private bool picking;
+    private void Picked(string? folder) { picking = false; if (folder is not null) { root = folder; Scan(); } }
+    private bool showOk;
+    protected override void OnInitialized() { base.OnInitialized(); root = Ws.Root; }
+    private void Scan() { if (root.Trim().Length > 0) Ws.SetRoot(root); }
+}

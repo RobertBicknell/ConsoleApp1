@@ -1,0 +1,11 @@
+{
+  "$schema": "schemas/globals.schema.json",
+  "$comment": "EXAMPLE server layer, selected with --host staging or the UI host picker. Paths are on the server (absolute POSIX); auth is key-only.",
+  "APP_ROOT": "/srv/myapp",
+  "ssh": {
+    "target": "deploy@staging.example.com",
+    "port": "22",
+    "identity": "C:/Users/you/.ssh/id_ed25519",
+    "options": "StrictHostKeyChecking=accept-new"
+  }
+}

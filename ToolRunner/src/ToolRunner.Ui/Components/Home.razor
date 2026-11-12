@@ -1,0 +1,91 @@
+@page "/"
+@inherits LiveComponent
+
+<header>
+    <strong>toolrunner</strong>
+    <nav>
+        @foreach (var t in Tabs)
+        {
+            <button class="@(tab == t ? "on" : "")" @onclick="() => tab = t">@t</button>
+        }
+    </nav>
+    <small>
+        host
+        <select value="@(Live.Host ?? "")" @onchange="e => Live.SelectHost(e.Value?.ToString())">
+            <option value="">local</option>
+            @foreach (var h in Live.Hosts()) { <option value="@h">@h (ssh)</option> }
+        </select>
+        <button class="act" disabled="@busy" @onclick="Test">test connection</button>
+        <button class="act" title="switch between light and dark" onclick="toggleTheme()">light / dark</button>
+        <a class="doclink" href="/docs" target="_blank" title="the documentation: overview, quick start, operations, reference">docs</a>
+    </small>
+    <button class="pill" title="The container program every docker command goes to. Click to switch between docker and podman (saved as CONTAINER_ENGINE in your layer)." @onclick="Ws.ToggleEngine">@Ws.Engine</button>
+    <button class="safe @(Ws.ReadOnly ? "on" : "off")" title="@(Ws.ReadOnly ? "Read-only: anything that would change the deployment is refused. Click to allow changes." : "Changes allowed: runs may edit files and start or stop containers. Click to go back to read-only.")"
+            @onclick="() => Ws.SetReadOnly(!Ws.ReadOnly)">@(Ws.ReadOnly ? "read-only" : "changes allowed")</button>
+    <small>
+        <input style="width:260px;font-size:12px" placeholder="note for the history (a finding, a milestone...)" @bind="remark" @bind:event="oninput" @onkeydown="RemarkKey" />
+        <button class="act" disabled="@string.IsNullOrWhiteSpace(remark)" @onclick="AddRemark">+ note</button>
+        @if (noted) { <span>noted</span> }
+    </small>
+    <small>
+        @(Ws.Scanning ? "scanning..." : Ws.Catalog is { } c ? $"{c.Services.Count} services in {c.Scan.Stacks.Count} stack(s)" : "not scanned")
+        @if (Ws.EffectiveVersion is { } ver) { <span class="badge @(Ws.PinnedVersion is null ? "ok" : "changed")" title="@(Ws.PinnedVersion is null ? "detected from the image tags" : "pinned: VERSION is set")">version @ver</span> }
+        &middot; config loaded @Live.LoadedAt.ToString("HH:mm:ss")
+        @if (Session.Running) { <span class="badge unused">running: @Session.Title</span> }
+    </small>
+</header>
+
+<main>
+    @if (Live.Error is not null)
+    {
+        <div class="err"><b>Config error</b> (showing last good version): @Live.Error</div>
+    }
+    @if (testLog is not null)
+    {
+        <pre class="card @(testOk ? "ok" : "fail")">host: @(Live.Host ?? "local")&#10;@testLog</pre>
+    }
+
+    @switch (tab)
+    {
+        case "deployment": <DeploymentTab /> break;
+        case "map": <MapTab /> break;
+        case "compare": <CompareTab /> break;
+        case "pipelines": <PipelinesTab /> break;
+        case "build": <BuildTab /> break;
+        case "versions": <VersionsTab /> break;
+        case "plugins": <PluginsTab /> break;
+        case "commands": <CommandsTab /> break;
+        case "run": <RunTab /> break;
+        case "workflows": <WorkflowsTab /> break;
+        case "variables": <VariablesTab /> break;
+        case "logs": <LogsTab /> break;
+        case "history": <HistoryTab /> break;
+    }
+</main>
+
+@code {
+    private static readonly string[] Tabs = ["deployment", "map", "compare", "versions", "run", "workflows", "commands", "plugins", "build", "pipelines", "variables", "logs", "history"];
+    private string tab = "deployment";
+    private bool busy, testOk;
+    private string? testLog, remark;
+    private bool noted;
+
+    private void RemarkKey(KeyboardEventArgs e) { if (e.Key == "Enter") AddRemark(); }
+
+    private void AddRemark()
+    {
+        if (string.IsNullOrWhiteSpace(remark)) return;
+        Ws.Remark(remark);
+        (remark, noted) = (null, true);
+    }
+
+    // Talks to the selected host (local or ssh), which can take seconds; failures are shown, not thrown.
+    private async Task Test()
+    {
+        busy = true; testLog = "connecting..."; testOk = true; StateHasChanged();
+        var lines = new List<string>();
+        try { testOk = await Doctor.RunAsync(Live.CreateHost(), lines.Add, CancellationToken.None); }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException) { lines.Add(ex.Message); testOk = false; }
+        (testLog, busy) = (string.Join("\n", lines), false);
+    }
+}
