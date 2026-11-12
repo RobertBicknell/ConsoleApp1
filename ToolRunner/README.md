@@ -14,7 +14,7 @@ Everything you edit lives in JSON under `src/ToolRunner/config/`.
 stdout = machine-readable results (JSON); stderr = the human log. Exit: 0 ok, 1 a step failed, 2 usage/config error.
 
 ## Open it
-Targets **.NET 10** (`net10.0`); the .NET 10 SDK is all you need.
+Targets **.NET 9** (`net9.0`); the .NET 9 SDK (or newer) is all you need.
 
 Open **ToolRunner.sln** in Visual Studio (File > Open > Project/Solution). Launch profiles are in
 `Properties/launchSettings.json`. In VS Code you need the *C# Dev Kit* extension and must open the

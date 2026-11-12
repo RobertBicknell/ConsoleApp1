@@ -277,7 +277,7 @@ public static class DeploymentBuilder
                     using var zip = new ZipArchive(new MemoryStream(await r.Content.ReadAsByteArrayAsync(ct)));
                     var dir = Path.Combine(plan.OutputDir, plan.Value($"{service}.pluginsDir"));
                     Directory.CreateDirectory(dir);
-                    // one target framework only: the newest lib folder (names sort that way for net6.0 / net8.0 / net10.0 by length then text)
+                    // one target framework only: the newest lib folder (names sort that way for net6.0 / net8.0 / net9.0 by length then text)
                     var tfm = zip.Entries.Where(e => e.FullName.StartsWith("lib/") && e.Name.Length > 0).Select(e => e.FullName.Split('/')[1]).Distinct().OrderBy(t => t.Length).ThenBy(t => t, StringComparer.Ordinal).LastOrDefault();
                     var copied = 0;
                     foreach (var e in zip.Entries.Where(e => e.FullName.StartsWith($"lib/{tfm}/") && e.Name.Length > 0)) { e.ExtractToFile(Path.Combine(dir, e.Name), overwrite: true); copied++; }

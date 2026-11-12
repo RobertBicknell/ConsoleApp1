@@ -194,7 +194,7 @@ public class PublishAndGitTests : IDisposable
         var args = new JsonObject
         {
             ["verb"] = "publish", ["project"] = _root + "/src/Acme.New", ["dir"] = _root + "/deploy/plugins", ["appsettings"] = _root + "/deploy/config/appsettings.json",
-            ["build"] = false, ["output"] = _root + "/src/Acme.New/bin/Debug/net10.0"       // the build itself is dotnet's job; this tests what happens around it
+            ["build"] = false, ["output"] = _root + "/src/Acme.New/bin/Debug/net9.0"       // the build itself is dotnet's job; this tests what happens around it
         };
         if (assemblies is not null) args["assemblies"] = JsonNode.Parse(assemblies);
         return new PluginsTool().RunAsync(new ToolContext { State = new RunState(), Args = args, Host = new LocalHost(), Log = log.Add });
@@ -204,8 +204,8 @@ public class PublishAndGitTests : IDisposable
     public async Task Publish_copies_what_changed_lists_the_assembly_and_keeps_a_backup_then_is_idempotent()
     {
         Write("src/Acme.New/Acme.New.csproj", "<Project />");
-        Write("src/Acme.New/bin/Debug/net10.0/Acme.New.dll", "new build");
-        Write("src/Acme.New/bin/Debug/net10.0/Some.Dependency.dll", "dep");
+        Write("src/Acme.New/bin/Debug/net9.0/Acme.New.dll", "new build");
+        Write("src/Acme.New/bin/Debug/net9.0/Some.Dependency.dll", "dep");
         Write("deploy/plugins/Acme.New.dll", "old build");
         Write("deploy/plugins/Some.Dependency.dll", "dep");                                     // identical: not copied again
         Write("deploy/config/appsettings.json", """{ "Logging": { "Level": "Info" }, "Plugins": { "Assemblies": [ "Acme.Old" ] } }""");
@@ -230,7 +230,7 @@ public class PublishAndGitTests : IDisposable
     public async Task Publish_follows_the_files_naming_style_and_refuses_an_assembly_that_was_not_built()
     {
         Write("src/Acme.New/Acme.New.csproj", "<Project><PropertyGroup><AssemblyName>Acme.Renamed</AssemblyName></PropertyGroup></Project>");
-        Write("src/Acme.New/bin/Debug/net10.0/Acme.Renamed.dll", "x");
+        Write("src/Acme.New/bin/Debug/net9.0/Acme.Renamed.dll", "x");
         Write("deploy/config/appsettings.json", """{ "Plugins": { "Assemblies": [ "Acme.Old.dll" ] } }""");
 
         Assert.True((await Publish(new())).Ok);

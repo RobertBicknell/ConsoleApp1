@@ -18,7 +18,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "TOOLRUNNER_CONFIG": "..\\ToolRunner\\config",
-        "PATH": "..\\FakeDocker\\bin\\Debug\\net10.0;%PATH%",
+        "PATH": "..\\FakeDocker\\bin\\Debug\\net9.0;%PATH%",
         "FAKEDOCKER_STATE": "..\\..\\sandbox\\work\\fakedocker-state.json"
       }
     }

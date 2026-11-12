@@ -22,7 +22,7 @@ public static class Repo
 
     /// The fake docker, newest build of Debug/Release.
     public static string FakeDockerDir() =>
-        new[] { "Debug", "Release" }.Select(c => Path.Combine(Root, "src", "FakeDocker", "bin", c, "net10.0"))
+        new[] { "Debug", "Release" }.Select(c => Path.Combine(Root, "src", "FakeDocker", "bin", c, "net9.0"))
             .Where(d => File.Exists(Path.Combine(d, "docker.exe")))
             .OrderByDescending(d => File.GetLastWriteTimeUtc(Path.Combine(d, "docker.exe"))).FirstOrDefault()
         ?? throw new InvalidOperationException("FakeDocker is not built");

@@ -286,7 +286,7 @@ $nlog = Join-Path $samples 'current\core\config\gateway\nlog.config'
 W 'plugin-src\Acme.Loyalty\Acme.Loyalty.csproj' @'
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
