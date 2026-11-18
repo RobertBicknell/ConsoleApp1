@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Synthetic development XSD: one root, four kinds via choice. Replace with the real XSD at run time. -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="Submission">
+    <xs:complexType>
+      <xs:sequence>
+      <xs:element name="SubmitterName" type="xs:string"/>
+      <xs:element name="SubmittedAt" type="xs:dateTime"/>
+      <xs:choice>
+        <xs:element name="Customers">
+          <xs:complexType><xs:sequence>
+            <xs:element name="Customer" maxOccurs="unbounded">
+              <xs:complexType><xs:sequence>
+                <xs:element name="CustomerName" type="xs:string"/>
+                <xs:element name="Email" type="xs:string" minOccurs="0"/>
+                <xs:element name="Address" minOccurs="0">
+                  <xs:complexType><xs:sequence>
+                    <xs:element name="Street" type="xs:string"/>
+                    <xs:element name="City" type="xs:string"/>
+                    <xs:element name="PostCode" type="xs:string" minOccurs="0"/>
+                  </xs:sequence></xs:complexType>
+                </xs:element>
+              </xs:sequence>
+              <xs:attribute name="id" type="xs:int" use="required"/></xs:complexType>
+            </xs:element>
+          </xs:sequence></xs:complexType>
+        </xs:element>
+        <xs:element name="Orders">
+          <xs:complexType><xs:sequence>
+            <xs:element name="Order" maxOccurs="unbounded">
+              <xs:complexType><xs:sequence>
+                <xs:element name="OrderDate" type="xs:date"/>
+                <xs:element name="Line" maxOccurs="unbounded">
+                  <xs:complexType><xs:sequence>
+                    <xs:element name="Quantity" type="xs:int"/>
+                    <xs:element name="UnitPrice" type="xs:decimal"/>
+                  </xs:sequence>
+                  <xs:attribute name="sku" type="xs:string" use="required"/></xs:complexType>
+                </xs:element>
+              </xs:sequence>
+              <xs:attribute name="orderId" type="xs:int" use="required"/>
+              <xs:attribute name="customerId" type="xs:int" use="required"/></xs:complexType>
+            </xs:element>
+          </xs:sequence></xs:complexType>
+        </xs:element>
+        <xs:element name="Products">
+          <xs:complexType><xs:sequence>
+            <xs:element name="Product" maxOccurs="unbounded">
+              <xs:complexType><xs:sequence>
+                <xs:element name="ProductName" type="xs:string"/>
+                <xs:element name="ListPrice" type="xs:decimal"/>
+                <xs:element name="Discontinued" type="xs:boolean" minOccurs="0"/>
+              </xs:sequence>
+              <xs:attribute name="sku" type="xs:string" use="required"/></xs:complexType>
+            </xs:element>
+          </xs:sequence></xs:complexType>
+        </xs:element>
+        <xs:element name="Invoices">
+          <xs:complexType><xs:sequence>
+            <xs:element name="Invoice" maxOccurs="unbounded">
+              <xs:complexType><xs:sequence>
+                <xs:element name="InvoiceNumber" type="xs:string"/>
+                <xs:element name="IssuedOn" type="xs:date"/>
+                <xs:element name="Total" type="xs:decimal"/>
+              </xs:sequence>
+              <xs:attribute name="orderId" type="xs:int" use="required"/></xs:complexType>
+            </xs:element>
+          </xs:sequence></xs:complexType>
+        </xs:element>
+      </xs:choice>
+      </xs:sequence>
+      <xs:attribute name="submissionId" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

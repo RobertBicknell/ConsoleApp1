@@ -1,0 +1,287 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Csv2Xml.Design</name>
+    </assembly>
+    <members>
+        <member name="T:Csv2Xml.Design.ColumnOption">
+            <summary>A CSV column as offered to a user: zero-based index plus an unambiguous display name (display only, never stored).</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.ColumnOption.#ctor(System.Int32,System.String)">
+            <summary>A CSV column as offered to a user: zero-based index plus an unambiguous display name (display only, never stored).</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.BuildResult">
+            <summary>Outcome of Build: Spec is null when Errors is non-empty. Warnings never block.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.BuildResult.#ctor(Csv2Xml.Runtime.Mapping.MappingSpec,System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>Outcome of Build: Spec is null when Errors is non-empty. Warnings never block.</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.VerifyResult">
+            <summary>Outcome of Verify: the generated XML and every mapping, row or XSD problem. Valid when Problems is empty.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.VerifyResult.#ctor(System.String,System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>Outcome of Verify: the generated XML and every mapping, row or XSD problem. Valid when Problems is empty.</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.MappingDesigner">
+            <summary>
+            Headless facade for designing mappings, used identically by a host application and the test UI:
+            read the XSD, list a kind's XML targets and the CSV's columns, take suggestions, submit every assignment
+            (target path -> column index) at once, verify against a sample, and assemble a job. Pure functions; no I/O.
+            </summary>
+        </member>
+        <member name="M:Csv2Xml.Design.MappingDesigner.RankKinds(Csv2Xml.Design.Schema.SchemaDocument,System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>Kinds ranked by how well the headers fit them, best first.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.MappingDesigner.Targets(Csv2Xml.Design.Schema.SchemaDocument,System.String)">
+            <summary>Mappable targets of a kind, in document order. Document-level run values are excluded.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.MappingDesigner.ReadHeaders(System.IO.Stream,System.Char,System.String)">
+            <summary>
+            The header row of a CSV, read exactly as the runtime will read it (same parser, BOM handling and strict decoding),
+            so recorded header text matches at run time. Use this rather than splitting the first line yourself.
+            </summary>
+            <exception cref="T:System.IO.InvalidDataException">Empty input, malformed CSV, or bytes invalid in the encoding.</exception>
+        </member>
+        <member name="M:Csv2Xml.Design.MappingDesigner.DetectDelimiter(System.String)">
+            <summary>
+            Guesses the delimiter from a header line: the most frequent of , ; tab | outside quotes (',' when none occur).
+            A guess: show it to the user to confirm.
+            </summary>
+        </member>
+        <member name="M:Csv2Xml.Design.MappingDesigner.Columns(System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>Header text, suffixed " (#n)" (1-based) where it is blank or would otherwise be ambiguous (trim, case-insensitive).</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.MappingDesigner.Suggest(Csv2Xml.Design.Schema.SchemaDocument,System.String,System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>Suggested column per target path (null = no confident match). One column per target, one target per column.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.MappingDesigner.Build(Csv2Xml.Design.Schema.SchemaDocument,System.String,System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyDictionary{System.String,System.Int32},System.Char,System.String)">
+            <summary>
+            Validates the complete set of assignments and builds the spec. Errors: unknown kind/path, run-value path, column out of
+            range, required target unassigned. Warning: one column feeding several targets. The header text at each assigned
+            index is recorded so the runtime can detect a changed CSV layout; the XSD's hash is recorded to detect a changed XSD.
+            </summary>
+            <param name="encoding">CSV encoding name recorded in the spec (null = UTF-8), e.g. "windows-1252" for Excel exports on Western Windows.</param>
+        </member>
+        <member name="M:Csv2Xml.Design.MappingDesigner.LayoutProblems(Csv2Xml.Runtime.Mapping.MappingSpec,System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>Why a CSV with these headers cannot be run with the spec (moved/missing columns, unmapped required targets); empty when it can.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.MappingDesigner.Verify(System.String,Csv2Xml.Runtime.Mapping.MappingSpec,System.String,System.Collections.Generic.IReadOnlyDictionary{System.String,System.String},System.Boolean)">
+            <summary>
+            Design-time proof: transforms a sample CSV with the spec and validates the XML against the XSD text. Run values not
+            supplied are synthesised from their types when required (optional ones are omitted, as at run time). Never throws for bad mappings or data; reports them as Problems.
+            <paramref name="omitXmlDeclaration"/> mirrors <see cref="P:Csv2Xml.Runtime.Run.JobSpec.OmitXmlDeclaration"/> so the preview matches production output.
+            </summary>
+        </member>
+        <member name="M:Csv2Xml.Design.MappingDesigner.Job(Csv2Xml.Design.Schema.SchemaDocument,System.String,System.Collections.Generic.IEnumerable{Csv2Xml.Runtime.Mapping.MappingSpec})">
+            <summary>A runnable job from one mapping per kind, with run parameters defaulted from the XSD's document-level values.</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.MappingDesigner.Utf8StringWriter">
+            <summary>Declares utf-8 in the XML header, matching how the text is saved (a plain StringWriter declares utf-16).</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.Matching.Suggestion">
+            <summary>Proposed pairing of a target to a CSV column. ColumnIndex null = no confident match.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Matching.Suggestion.#ctor(Csv2Xml.Design.Schema.SchemaTarget,System.Nullable{System.Int32},System.String,System.Double)">
+            <summary>Proposed pairing of a target to a CSV column. ColumnIndex null = no confident match.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Matching.MappingSuggester.Suggest(System.Collections.Generic.IReadOnlyList{System.String},Csv2Xml.Design.Schema.SchemaKind,System.Double)">
+            <summary>Greedy one-to-one assignment by descending score; unassigned targets/columns are left unmatched.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Matching.MappingSuggester.Evaluate(System.Collections.Generic.IReadOnlyList{System.String},Csv2Xml.Design.Schema.SchemaKind,System.Double)">
+            <summary>Fitness of a kind: required targets weigh double; result is matched weight / total weight.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Matching.MappingSuggester.Classify(System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IEnumerable{Csv2Xml.Design.Schema.SchemaKind},System.Double)">
+            <summary>Rank kinds for a CSV header set, best first.</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.Matching.NameMatcher">
+            <summary>Lexical similarity between a CSV header and a schema target. Pure functions, score in [0,1].</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Matching.NameMatcher.Normalize(System.String)">
+            <summary>Lowercase alphanumerics only: "Order_ID", "orderId", "ORDER ID" -> "orderid".</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Matching.NameMatcher.Tokens(System.String)">
+            <summary>Split on non-alphanumerics and camelCase boundaries.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Matching.NameMatcher.Score(System.String,Csv2Xml.Design.Schema.SchemaTarget)">
+            <summary>Best score of the header against the target's leaf name and its path suffixes (e.g. "City", "AddressCity", "CustomerAddressCity").</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.Matching.SpecBuilder">
+            <summary>Design-time bridge: turns (kind + chosen column per target) into the runtime's self-contained MappingSpec.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Matching.SpecBuilder.Build(Csv2Xml.Design.Schema.SchemaDocument,Csv2Xml.Design.Schema.SchemaKind,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Int32},System.Collections.Generic.IReadOnlyList{System.String},System.Char,System.String)">
+            <summary>
+            Builds the spec. Unassigned targets are kept (unbound) so the spec still describes the whole kind.
+            With headers, the header text at each assigned index is recorded for run-time layout checks; without, the CSV is headerless.
+            No validation here: MappingDesigner.Build validates assignments first.
+            </summary>
+            <param name="assignment">Target path -> zero-based column index.</param>
+        </member>
+        <member name="M:Csv2Xml.Design.Matching.SpecBuilder.DefaultParameters(System.Collections.Generic.IEnumerable{Csv2Xml.Design.Schema.SchemaTarget})">
+            <summary>Default run-parameter definitions for the document-level targets; the user may edit them (labels, defaults, which are required).</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.Samples.SampleFile">
+            <summary>One generated CSV with the mapping that fits it, what should happen, and what did happen when it was run.</summary>
+            <param name="SuggestedCorrectly">Assigned targets that MappingDesigner.Suggest gets right unaided (of Assigned).</param>
+        </member>
+        <member name="M:Csv2Xml.Design.Samples.SampleFile.#ctor(System.String,System.String,System.String,Csv2Xml.Design.Samples.Expectation,System.String,Csv2Xml.Runtime.Mapping.MappingSpec,Csv2Xml.Design.VerifyResult,System.Int32,System.Int32)">
+            <summary>One generated CSV with the mapping that fits it, what should happen, and what did happen when it was run.</summary>
+            <param name="SuggestedCorrectly">Assigned targets that MappingDesigner.Suggest gets right unaided (of Assigned).</param>
+        </member>
+        <member name="P:Csv2Xml.Design.Samples.SampleFile.SuggestedCorrectly">
+            <summary>Assigned targets that MappingDesigner.Suggest gets right unaided (of Assigned).</summary>
+        </member>
+        <member name="P:Csv2Xml.Design.Samples.SampleFile.Passed">
+            <summary>The run behaved as Expected: valid output, or failure of the expected sort.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Samples.SampleSet.ToFiles">
+            <summary>Every output as file name -> UTF-8 bytes: CSVs, mappings, expected XML for valid scenarios, README.md.</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.Samples.SampleGenerator">
+            <summary>
+            Generates, per document kind, CSV files demonstrating each mapping ability, plus the correct mapping for each, and
+            proves each one by running it through the real writer and XSD validation. Values come from the exemplar XML when it
+            contains the kind, otherwise they are synthesised from the XSD types and restrictions.
+            </summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Samples.SampleGenerator.Generate(System.String,System.String)">
+            <exception cref="T:System.IO.InvalidDataException">The XSD is unusable (see MappingDesigner.LoadSchema) or the exemplar is not well-formed XML.</exception>
+        </member>
+        <member name="M:Csv2Xml.Design.Samples.SampleGenerator.Synthetic(Csv2Xml.Design.Schema.SchemaKind,System.Collections.Generic.IReadOnlyList{System.String},System.Int32[],System.Collections.Generic.List{System.String})">
+            <summary>Rows for a repeat chain with the given instance counts per level; each instance gets a run-wide ordinal.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Samples.SampleGenerator.CleanHeaders(System.Collections.Generic.IReadOnlyList{Csv2Xml.Design.Schema.SchemaTarget})">
+            <summary>snake_case leaf names; colliding names are qualified with ancestors until unique.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Samples.SampleGenerator.Abbreviate(System.String)">
+            <summary>Initials for multi-word names ("UnitPrice" -> "UP"), else first three letters; null when too short to abbreviate.</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.Samples.SampleValue">
+            <summary>A value and whether it is known to satisfy the target's declared restrictions.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Samples.SampleValue.#ctor(System.String,System.Boolean)">
+            <summary>A value and whether it is known to satisfy the target's declared restrictions.</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.Samples.SyntheticValues">
+            <summary>Synthetic values that honour a target's type and facets; deterministic in the ordinal n (1-based).</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Samples.SyntheticValues.Text(System.String,System.Int32,Csv2Xml.Design.Schema.Facets)">
+            <summary>Name + ordinal, fitted to length facets (ordinal kept so values stay distinct).</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.Samples.PatternSample">
+            <summary>
+            Produces a string matching a simple XSD pattern: literals, escapes (\d \w \s \. etc.), [classes] with ranges,
+            quantifiers (? * + {n} {n,m}), groups and alternation (first branch). Returns null for anything else.
+            </summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Samples.PatternSample.Atom(System.String,System.Int32@,System.Int32)">
+            <summary>Returns a generator for one repetition of the atom (k = repetition index, varies output with n).</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.Samples.ExemplarValues">
+            <summary>Reads rows and run values out of an exemplar XML, matching by local names (namespace-agnostic).</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Samples.ExemplarValues.Rows(Csv2Xml.Design.Schema.SchemaKind,System.Collections.Generic.IReadOnlyList{System.String},System.Xml.Linq.XDocument)">
+            <summary>One row per deepest repeating instance of the kind (path -> value); null when the exemplar lacks the kind.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Samples.ExemplarValues.RootValues(Csv2Xml.Design.Schema.SchemaDocument,System.Xml.Linq.XDocument)">
+            <summary>Document-level values (root target path -> value) present in the exemplar.</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.Schema.SchemaTarget">
+            <summary>A value-bearing slot in the XSD: a simple-content element or an attribute.</summary>
+            <param name="Path">Slash path from the kind root, attributes prefixed '@' (e.g. Customer/Address/City, Customer/@id).</param>
+            <param name="Required">True when the value must exist for every instance of its nearest repeating ancestor.</param>
+            <param name="RepeatingAncestors">Paths of ancestor elements (incl. self for elements) with maxOccurs &gt; 1, outermost first.</param>
+        </member>
+        <member name="M:Csv2Xml.Design.Schema.SchemaTarget.#ctor(System.String,System.String,Csv2Xml.Design.Schema.TargetKind,System.String,System.Boolean,System.Collections.Generic.IReadOnlyList{System.String},Csv2Xml.Design.Schema.Facets)">
+            <summary>A value-bearing slot in the XSD: a simple-content element or an attribute.</summary>
+            <param name="Path">Slash path from the kind root, attributes prefixed '@' (e.g. Customer/Address/City, Customer/@id).</param>
+            <param name="Required">True when the value must exist for every instance of its nearest repeating ancestor.</param>
+            <param name="RepeatingAncestors">Paths of ancestor elements (incl. self for elements) with maxOccurs &gt; 1, outermost first.</param>
+        </member>
+        <member name="P:Csv2Xml.Design.Schema.SchemaTarget.Path">
+            <summary>Slash path from the kind root, attributes prefixed '@' (e.g. Customer/Address/City, Customer/@id).</summary>
+        </member>
+        <member name="P:Csv2Xml.Design.Schema.SchemaTarget.Required">
+            <summary>True when the value must exist for every instance of its nearest repeating ancestor.</summary>
+        </member>
+        <member name="P:Csv2Xml.Design.Schema.SchemaTarget.RepeatingAncestors">
+            <summary>Paths of ancestor elements (incl. self for elements) with maxOccurs &gt; 1, outermost first.</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.Schema.Facets">
+            <summary>Value restrictions declared on a target's type (most-derived declaration wins). Bounds are kept as lexical XSD text.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Schema.Facets.#ctor(System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{System.String},System.Nullable{System.Int32},System.Nullable{System.Int32},System.Nullable{System.Int32},System.String,System.String,System.String,System.String,System.Nullable{System.Int32},System.Nullable{System.Int32},System.String)">
+            <summary>Value restrictions declared on a target's type (most-derived declaration wins). Bounds are kept as lexical XSD text.</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.Schema.SchemaKind">
+            <summary>One of the document kinds the XSD permits.</summary>
+            <param name="RootWrapper">Enclosing global element when kinds are choice branches (written around the kind).</param>
+        </member>
+        <member name="M:Csv2Xml.Design.Schema.SchemaKind.#ctor(System.String,System.Collections.Generic.IReadOnlyList{Csv2Xml.Design.Schema.SchemaTarget},System.String,System.String)">
+            <summary>One of the document kinds the XSD permits.</summary>
+            <param name="RootWrapper">Enclosing global element when kinds are choice branches (written around the kind).</param>
+        </member>
+        <member name="P:Csv2Xml.Design.Schema.SchemaKind.RootWrapper">
+            <summary>Enclosing global element when kinds are choice branches (written around the kind).</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.Schema.SchemaDocument">
+            <summary>
+            A whole XSD: the kinds, plus the document-level (wrapper) values that sit outside the kinds.
+            Root targets are never mapped from CSV; they are supplied once per run.
+            </summary>
+            <param name="XsdHash">Content identity of the XSD (XsdValidator.Hash); recorded in every mapping built from this document.</param>
+            <param name="Namespace">Target namespace (that of the global elements).</param>
+            <param name="LocalNamespace">Namespace of local elements: the target namespace when elementFormDefault is qualified, otherwise empty.</param>
+        </member>
+        <member name="M:Csv2Xml.Design.Schema.SchemaDocument.#ctor(System.String,System.String,System.Collections.Generic.IReadOnlyList{Csv2Xml.Design.Schema.SchemaTarget},System.Collections.Generic.IReadOnlyList{Csv2Xml.Design.Schema.SchemaKind},System.String,System.String)">
+            <summary>
+            A whole XSD: the kinds, plus the document-level (wrapper) values that sit outside the kinds.
+            Root targets are never mapped from CSV; they are supplied once per run.
+            </summary>
+            <param name="XsdHash">Content identity of the XSD (XsdValidator.Hash); recorded in every mapping built from this document.</param>
+            <param name="Namespace">Target namespace (that of the global elements).</param>
+            <param name="LocalNamespace">Namespace of local elements: the target namespace when elementFormDefault is qualified, otherwise empty.</param>
+        </member>
+        <member name="P:Csv2Xml.Design.Schema.SchemaDocument.Namespace">
+            <summary>Target namespace (that of the global elements).</summary>
+        </member>
+        <member name="P:Csv2Xml.Design.Schema.SchemaDocument.XsdHash">
+            <summary>Content identity of the XSD (XsdValidator.Hash); recorded in every mapping built from this document.</summary>
+        </member>
+        <member name="P:Csv2Xml.Design.Schema.SchemaDocument.LocalNamespace">
+            <summary>Namespace of local elements: the target namespace when elementFormDefault is qualified, otherwise empty.</summary>
+        </member>
+        <member name="T:Csv2Xml.Design.Schema.SchemaReader">
+            <summary>
+            Compiles an XSD and flattens each permitted document kind into mappable targets.
+            Kind discovery: the first global element (file order, not used by ref elsewhere) whose content has a choice yields one kind
+            per branch, and everything
+            else in that element (attributes, sibling elements) becomes root targets; other global elements are helpers. With no such
+            element, each global element is a kind.
+            </summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Schema.SchemaReader.ReadDocumentText(System.String)">
+            <exception cref="T:System.IO.InvalidDataException">The XSD is invalid, references unresolvable includes/imports, or mixes element forms.</exception>
+        </member>
+        <member name="T:Csv2Xml.Design.Schema.SchemaReader.Ctx">
+            <summary>Accumulators for one walk: targets found, and namespaces of local (non-global) elements seen.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Schema.SchemaReader.Ctx.#ctor(System.Collections.Generic.List{Csv2Xml.Design.Schema.SchemaTarget},System.Collections.Generic.HashSet{System.String})">
+            <summary>Accumulators for one walk: targets found, and namespaces of local (non-global) elements seen.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Schema.SchemaReader.ChoiceRoot(System.Xml.Schema.XmlSchemaSet)">
+            <summary>
+            The document root that carries the kinds: the first global element, in file order, that is not used inside another
+            element (via ref) and whose own content has a choice of two or more elements. Other global elements are helpers.
+            </summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Schema.SchemaReader.Flatten(System.Xml.Schema.XmlSchemaElement,System.Collections.Generic.HashSet{System.String})">
+            <summary>Paths start with the kind element name.</summary>
+        </member>
+        <member name="M:Csv2Xml.Design.Schema.SchemaReader.FacetsOf(System.Xml.Schema.XmlSchemaType)">
+            <summary>
+            Restriction facets along the derivation chain, most-derived first. Single-valued facets: most-derived wins.
+            Enumeration: most-derived non-empty set. Patterns: accumulated (XSD requires all to match).
+            </summary>
+        </member>
+    </members>
+</doc>

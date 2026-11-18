@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Manifest xmlns="urn:example:shipping" issued="2026-03-01T09:30:00Z">
+  <Depot>LDS-0001</Depot>
+  <Shipments>
+    <Shipment ref="SHP-1001">
+      <Status>SHIPPED</Status>
+      <Origin>LDS-0001</Origin>
+      <Insured currency="GBP">250.00</Insured>
+      <Parcel parcelNo="1">
+        <WeightKg>12</WeightKg>
+        <Item code="BK-1"><Description>Books</Description><Value>40.00</Value></Item>
+        <Item code="LP-7"><Description>Lamp</Description></Item>
+      </Parcel>
+      <Parcel parcelNo="2">
+        <WeightKg>3</WeightKg>
+        <Item code="MG-2"><Description>Mugs</Description><Value>9.99</Value></Item>
+      </Parcel>
+    </Shipment>
+    <Shipment ref="SHP-1002">
+      <Status>NEW</Status>
+      <Origin>YRK-0002</Origin>
+      <Parcel parcelNo="1">
+        <WeightKg>40</WeightKg>
+        <Item code="DK-9"><Description>Desk</Description><Value>180.50</Value></Item>
+      </Parcel>
+    </Shipment>
+  </Shipments>
+</Manifest>

@@ -1,0 +1,12 @@
+C:\Users\robert.bicknell\.nuget\packages\microsoft.aspnetcore.app.internal.assets\10.0.15\_framework\blazor.web.js
+C:\Claude\csv2xmltransformer\src\Csv2Xml.TestUi\wwwroot\app.js
+C:\Claude\csv2xmltransformer\src\Csv2Xml.TestUi\wwwroot\preview.js
+C:\Claude\csv2xmltransformer\src\Csv2Xml.TestUi\wwwroot\preview.css
+C:\Users\robert.bicknell\.nuget\packages\microsoft.aspnetcore.app.internal.assets\10.0.15\_framework\blazor.server.js
+C:\Claude\csv2xmltransformer\src\Csv2Xml.TestUi\wwwroot\app.css
+wwwroot\app.css
+wwwroot\app.js
+wwwroot\preview.css
+wwwroot\preview.js
+C:\Users\robert.bicknell\.nuget\packages\microsoft.aspnetcore.app.internal.assets\10.0.15\build\..\_framework\blazor.server.js
+C:\Users\robert.bicknell\.nuget\packages\microsoft.aspnetcore.app.internal.assets\10.0.15\build\..\_framework\blazor.web.js

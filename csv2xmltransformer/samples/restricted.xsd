@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Development XSD exercising value restrictions: enumeration, pattern, length, ranges, digits, derived named types,
+     simpleContent with attributes, a namespace, and a three-level repeating chain. -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="urn:example:shipping" targetNamespace="urn:example:shipping" elementFormDefault="qualified">
+
+  <xs:simpleType name="ShortText">
+    <xs:restriction base="xs:string"><xs:minLength value="2"/><xs:maxLength value="12"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="DepotCode">
+    <xs:restriction base="ShortText"><xs:pattern value="[A-Z]{3}-[0-9]{4}"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Status">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="NEW"/><xs:enumeration value="SHIPPED"/><xs:enumeration value="LOST"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Money">
+    <xs:restriction base="xs:decimal"><xs:totalDigits value="7"/><xs:fractionDigits value="2"/><xs:minInclusive value="0"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Weight">
+    <xs:restriction base="xs:int"><xs:minInclusive value="1"/><xs:maxExclusive value="1000"/></xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="Amount">
+    <xs:simpleContent>
+      <xs:extension base="Money"><xs:attribute name="currency" type="xs:string" fixed="GBP"/></xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:element name="Manifest">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Depot" type="DepotCode"/>
+        <xs:choice>
+          <xs:element name="Shipments">
+            <xs:complexType><xs:sequence>
+              <xs:element name="Shipment" maxOccurs="unbounded">
+                <xs:complexType><xs:sequence>
+                  <xs:element name="Status" type="Status"/>
+                  <xs:element name="Origin" type="DepotCode"/>
+                  <xs:element name="Insured" type="Amount" minOccurs="0"/>
+                  <xs:element name="Parcel" maxOccurs="unbounded">
+                    <xs:complexType><xs:sequence>
+                      <xs:element name="WeightKg" type="Weight"/>
+                      <xs:element name="Item" maxOccurs="unbounded">
+                        <xs:complexType><xs:sequence>
+                          <xs:element name="Description" type="ShortText"/>
+                          <xs:element name="Value" type="Money" minOccurs="0"/>
+                        </xs:sequence>
+                        <xs:attribute name="code" type="xs:string" use="required"/></xs:complexType>
+                      </xs:element>
+                    </xs:sequence>
+                    <xs:attribute name="parcelNo" type="xs:positiveInteger" use="required"/></xs:complexType>
+                  </xs:element>
+                </xs:sequence>
+                <xs:attribute name="ref" type="DepotCode" use="required"/></xs:complexType>
+              </xs:element>
+            </xs:sequence></xs:complexType>
+          </xs:element>
+          <xs:element name="Depots">
+            <xs:complexType><xs:sequence>
+              <xs:element name="DepotInfo" maxOccurs="unbounded">
+                <xs:complexType><xs:sequence>
+                  <xs:element name="Code" type="DepotCode"/>
+                  <xs:element name="Name" type="ShortText"/>
+                  <xs:element name="Opened" type="xs:date" minOccurs="0"/>
+                  <xs:element name="Capacity" type="Weight"/>
+                </xs:sequence></xs:complexType>
+              </xs:element>
+            </xs:sequence></xs:complexType>
+          </xs:element>
+        </xs:choice>
+      </xs:sequence>
+      <xs:attribute name="issued" type="xs:dateTime" use="required"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

@@ -1,0 +1,4 @@
+sku,product_name,list_price,discontinued
+A100,Widget,1.50,false
+B200,"Gadget ""Pro"" & <Max>",9.99,true
+C300,"Bolt, M8",120.00,

@@ -1,0 +1,358 @@
+@page "/"
+@using Csv2Xml.Runtime.Csv
+@using Csv2Xml.Design.Samples
+@inject PreviewStore Previews
+@inject UiSettings Settings
+@inject IJSRuntime JS
+
+<main>
+    <header class="top">
+        <h1>Csv2Xml mapping</h1>
+        <span class="muted">drives only the public <code>MappingDesigner</code> / <code>ConfigJson</code> API, as a host would</span>
+        <button class="icon" title="Light / dark" @onclick='() => JS.InvokeVoidAsync("c2x.toggleTheme")'>◐</button>
+    </header>
+
+    @if (popupBlocked)
+    {
+        <div class="msg warn">The browser blocked the preview window. Allow pop-ups for this site, then click again.</div>
+    }
+
+    <section class="card">
+        <h2><span class="step">1</span>Inputs</h2>
+        <div class="field"><label>XSD</label>
+            <FilePicker Value="@xsdPath" ValueChanged='v => Remember("xsd", xsdPath = v)' Extensions='[".xsd"]' OnPreview="ShowFile" /></div>
+        <div class="field"><label>CSV</label>
+            <FilePicker Value="@csvPath" ValueChanged='v => Remember("csv", csvPath = v)' Extensions="CsvExtensions" OnPreview="ShowFile" /></div>
+        <div class="field"><label>Read as</label>
+            <div class="row" style="margin:0">
+                delimiter <input type="text" class="narrow" maxlength="1" @bind="delimiter" title="Detected on Load; change it if wrong" />
+                encoding <input type="text" class="medium" placeholder="utf-8" @bind="encoding" title="Blank = UTF-8. A BOM in the file wins. e.g. windows-1252" />
+                <button class="primary" @onclick="Load">Load</button>
+                @if (loadError is not null) { <span class="err">@loadError</span> }
+            </div>
+        </div>
+    </section>
+
+    @if (doc is not null && headers is not null)
+    {
+        <section class="card">
+            <h2><span class="step">2</span>Kind</h2>
+            <div class="row">
+                <select @onchange="e => SelectKind((string)e.Value!)">
+                    @foreach (var (k, score) in ranked)
+                    {
+                        <option value="@k" selected="@(k == kind)">@k — fit @score.ToString("0.00")</option>
+                    }
+                </select>
+                <span class="muted">@KindSource()</span>
+            </div>
+        </section>
+
+        @if (doc.RootTargets.Count > 0)
+        {
+            <section class="card">
+                <h2><span class="step">3</span>Document-level values <span class="badge">run values, not CSV columns</span></h2>
+                <p class="muted" style="margin-top:0">
+                    Written once per file inside <code>&lt;@doc.RootName&gt;</code>, before the kind. They are not mapped: the stored mapping lists them
+                    (<code>MappingSpec.RootFields</code>), the job defines how each is supplied (<code>JobSpec.Parameters</code>, from <code>MappingDesigner.Job</code>),
+                    and each run passes values in <code>RunRequest.Parameters</code> by key. Values below are used only by Verify; blank = a synthesised placeholder.
+                </p>
+                <table class="grid">
+                    <tr><th>XML item</th><th>run parameter key</th><th>type</th><th>default at run time</th><th>value for Verify</th></tr>
+                    @foreach (var p in runParams)
+                    {
+                        <tr>
+                            <td class="path @(p.Required ? "req" : "")">@p.Path@(p.Required ? " *" : "")</td>
+                            <td><code>@p.Key</code></td>
+                            <td>@p.DataType</td>
+                            <td>@(p.Default ?? (p.Required ? "— must be supplied —" : "— omitted if not supplied —"))</td>
+                            <td><input type="text" style="width:100%" value="@runValues.GetValueOrDefault(p.Path)" @onchange='e => runValues[p.Path] = (string?)e.Value ?? ""' /></td>
+                        </tr>
+                    }
+                </table>
+            </section>
+        }
+
+        <section class="card">
+            <h2><span class="step">4</span>Assign columns <span class="badge @(MissingRequired == 0 ? "ok" : "err")">@assignments.Count(a => a.Value is not null) of @targets.Count assigned@(MissingRequired > 0 ? $" · {MissingRequired} required missing" : "")</span></h2>
+            <div class="row">
+                <button @onclick="() => SelectKind(kind)">Reset to suggestions</button>
+                <button @onclick="() => { foreach (var k in assignments.Keys.ToList()) assignments[k] = null; }">Clear all</button>
+            </div>
+            <table class="grid">
+                <tr><th>XML item</th><th>type</th><th style="width:38%">column</th></tr>
+                @foreach (var t in targets)
+                {
+                    var missing = t.Required && assignments[t.Path] is null;
+                    <tr class="@(missing ? "missing" : "")">
+                        <td class="path @(t.Required ? "req" : "")" title="@(t.Required ? "required" : "optional")">@t.Path@(t.Required ? " *" : "")</td>
+                        <td>@t.DataType</td>
+                        <td>
+                            <select @onchange="e => assignments[t.Path] = int.TryParse((string?)e.Value, out var c) ? c : null">
+                                <option value="" selected="@(assignments[t.Path] is null)">— none —</option>
+                                @foreach (var c in columns)
+                                {
+                                    <option value="@c.Index" selected="@(assignments[t.Path] == c.Index)">@c.DisplayName</option>
+                                }
+                            </select>
+                        </td>
+                    </tr>
+                }
+            </table>
+            <div class="row"><button class="primary" @onclick="Build">Build mapping</button></div>
+            @if (build is not null)
+            {
+                @foreach (var e in build.Errors) { <div class="msg err">✖ @e</div> }
+                @foreach (var w in build.Warnings) { <div class="msg warn">⚠ @w</div> }
+                @if (build.Success) { <div class="msg ok">✔ mapping built (@configJson!.Length chars) — see 6. Config</div> }
+            }
+        </section>
+
+        @if (spec is not null)
+        {
+            <section class="card">
+                <h2><span class="step">5</span>Verify against XSD</h2>
+                <div class="field"><label>sample CSV</label>
+                    <FilePicker Value="@verifyPath" ValueChanged="v => verifyPath = v" Extensions="CsvExtensions" OnPreview="ShowFile" /></div>
+                <div class="row">
+                    <label class="check" title="Mirrors JobSpec.OmitXmlDeclaration (default on)"><input type="checkbox" @bind="omitDeclaration" /> omit <code>&lt;?xml version encoding?&gt;</code> declaration</label>
+                    <button class="primary" @onclick="Verify">Verify</button>
+                    @if (verify is { Xml.Length: > 0 })
+                    {
+                        <button @onclick='() => Show(new Preview($"{kind} output.xml", "xml", verify.Xml))'>👁 Open output in new window</button>
+                    }
+                </div>
+                @if (verify is not null)
+                {
+                    @if (verify.IsValid) { <div class="msg ok">✔ output valid against XSD</div> }
+                    @foreach (var p in verify.Problems.Take(50)) { <div class="msg err">✖ @p</div> }
+                    @if (verify.Problems.Count > 50) { <div class="muted">… @(verify.Problems.Count - 50) more</div> }
+                    @if (verify.Xml.Length > 0) { <pre class="out">@Truncate(verify.Xml, 20000)</pre> }
+                }
+            </section>
+        }
+    }
+
+    <section class="card">
+        <h2><span class="step">6</span>Config</h2>
+        <div class="field"><label>mapping file</label>
+            <FilePicker Value="@configPath" ValueChanged='v => Remember("config", configPath = v)' Extensions='[".json"]' Save="true" OnPreview="ShowFile" /></div>
+        <div class="row">
+            <button class="primary" @onclick="SaveConfig" disabled="@(spec is null)">Save</button>
+            <button @onclick="LoadConfig">Load</button>
+            @if (configJson is not null) { <button @onclick='() => Show(new Preview(Path.GetFileName(configPath), "json", configJson))'>👁 Open in new window</button> }
+            @if (configError is not null) { <span class="err">@configError</span> }
+            else if (configMessage is not null) { <span class="ok">@configMessage</span> }
+        </div>
+        @if (configJson is not null) { <pre class="out">@configJson</pre> }
+    </section>
+
+    <section class="card">
+        <h2><span class="step">7</span>Generate sample CSVs from an XSD</h2>
+        <div class="field"><label>XSD</label>
+            <FilePicker Value="@xsdPath" ValueChanged='v => Remember("xsd", xsdPath = v)' Extensions='[".xsd"]' OnPreview="ShowFile" /></div>
+        <div class="field"><label>exemplar XML <span class="muted">(optional)</span></label>
+            <FilePicker Value="@exemplarPath" ValueChanged='v => Remember("exemplar", exemplarPath = v)' Extensions='[".xml"]' OnPreview="ShowFile" Placeholder="real values are taken from it when given" /></div>
+        <div class="field"><label>output folder</label>
+            <FilePicker Value="@genOutDir" ValueChanged='v => Remember("generated", genOutDir = v)' Folder="true" /></div>
+        <div class="row"><button class="primary" @onclick="GenerateSamples">Generate</button> @if (genError is not null) { <span class="err">@genError</span> }</div>
+        @if (samples is not null)
+        {
+            <div class="msg @(samples.AllPassed ? "ok" : "err")">
+                @(samples.AllPassed ? "✔" : "✖") @samples.Files.Count(f => f.Passed) of @samples.Files.Count files behaved as expected; written to <code>@genOutDir</code>
+            </div>
+            <table class="grid">
+                <tr><th>file</th><th>expected</th><th>result</th><th>suggested</th><th>demonstrates</th><th></th></tr>
+                @foreach (var f in samples.Files)
+                {
+                    <tr>
+                        <td class="path">@f.CsvFileName</td><td>@f.Expected</td>
+                        <td><span class="badge @(f.Passed ? "ok" : "err")">@(f.Passed ? "PASS" : "FAIL")</span></td>
+                        <td>@f.SuggestedCorrectly/@f.Assigned</td><td>@f.Description</td>
+                        <td style="white-space:nowrap">
+                            <button class="icon" title="Preview CSV" @onclick="() => ShowFile(Path.Combine(genOutDir, f.CsvFileName))">👁</button>
+                            @if (f.Verification.Xml.Length > 0)
+                            {
+                                <button class="icon" title="Preview the XML it produces" @onclick='() => Show(new Preview(f.XmlFileName, "xml", f.Verification.Xml))'>&lt;/&gt;</button>
+                            }
+                            <button @onclick="() => OpenInMapper(f)">open in mapper</button>
+                        </td>
+                    </tr>
+                }
+            </table>
+            @foreach (var n in samples.Notes) { <div class="msg warn">⚠ @n</div> }
+        }
+    </section>
+</main>
+
+@code {
+    static readonly string[] CsvExtensions = [".csv", ".tsv", ".txt"];
+
+    string xsdPath = "", csvPath = "", verifyPath = "", configPath = "", exemplarPath = "", genOutDir = "";
+    char delimiter = ',';
+    string encoding = "";
+    bool omitDeclaration = true, popupBlocked;
+
+    string? xsdText, loadError, configJson, configError, configMessage, genError;
+    SchemaDocument? doc;
+    IReadOnlyList<string>? headers;
+    IReadOnlyList<(string Kind, double Score)> ranked = [];
+    string kind = "";
+    IReadOnlyList<SchemaTarget> targets = [];
+    IReadOnlyList<ColumnOption> columns = [];
+    IReadOnlyList<Csv2Xml.Runtime.Run.RunParameterDef> runParams = [];
+    Dictionary<string, string> runValues = [];
+    Dictionary<string, int?> assignments = [];
+    BuildResult? build;
+    MappingSpec? spec;
+    VerifyResult? verify;
+    SampleSet? samples;
+
+    protected override void OnInitialized()
+    {
+        xsdPath = Settings.Get("xsd");
+        csvPath = verifyPath = Settings.Get("csv");
+        configPath = Settings.Get("config");
+        exemplarPath = Settings.Get("exemplar");
+        genOutDir = Settings.Get("generated");
+    }
+
+    void Remember(string key, string value) => Settings.Set(key, value);
+
+    string? Encoding => string.IsNullOrWhiteSpace(encoding) ? null : encoding.Trim();
+    int MissingRequired => targets.Count(t => t.Required && assignments.GetValueOrDefault(t.Path) is null);
+
+    string KindSource()
+    {
+        var k = doc!.Kinds.First(x => x.Name == kind);
+        return k.RootWrapper is null
+            ? $"each global element of the XSD is a kind; this one is written as the document root <{kind}>"
+            : $"kinds are the branches of the xs:choice in <{doc.RootName}>; this one is written as <{doc.RootName}> … <{kind}>";
+    }
+
+    void Load()
+    {
+        loadError = null; doc = null; headers = null;
+        try
+        {
+            xsdText = File.ReadAllText(xsdPath);
+            doc = MappingDesigner.LoadSchema(xsdText);
+            delimiter = MappingDesigner.DetectDelimiter(File.ReadLines(csvPath).FirstOrDefault() ?? "");
+            using (var s = File.OpenRead(csvPath)) headers = MappingDesigner.ReadHeaders(s, delimiter, Encoding);
+            columns = MappingDesigner.Columns(headers);
+            ranked = MappingDesigner.RankKinds(doc, headers);
+            runParams = MappingDesigner.Job(doc, "preview", []).Parameters;
+            runValues = runParams.ToDictionary(p => p.Path, p => runValues.GetValueOrDefault(p.Path) ?? "");
+            verifyPath = csvPath;
+            SelectKind(ranked[0].Kind);
+        }
+        catch (Exception e) { loadError = CsvParser.DescribeInputError(e) ?? e.Message; }
+    }
+
+    void SelectKind(string k)
+    {
+        kind = k;
+        targets = MappingDesigner.Targets(doc!, k);
+        assignments = MappingDesigner.Suggest(doc!, k, headers!).ToDictionary();
+        // a default-named config file follows the kind; a name the user chose is kept
+        var name = Path.GetFileName(configPath);
+        if (name == "mapping.json" || name.EndsWith(".mapping.json", StringComparison.OrdinalIgnoreCase))
+            configPath = Path.Combine(Path.GetDirectoryName(configPath) ?? "", $"{k}.mapping.json");
+        ResetOutputs();
+    }
+
+    void ResetOutputs() { build = null; spec = null; verify = null; configJson = null; configMessage = null; configError = null; }
+
+    void Build()
+    {
+        ResetOutputs();
+        var chosen = assignments.Where(a => a.Value is not null).ToDictionary(a => a.Key, a => a.Value!.Value);
+        build = MappingDesigner.Build(doc!, kind, headers!, chosen, delimiter, Encoding);
+        spec = build.Spec;
+        configJson = spec is null ? null : ConfigJson.ToJson(spec);
+    }
+
+    void Verify()
+    {
+        try
+        {
+            using var r = CsvParser.Open(verifyPath, Encoding); // decoded strictly, as the runtime will
+            verify = MappingDesigner.Verify(xsdText!, spec!, r.ReadToEnd(), runValues.Where(v => v.Value.Length > 0).ToDictionary(), omitDeclaration);
+        }
+        catch (Exception e) { verify = new VerifyResult("", [CsvParser.DescribeInputError(e) ?? e.Message]); }
+    }
+
+    void SaveConfig()
+    {
+        configError = null;
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(configPath))!);
+            File.WriteAllBytes(configPath, ConfigJson.ToBytes(spec!));
+            Remember("config", configPath);
+            configMessage = $"saved {new FileInfo(configPath).Length} bytes";
+        }
+        catch (Exception e) { configError = e.Message; }
+    }
+
+    /// <summary>Loads a stored mapping and shows its assignments against the currently loaded XSD and CSV.</summary>
+    void LoadConfig()
+    {
+        configError = null;
+        try
+        {
+            var loaded = ConfigJson.MappingFromBytes(File.ReadAllBytes(configPath));
+            if (doc is null || headers is null) { configError = "load an XSD and CSV first"; return; }
+            var path = configPath;
+            SelectKind(loaded.Kind);
+            configPath = path;
+            foreach (var k in assignments.Keys.ToList()) assignments[k] = null;
+            foreach (var f in loaded.Fields.Where(f => assignments.ContainsKey(f.Path))) assignments[f.Path] = f.ColumnIndex;
+            spec = loaded;
+            configJson = ConfigJson.ToJson(loaded);
+            var layout = MappingDesigner.LayoutProblems(loaded, headers);
+            configMessage = layout.Count == 0 ? $"loaded '{loaded.Kind}' mapping" : $"loaded; this CSV does not fit it: {string.Join("; ", layout)}";
+        }
+        catch (Exception e) { configError = e.Message; }
+    }
+
+    void GenerateSamples()
+    {
+        genError = null; samples = null;
+        try
+        {
+            var exemplar = string.IsNullOrWhiteSpace(exemplarPath) ? null : File.ReadAllText(exemplarPath);
+            samples = SampleGenerator.Generate(File.ReadAllText(xsdPath), exemplar);
+            samples.WriteTo(genOutDir);
+        }
+        catch (Exception e) { genError = e.Message; }
+    }
+
+    void OpenInMapper(SampleFile f)
+    {
+        csvPath = Path.Combine(genOutDir, f.CsvFileName);
+        Load();
+    }
+
+    async Task Show(Preview p)
+    {
+        popupBlocked = !await JS.InvokeAsync<bool>("c2x.openPreview", $"preview/{Previews.Add(p)}");
+    }
+
+    /// <summary>The CSV being mapped is read with the chosen delimiter and encoding; any other file with its detected delimiter.</summary>
+    Task ShowFile(string path)
+    {
+        var isCurrent = string.Equals(path, csvPath, StringComparison.OrdinalIgnoreCase) && headers is not null;
+        var d = isCurrent ? delimiter : CsvExtensions.Contains(Path.GetExtension(path).ToLowerInvariant())
+            ? MappingDesigner.DetectDelimiter(SafeFirstLine(path)) : '\0';
+        return Show(PreviewStore.FromFile(path, d, Encoding));
+    }
+
+    static string SafeFirstLine(string path)
+    {
+        try { return File.ReadLines(path).FirstOrDefault() ?? ""; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return ""; }
+    }
+
+    static string Truncate(string s, int n) => s.Length <= n ? s : s[..n] + "\n…";
+}

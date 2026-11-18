@@ -1,0 +1,18 @@
+<Project>
+  <!-- Shared by every project. A project file may override (e.g. TestUi targets net10.0). -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <Version>1.0.0</Version>
+    <Product>Csv2Xml</Product>
+  </PropertyGroup>
+
+  <!-- The two libraries a host references ship XML docs for IntelliSense. -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Csv2Xml.Runtime' Or '$(MSBuildProjectName)' == 'Csv2Xml.Design'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn> <!-- only non-obvious members/parameters are documented -->
+  </PropertyGroup>
+</Project>

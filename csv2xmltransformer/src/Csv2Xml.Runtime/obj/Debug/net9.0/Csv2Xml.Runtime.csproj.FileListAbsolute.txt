@@ -1,0 +1,14 @@
+C:\Claude\csv2xmltransformer\src\Csv2Xml.Runtime\bin\Debug\net9.0\Csv2Xml.Runtime.deps.json
+C:\Claude\csv2xmltransformer\src\Csv2Xml.Runtime\bin\Debug\net9.0\Csv2Xml.Runtime.dll
+C:\Claude\csv2xmltransformer\src\Csv2Xml.Runtime\bin\Debug\net9.0\Csv2Xml.Runtime.pdb
+C:\Claude\csv2xmltransformer\src\Csv2Xml.Runtime\obj\Debug\net9.0\Csv2Xml.Runtime.GeneratedMSBuildEditorConfig.editorconfig
+C:\Claude\csv2xmltransformer\src\Csv2Xml.Runtime\obj\Debug\net9.0\Csv2Xml.Runtime.AssemblyInfoInputs.cache
+C:\Claude\csv2xmltransformer\src\Csv2Xml.Runtime\obj\Debug\net9.0\Csv2Xml.Runtime.AssemblyInfo.cs
+C:\Claude\csv2xmltransformer\src\Csv2Xml.Runtime\obj\Debug\net9.0\Csv2Xml.Runtime.csproj.CoreCompileInputs.cache
+C:\Claude\csv2xmltransformer\src\Csv2Xml.Runtime\obj\Debug\net9.0\Csv2Xml.Runtime.dll
+C:\Claude\csv2xmltransformer\src\Csv2Xml.Runtime\obj\Debug\net9.0\refint\Csv2Xml.Runtime.dll
+C:\Claude\csv2xmltransformer\src\Csv2Xml.Runtime\obj\Debug\net9.0\Csv2Xml.Runtime.pdb
+C:\Claude\csv2xmltransformer\src\Csv2Xml.Runtime\obj\Debug\net9.0\ref\Csv2Xml.Runtime.dll
+C:\Claude\csv2xmltransformer\src\Csv2Xml.Runtime\obj\Debug\net9.0\Csv2Xml..DE92435C.Up2Date
+C:\Claude\csv2xmltransformer\src\Csv2Xml.Runtime\obj\Debug\net9.0\Csv2Xml.Runtime.xml
+C:\Claude\csv2xmltransformer\src\Csv2Xml.Runtime\bin\Debug\net9.0\Csv2Xml.Runtime.xml

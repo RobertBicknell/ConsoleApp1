@@ -1,0 +1,16 @@
+C:\Claude\csv2xmltransformer\tests\Csv2Xml.TestPlugin\bin\Debug\net9.0\Csv2Xml.TestPlugin.deps.json
+C:\Claude\csv2xmltransformer\tests\Csv2Xml.TestPlugin\bin\Debug\net9.0\Csv2Xml.TestPlugin.dll
+C:\Claude\csv2xmltransformer\tests\Csv2Xml.TestPlugin\bin\Debug\net9.0\Csv2Xml.TestPlugin.pdb
+C:\Claude\csv2xmltransformer\tests\Csv2Xml.TestPlugin\bin\Debug\net9.0\Csv2Xml.Runtime.dll
+C:\Claude\csv2xmltransformer\tests\Csv2Xml.TestPlugin\bin\Debug\net9.0\Csv2Xml.Runtime.pdb
+C:\Claude\csv2xmltransformer\tests\Csv2Xml.TestPlugin\bin\Debug\net9.0\Csv2Xml.Runtime.xml
+C:\Claude\csv2xmltransformer\tests\Csv2Xml.TestPlugin\obj\Debug\net9.0\Csv2Xml.TestPlugin.csproj.AssemblyReference.cache
+C:\Claude\csv2xmltransformer\tests\Csv2Xml.TestPlugin\obj\Debug\net9.0\Csv2Xml.TestPlugin.GeneratedMSBuildEditorConfig.editorconfig
+C:\Claude\csv2xmltransformer\tests\Csv2Xml.TestPlugin\obj\Debug\net9.0\Csv2Xml.TestPlugin.AssemblyInfoInputs.cache
+C:\Claude\csv2xmltransformer\tests\Csv2Xml.TestPlugin\obj\Debug\net9.0\Csv2Xml.TestPlugin.AssemblyInfo.cs
+C:\Claude\csv2xmltransformer\tests\Csv2Xml.TestPlugin\obj\Debug\net9.0\Csv2Xml.TestPlugin.csproj.CoreCompileInputs.cache
+C:\Claude\csv2xmltransformer\tests\Csv2Xml.TestPlugin\obj\Debug\net9.0\Csv2Xml..A1B32DA2.Up2Date
+C:\Claude\csv2xmltransformer\tests\Csv2Xml.TestPlugin\obj\Debug\net9.0\Csv2Xml.TestPlugin.dll
+C:\Claude\csv2xmltransformer\tests\Csv2Xml.TestPlugin\obj\Debug\net9.0\refint\Csv2Xml.TestPlugin.dll
+C:\Claude\csv2xmltransformer\tests\Csv2Xml.TestPlugin\obj\Debug\net9.0\Csv2Xml.TestPlugin.pdb
+C:\Claude\csv2xmltransformer\tests\Csv2Xml.TestPlugin\obj\Debug\net9.0\ref\Csv2Xml.TestPlugin.dll

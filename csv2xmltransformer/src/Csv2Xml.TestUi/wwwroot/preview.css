@@ -1,0 +1,40 @@
+body.preview { height: 100vh; display: flex; flex-direction: column; }
+.pv-bar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border); }
+.pv-bar h1 { font-size: 15px; margin: 0 6px 0 0; }
+.pv-bar .spacer { flex: 1; }
+.pv-bar input[type=text] { width: 200px; }
+.pv-bar .group { display: inline-flex; gap: 4px; }
+.pv-body { flex: 1; overflow: auto; padding: 12px 16px 40px; }
+.pv-note { padding: 8px 16px; color: var(--muted); border-bottom: 1px solid var(--border); background: var(--panel); }
+.pv-note.err { color: var(--err); }
+
+/* Trees (XML and JSON) */
+.tree { font-family: "Cascadia Code", Consolas, monospace; font-size: 12.5px; line-height: 1.6; background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+.tree.wrap .line { white-space: pre-wrap; word-break: break-all; }
+.line { white-space: pre; padding-left: 18px; position: relative; border-radius: 4px; }
+.line:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.kids { margin-left: 18px; border-left: 1px dashed var(--border); }
+.tog { position: absolute; left: 0; top: 3px; width: 14px; height: 14px; display: grid; place-items: center; font-size: 11px; line-height: 1;
+       border: 1px solid var(--border); border-radius: 4px; color: var(--muted); cursor: pointer; user-select: none; background: var(--panel-2); }
+.tog:hover { border-color: var(--accent); color: var(--accent); }
+.node.collapsed > .kids, .node.collapsed > .close { display: none; }
+.ellipsis { display: none; color: var(--muted); cursor: pointer; }
+.node.collapsed > .line .ellipsis { display: inline; }
+.x-tag { color: var(--x-tag); } .x-attr { color: var(--x-attr); } .x-val { color: var(--x-val); } .x-text { color: var(--x-text); }
+.x-p { color: var(--x-punct); } .x-comment { color: var(--x-comment); font-style: italic; } .x-decl { color: var(--j-lit); }
+.j-key { color: var(--j-key); } .j-str { color: var(--j-str); } .j-num { color: var(--j-num); } .j-lit { color: var(--j-lit); }
+.hit { background: color-mix(in srgb, var(--warn) 35%, transparent); border-radius: 3px; }
+
+/* CSV */
+.csv { border-collapse: separate; border-spacing: 0; font-size: 12.5px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); }
+.csv th, .csv td { padding: 4px 10px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); white-space: pre; text-align: left; vertical-align: top; }
+.csv.wrap td { white-space: pre-wrap; max-width: 360px; }
+.csv thead th { position: sticky; top: 0; background: var(--panel-2); z-index: 1; }
+.csv th .num { display: block; color: var(--muted); font-weight: 400; font-size: 11px; }
+.csv .rn { color: var(--muted); text-align: right; background: var(--panel-2); position: sticky; left: 0; }
+.csv td.empty { background: color-mix(in srgb, var(--muted) 8%, transparent); }
+.csv tr.bad td { background: color-mix(in srgb, var(--err) 14%, transparent); }
+.csv th.dup { color: var(--warn); }
+.ws { color: var(--warn); opacity: .85; }
+pre.raw { margin: 0; background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; white-space: pre; }
+pre.raw.wrap { white-space: pre-wrap; word-break: break-all; }

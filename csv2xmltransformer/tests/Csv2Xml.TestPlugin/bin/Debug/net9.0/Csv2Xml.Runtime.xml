@@ -1,0 +1,366 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Csv2Xml.Runtime</name>
+    </assembly>
+    <members>
+        <member name="T:Csv2Xml.Runtime.Csv.CsvFormatException">
+            <summary>The CSV text is malformed (e.g. a quoted field never closed). Line is the 1-based physical line where the bad record starts.</summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Csv.CsvFormatException.#ctor(System.Int64,System.String)">
+            <summary>The CSV text is malformed (e.g. a quoted field never closed). Line is the 1-based physical line where the bad record starts.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Csv.CsvParser">
+            <summary>
+            Streaming RFC 4180 parser: quotes, escaped quotes, embedded delimiters/newlines, CR/LF/CRLF, one row in memory at a time.
+            A leading byte-order mark (U+FEFF) is dropped. Empty lines are skipped. An unterminated quoted field throws CsvFormatException.
+            </summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Csv.CsvParser.Open(System.String,System.String)">
+            <summary>
+            Opens a CSV file for reading with strict decoding: bytes invalid in the encoding throw DecoderFallbackException instead of
+            silently becoming U+FFFD. Encoding: a byte-order mark (UTF-8/16/32) wins; otherwise the named encoding; default UTF-8.
+            </summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Csv.CsvParser.Open(System.IO.Stream,System.String)">
+            <summary>Same as Open, over a stream (e.g. an upload).</summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Csv.CsvParser.DescribeInputError(System.Exception)">
+            <summary>User-facing message for malformed CSV or undecodable input; null for any other exception.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Mapping.ConfigJson">
+            <summary>
+            Storage form of mappings and jobs: UTF-8 JSON inside a versioned envelope, so a stored config identifies itself and
+            future format changes can be detected rather than misread.
+            </summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Mapping.MappingSpec">
+            <summary>
+            The settled, self-contained definition the production writer runs from. It carries everything needed
+            to emit conforming XML (structure, order, requiredness) and knows nothing of how it was produced.
+            </summary>
+            <param name="Kind">Name of the document kind (informational).</param>
+            <param name="RootElement">Optional wrapper element enclosing the kind root (e.g. the XSD's choice root).</param>
+            <param name="Namespace">Namespace of the kind root element.</param>
+            <param name="Fields">In XSD document order. Order is significant: it is the emission order.</param>
+            <param name="XsdHash">XsdValidator.Hash of the XSD text the spec was designed against; a run given different XSD text is refused.</param>
+            <param name="RootFields">Document-level values (outside the kind) supplied per run, written inside RootElement before the kind.</param>
+            <param name="GroupKeys">Optional override: repeating-element path -> field paths identifying an instance. Default: all fields owned by that level.</param>
+            <param name="RootNamespace">Namespace of RootElement (a global element); null = Namespace.</param>
+            <param name="LocalNamespace">Namespace of elements below the kind root and of RootElement's children (empty when the XSD's
+            local elements are unqualified); null = Namespace.</param>
+            <param name="Encoding">CSV text encoding name (e.g. "utf-8", "windows-1252"); null = UTF-8. A byte-order mark overrides it.</param>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Mapping.MappingSpec.#ctor(System.String,System.String,System.String,System.Boolean,System.Char,System.Collections.Generic.IReadOnlyList{Csv2Xml.Runtime.Mapping.FieldSpec},System.Collections.Generic.IReadOnlyDictionary{System.String,System.Collections.Generic.IReadOnlyList{System.String}},System.String,System.Collections.Generic.IReadOnlyList{Csv2Xml.Runtime.Mapping.RootFieldSpec},System.String,System.String,System.String)">
+            <summary>
+            The settled, self-contained definition the production writer runs from. It carries everything needed
+            to emit conforming XML (structure, order, requiredness) and knows nothing of how it was produced.
+            </summary>
+            <param name="Kind">Name of the document kind (informational).</param>
+            <param name="RootElement">Optional wrapper element enclosing the kind root (e.g. the XSD's choice root).</param>
+            <param name="Namespace">Namespace of the kind root element.</param>
+            <param name="Fields">In XSD document order. Order is significant: it is the emission order.</param>
+            <param name="XsdHash">XsdValidator.Hash of the XSD text the spec was designed against; a run given different XSD text is refused.</param>
+            <param name="RootFields">Document-level values (outside the kind) supplied per run, written inside RootElement before the kind.</param>
+            <param name="GroupKeys">Optional override: repeating-element path -> field paths identifying an instance. Default: all fields owned by that level.</param>
+            <param name="RootNamespace">Namespace of RootElement (a global element); null = Namespace.</param>
+            <param name="LocalNamespace">Namespace of elements below the kind root and of RootElement's children (empty when the XSD's
+            local elements are unqualified); null = Namespace.</param>
+            <param name="Encoding">CSV text encoding name (e.g. "utf-8", "windows-1252"); null = UTF-8. A byte-order mark overrides it.</param>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Mapping.MappingSpec.Kind">
+            <summary>Name of the document kind (informational).</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Mapping.MappingSpec.RootElement">
+            <summary>Optional wrapper element enclosing the kind root (e.g. the XSD's choice root).</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Mapping.MappingSpec.Namespace">
+            <summary>Namespace of the kind root element.</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Mapping.MappingSpec.Fields">
+            <summary>In XSD document order. Order is significant: it is the emission order.</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Mapping.MappingSpec.GroupKeys">
+            <summary>Optional override: repeating-element path -> field paths identifying an instance. Default: all fields owned by that level.</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Mapping.MappingSpec.XsdHash">
+            <summary>XsdValidator.Hash of the XSD text the spec was designed against; a run given different XSD text is refused.</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Mapping.MappingSpec.RootFields">
+            <summary>Document-level values (outside the kind) supplied per run, written inside RootElement before the kind.</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Mapping.MappingSpec.RootNamespace">
+            <summary>Namespace of RootElement (a global element); null = Namespace.</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Mapping.MappingSpec.LocalNamespace">
+            <summary>Namespace of elements below the kind root and of RootElement's children (empty when the XSD's
+            local elements are unqualified); null = Namespace.</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Mapping.MappingSpec.Encoding">
+            <summary>CSV text encoding name (e.g. "utf-8", "windows-1252"); null = UTF-8. A byte-order mark overrides it.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Mapping.FieldSpec">
+            <param name="Path">Slash path from the kind root; attributes end in '@name'.</param>
+            <param name="RepeatingAncestors">Paths of repeating elements enclosing this field (incl. itself for a repeating element), outermost first.</param>
+            <param name="Column">Header text found at ColumnIndex at design time; verified at run time when HasHeader (never used to bind).</param>
+            <param name="ColumnIndex">Zero-based column the field binds to; null = unmapped.</param>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Mapping.FieldSpec.#ctor(System.String,System.Boolean,System.String,System.Collections.Generic.IReadOnlyList{System.String},System.String,System.Nullable{System.Int32})">
+            <param name="Path">Slash path from the kind root; attributes end in '@name'.</param>
+            <param name="RepeatingAncestors">Paths of repeating elements enclosing this field (incl. itself for a repeating element), outermost first.</param>
+            <param name="Column">Header text found at ColumnIndex at design time; verified at run time when HasHeader (never used to bind).</param>
+            <param name="ColumnIndex">Zero-based column the field binds to; null = unmapped.</param>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Mapping.FieldSpec.Path">
+            <summary>Slash path from the kind root; attributes end in '@name'.</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Mapping.FieldSpec.RepeatingAncestors">
+            <summary>Paths of repeating elements enclosing this field (incl. itself for a repeating element), outermost first.</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Mapping.FieldSpec.Column">
+            <summary>Header text found at ColumnIndex at design time; verified at run time when HasHeader (never used to bind).</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Mapping.FieldSpec.ColumnIndex">
+            <summary>Zero-based column the field binds to; null = unmapped.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Mapping.RootFieldSpec">
+            <param name="Path">Slash path starting at RootElement; attributes end in '@name'.</param>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Mapping.RootFieldSpec.#ctor(System.String,System.Boolean,System.String)">
+            <param name="Path">Slash path starting at RootElement; attributes end in '@name'.</param>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Mapping.RootFieldSpec.Path">
+            <summary>Slash path starting at RootElement; attributes end in '@name'.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Output.OutputPackage">
+            <summary>The finished zip; opened lazily so a sink can stream it.</summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Output.OutputPackage.#ctor(System.String,System.Func{System.IO.Stream},System.Int64)">
+            <summary>The finished zip; opened lazily so a sink can stream it.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Output.IOutputSink">
+            <summary>Delivers a finished package. Implementations own transport details (auth, certificates, retries).</summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Output.IOutputSink.SendAsync(Csv2Xml.Runtime.Output.OutputPackage,System.Threading.CancellationToken)">
+            <returns>A receipt: where it went / what the endpoint said.</returns>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Output.FileOutputSink">
+            <summary>Default sink: writes into a folder, atomically (temp name then move).</summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Output.FileOutputSink.#ctor(System.String)">
+            <summary>Default sink: writes into a folder, atomically (temp name then move).</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Output.HttpPostOutputSink">
+            <summary>Default sink: POSTs the zip as the request body. Auth/certs come from the supplied HttpClient and/or configure hook.</summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Output.HttpPostOutputSink.#ctor(System.Net.Http.HttpClient,System.Uri,System.Action{System.Net.Http.HttpRequestMessage})">
+            <summary>Default sink: POSTs the zip as the request body. Auth/certs come from the supplied HttpClient and/or configure hook.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Run.PackageFile">
+            <summary>An entry destined for the output zip. Content is opened lazily so large files are never held in memory.</summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Run.PackageFile.#ctor(System.String,System.Func{System.IO.Stream})">
+            <summary>An entry destined for the output zip. Content is opened lazily so large files are never held in memory.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Run.Context">
+            <summary>
+            What middleware (a plugin's public Transform(Context)) sees and may change just before packaging:
+            edit ReportText or Report, add/remove/replace Files. Whatever is here afterwards is zipped and sent.
+            </summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Run.JobSpec">
+            <summary>The settled definition of a run: one mapping per kind, the run-parameter definitions, and packaging policy.</summary>
+            <param name="PackageName">Zip file name; tokens {Name} and {timestamp}.</param>
+            <param name="OmitXmlDeclaration">When true (default) the XML files carry no <c>&lt;?xml version encoding?&gt;</c> declaration; they are UTF-8 without a BOM either way.</param>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Run.JobSpec.#ctor(System.String,System.Collections.Generic.IReadOnlyList{Csv2Xml.Runtime.Run.RunParameterDef},System.Collections.Generic.IReadOnlyList{Csv2Xml.Runtime.Mapping.MappingSpec},System.String,System.Boolean,Csv2Xml.Runtime.Writing.ErrorPolicy,System.Boolean)">
+            <summary>The settled definition of a run: one mapping per kind, the run-parameter definitions, and packaging policy.</summary>
+            <param name="PackageName">Zip file name; tokens {Name} and {timestamp}.</param>
+            <param name="OmitXmlDeclaration">When true (default) the XML files carry no <c>&lt;?xml version encoding?&gt;</c> declaration; they are UTF-8 without a BOM either way.</param>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Run.JobSpec.PackageName">
+            <summary>Zip file name; tokens {Name} and {timestamp}.</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Run.JobSpec.OmitXmlDeclaration">
+            <summary>When true (default) the XML files carry no <c>&lt;?xml version encoding?&gt;</c> declaration; they are UTF-8 without a BOM either way.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Run.RunRequest">
+            <summary>What is supplied when a run starts: kind -> CSV path, and parameter key -> value.</summary>
+            <param name="XsdText">Optional XSD content; when given and the job validates output, every XML is validated against it before sending.</param>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Run.RunRequest.#ctor(System.Collections.Generic.IReadOnlyDictionary{System.String,System.String},System.Collections.Generic.IReadOnlyDictionary{System.String,System.String},System.String)">
+            <summary>What is supplied when a run starts: kind -> CSV path, and parameter key -> value.</summary>
+            <param name="XsdText">Optional XSD content; when given and the job validates output, every XML is validated against it before sending.</param>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Run.RunRequest.XsdText">
+            <summary>Optional XSD content; when given and the job validates output, every XML is validated against it before sending.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Run.PluginRunner">
+            <summary>Finds the first public Transform(Context) in the first assembly in a plugin folder and runs it.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Run.RunException">
+            <summary>A run was refused or stopped. Problems lists every reason found (all inputs are checked before stopping).</summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Run.RunException.#ctor(System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>A run was refused or stopped. Problems lists every reason found (all inputs are checked before stopping).</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Run.RunParameterDef">
+            <summary>A document-level value the user supplies (or accepts a default for) when starting a run.</summary>
+            <param name="Key">Stable name used in requests and plugins.</param>
+            <param name="Path">Root field path it fills.</param>
+            <param name="Default">Literal or token: {now} {today} {guid} {machine} {user}. Used when nothing is supplied.</param>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Run.RunParameterDef.#ctor(System.String,System.String,System.String,System.String,System.Boolean,System.String)">
+            <summary>A document-level value the user supplies (or accepts a default for) when starting a run.</summary>
+            <param name="Key">Stable name used in requests and plugins.</param>
+            <param name="Path">Root field path it fills.</param>
+            <param name="Default">Literal or token: {now} {today} {guid} {machine} {user}. Used when nothing is supplied.</param>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Run.RunParameterDef.Key">
+            <summary>Stable name used in requests and plugins.</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Run.RunParameterDef.Path">
+            <summary>Root field path it fills.</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Run.RunParameterDef.Default">
+            <summary>Literal or token: {now} {today} {guid} {machine} {user}. Used when nothing is supplied.</summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Run.RunParameters.Resolve(System.Collections.Generic.IReadOnlyList{Csv2Xml.Runtime.Run.RunParameterDef},System.Collections.Generic.IReadOnlyDictionary{System.String,System.String},System.TimeProvider)">
+            <summary>Supplied value wins, else expanded default. Reports every problem (unknown key, missing required, bad type) at once.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Run.RunPipeline">
+            <summary>
+            One run: resolve run values, preflight every input (nothing is written if any fails), transform each CSV to XML in a temp
+            folder, validate against the XSD (when the request supplies it), build the report, run the plugin, zip, send. Nothing is sent unless every step succeeded.
+            </summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Run.RunPipeline.#ctor(Csv2Xml.Runtime.Output.IOutputSink,System.TimeProvider)">
+            <summary>
+            One run: resolve run values, preflight every input (nothing is written if any fails), transform each CSV to XML in a temp
+            folder, validate against the XSD (when the request supplies it), build the report, run the plugin, zip, send. Nothing is sent unless every step succeeded.
+            </summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Run.RunReport">
+            <summary>Structured record of a run; plugins may read it and adjust it before Render().</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Validation.TypeCheck">
+            <summary>Checks a value against an XSD built-in type name as stored in specs (e.g. "int", "datetime").</summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Validation.TypeCheck.Error(System.String,System.String)">
+            <returns>null when valid or the type is not a recognised built-in; otherwise a message.</returns>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Validation.XsdValidator">
+            <summary>XSD identity (content hash), compilation from text, and streamed (no DOM) conformance checking.</summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Validation.XsdValidator.Hash(System.String)">
+            <summary>
+            Identity of an XSD: SHA-256 (hex) of its text as UTF-8, ignoring a leading BOM and CRLF/LF differences, so the same
+            file read by different means or checked out on another OS hashes equal. Location-independent: stored mappings stay portable.
+            </summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Validation.XsdValidator.Compile(System.String)">
+            <summary>
+            Compiles a single self-contained XSD from text. Throws XmlSchemaException / XmlException when invalid, including when it
+            uses xs:include / xs:import / xs:redefine: text has no location to resolve them from, and ignoring them would silently
+            drop types. Merge such schemas into one file first.
+            </summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Writing.ColumnBinder">
+            <summary>
+            Resolves each field to a CSV column index (-1 = unmapped optional). Binding is by ColumnIndex only; when the CSV has a
+            header, the header text at that index must still equal the recorded Column (trim, case-insensitive), otherwise the
+            input's layout has changed and nothing is written. Throws listing every problem.
+            </summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Writing.ColumnBinder.HeaderEquals(System.String,System.String)">
+            <summary>Header identity: case-insensitive (ordinal), ignoring surrounding whitespace (incl. NBSP) and a stray BOM.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Writing.MappingException">
+            <summary>A spec cannot be applied to an input (layout changed, required target unmapped, run value missing). Raised before any output.</summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Writing.MappingException.#ctor(System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>A spec cannot be applied to an input (layout changed, required target unmapped, run value missing). Raised before any output.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Writing.Node">
+            <summary>Element/attribute template node. FieldIndex binds a node to a spec field (its text or attribute value).</summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Writing.Node.#ctor(System.String,System.Boolean)">
+            <summary>Element/attribute template node. FieldIndex binds a node to a spec field (its text or attribute value).</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Writing.RootTemplate">
+            <summary>Root-field template builder.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Writing.Level">
+            <param name="Wrappers">Non-repeating elements between the parent level and this level's element, outermost first.</param>
+            <param name="Template">Owned fields as a tree; its Name is the level's element name.</param>
+            <param name="KeyFields">Field indices whose values identify an instance.</param>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Writing.Level.#ctor(System.String,System.String[],Csv2Xml.Runtime.Writing.Node,System.Int32[])">
+            <param name="Wrappers">Non-repeating elements between the parent level and this level's element, outermost first.</param>
+            <param name="Template">Owned fields as a tree; its Name is the level's element name.</param>
+            <param name="KeyFields">Field indices whose values identify an instance.</param>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Writing.Level.Wrappers">
+            <summary>Non-repeating elements between the parent level and this level's element, outermost first.</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Writing.Level.Template">
+            <summary>Owned fields as a tree; its Name is the level's element name.</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Writing.Level.KeyFields">
+            <summary>Field indices whose values identify an instance.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Writing.WritePlan">
+            <summary>
+            Static analysis of a spec: root template + chain of repeating levels (outermost first).
+            Only mapped fields shape the plan: an unmapped field never produces output, so it cannot constrain the structure.
+            </summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Writing.RepeatChain">
+            <summary>
+            The single rule for how CSV rows can express repetition: all values must lie on one chain of nested repeating elements
+            (e.g. Order > Line). Shared by the writer and the design-time checks so they cannot disagree.
+            </summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Writing.RepeatChain.Of(System.Collections.Generic.IEnumerable{System.Collections.Generic.IReadOnlyList{System.String}})">
+            <summary>The deepest chain among the given repeating-ancestor lists.</summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Writing.RepeatChain.FirstBranch(System.Collections.Generic.IEnumerable{System.ValueTuple{System.String,System.Collections.Generic.IReadOnlyList{System.String}}})">
+            <summary>Path of the first item not on the deepest chain (i.e. in a sibling repeating group), or null when all fit.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Writing.TransformResult">
+            <param name="RowsRead">Records read including the header row and skipped blank rows.</param>
+            <param name="BlankRows">Rows whose fields were all empty/whitespace; skipped, not errors.</param>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Writing.TransformResult.#ctor(System.Int64,System.Int64,System.Collections.Generic.IReadOnlyList{Csv2Xml.Runtime.Writing.RowError},System.Boolean,System.Int64)">
+            <param name="RowsRead">Records read including the header row and skipped blank rows.</param>
+            <param name="BlankRows">Rows whose fields were all empty/whitespace; skipped, not errors.</param>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Writing.TransformResult.RowsRead">
+            <summary>Records read including the header row and skipped blank rows.</summary>
+        </member>
+        <member name="P:Csv2Xml.Runtime.Writing.TransformResult.BlankRows">
+            <summary>Rows whose fields were all empty/whitespace; skipped, not errors.</summary>
+        </member>
+        <member name="T:Csv2Xml.Runtime.Writing.XmlTransformer">
+            <summary>
+            Streams CSV rows into XML via XmlWriter; memory is independent of input size (one row + open-element key stack).
+            Rows sharing the same key at an outer repeating level (and contiguous in the input) collapse into one instance.
+            Owned (non-repeating) content of an instance is emitted when the instance opens, i.e. before any repeating child.
+            <para>
+            Row checks (an error halts or skips the row per ErrorPolicy): field count must equal the header's; required values present;
+            mapped values contain only XML-legal characters. Malformed CSV (unterminated quote) or undecodable bytes halt the run.
+            Mapping problems (layout, unbound required targets, missing run values) throw MappingException before any output.
+            </para>
+            </summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Writing.XmlTransformer.IllegalXmlChar(System.String)">
+            <summary>Describes the first character XML 1.0 cannot carry (control characters, lone surrogates), or null.</summary>
+        </member>
+        <member name="F:Csv2Xml.Runtime.Writing.XmlTransformer.SearchValuesXml.Legal">
+            <summary>XML 1.0 legal BMP characters excluding surrogates (pairs are checked separately).</summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Writing.XmlTransformer.WriteOwned(System.Xml.XmlWriter,Csv2Xml.Runtime.Writing.Node,System.String[],System.Func{System.String[],System.Int32,System.String},System.String)">
+            <summary>Writes a node's content (its start tag is already written): attributes, text, then child elements that have a value.</summary>
+        </member>
+    </members>
+</doc>

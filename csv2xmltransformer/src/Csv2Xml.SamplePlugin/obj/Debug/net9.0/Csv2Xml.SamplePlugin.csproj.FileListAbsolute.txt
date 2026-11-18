@@ -1,0 +1,16 @@
+C:\Claude\csv2xmltransformer\src\Csv2Xml.SamplePlugin\bin\Debug\net9.0\Csv2Xml.SamplePlugin.deps.json
+C:\Claude\csv2xmltransformer\src\Csv2Xml.SamplePlugin\bin\Debug\net9.0\Csv2Xml.SamplePlugin.dll
+C:\Claude\csv2xmltransformer\src\Csv2Xml.SamplePlugin\bin\Debug\net9.0\Csv2Xml.SamplePlugin.pdb
+C:\Claude\csv2xmltransformer\src\Csv2Xml.SamplePlugin\bin\Debug\net9.0\Csv2Xml.Runtime.dll
+C:\Claude\csv2xmltransformer\src\Csv2Xml.SamplePlugin\bin\Debug\net9.0\Csv2Xml.Runtime.pdb
+C:\Claude\csv2xmltransformer\src\Csv2Xml.SamplePlugin\obj\Debug\net9.0\Csv2Xml.SamplePlugin.csproj.AssemblyReference.cache
+C:\Claude\csv2xmltransformer\src\Csv2Xml.SamplePlugin\obj\Debug\net9.0\Csv2Xml.SamplePlugin.GeneratedMSBuildEditorConfig.editorconfig
+C:\Claude\csv2xmltransformer\src\Csv2Xml.SamplePlugin\obj\Debug\net9.0\Csv2Xml.SamplePlugin.AssemblyInfoInputs.cache
+C:\Claude\csv2xmltransformer\src\Csv2Xml.SamplePlugin\obj\Debug\net9.0\Csv2Xml.SamplePlugin.AssemblyInfo.cs
+C:\Claude\csv2xmltransformer\src\Csv2Xml.SamplePlugin\obj\Debug\net9.0\Csv2Xml.SamplePlugin.csproj.CoreCompileInputs.cache
+C:\Claude\csv2xmltransformer\src\Csv2Xml.SamplePlugin\obj\Debug\net9.0\Csv2Xml..86DFE547.Up2Date
+C:\Claude\csv2xmltransformer\src\Csv2Xml.SamplePlugin\obj\Debug\net9.0\Csv2Xml.SamplePlugin.dll
+C:\Claude\csv2xmltransformer\src\Csv2Xml.SamplePlugin\obj\Debug\net9.0\refint\Csv2Xml.SamplePlugin.dll
+C:\Claude\csv2xmltransformer\src\Csv2Xml.SamplePlugin\obj\Debug\net9.0\Csv2Xml.SamplePlugin.pdb
+C:\Claude\csv2xmltransformer\src\Csv2Xml.SamplePlugin\obj\Debug\net9.0\ref\Csv2Xml.SamplePlugin.dll
+C:\Claude\csv2xmltransformer\src\Csv2Xml.SamplePlugin\bin\Debug\net9.0\Csv2Xml.Runtime.xml

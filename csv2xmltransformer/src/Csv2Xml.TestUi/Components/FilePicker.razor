@@ -1,0 +1,130 @@
+@* Path box with a server-side folder browser (the UI runs on the same machine as the files, so real paths are available,
+   unlike a browser <input type=file>). Opens in the folder of the current value, or its nearest existing ancestor. *@
+@using Csv2Xml.TestUi.Services
+
+<div class="picker">
+    <input type="text" value="@Value" placeholder="@Placeholder" spellcheck="false"
+           @onchange="OnTyped" />
+    <button class="icon" title="Browse" @onclick="Toggle">📁</button>
+    @if (OnPreview.HasDelegate && !Folder)
+    {
+        <button class="icon" title="Preview in a new window" disabled="@(!File.Exists(Value))" @onclick="() => OnPreview.InvokeAsync(Value)">👁</button>
+    }
+</div>
+
+@if (open)
+{
+    <div class="browser">
+        <div class="browser-bar">
+            <button class="icon" title="Up" disabled="@(Directory.GetParent(dir) is null)" @onclick="() => Go(Directory.GetParent(dir)!.FullName)">⬆</button>
+            <code class="cwd" title="@dir">@dir</code>
+            @if (Folder || Save)
+            {
+                <button class="primary" @onclick="UseFolder">@(Folder ? "Use this folder" : $"Save here as {Path.GetFileName(Value)}")</button>
+            }
+            <button class="icon" title="Close" @onclick="Toggle">✕</button>
+        </div>
+        <div class="shortcuts">
+            @foreach (var (label, path) in Shortcuts())
+            {
+                <button class="chip" @onclick="() => Go(path)">@label</button>
+            }
+        </div>
+        <ul class="entries">
+            @if (error is not null) { <li class="err">@error</li> }
+            @foreach (var d in dirs)
+            {
+                <li class="entry dir" @onclick="() => Go(d.FullName)"><span>📁 @d.Name</span></li>
+            }
+            @foreach (var f in files)
+            {
+                <li class="entry file @(string.Equals(f.FullName, Value, StringComparison.OrdinalIgnoreCase) ? "current" : "")" @onclick="() => Pick(f.FullName)">
+                    <span>📄 @f.Name</span><span class="meta">@Size(f.Length) · @f.LastWriteTime.ToString("yyyy-MM-dd HH:mm")</span>
+                </li>
+            }
+            @if (dirs.Count == 0 && files.Count == 0 && error is null)
+            {
+                <li class="muted">no @(Folder ? "sub-folders" : string.Join(" / ", Extensions) + " files") here</li>
+            }
+        </ul>
+    </div>
+}
+
+@code {
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    /// <summary>File extensions listed (with dot); folders are always listed.</summary>
+    [Parameter] public string[] Extensions { get; set; } = [];
+    /// <summary>Choose a folder rather than a file.</summary>
+    [Parameter] public bool Folder { get; set; }
+    /// <summary>The file may not exist yet; browsing can move it to another folder, keeping its name.</summary>
+    [Parameter] public bool Save { get; set; }
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public EventCallback<string> OnPreview { get; set; }
+
+    bool open;
+    string dir = "";
+    string? error;
+    List<DirectoryInfo> dirs = [];
+    List<FileInfo> files = [];
+
+    void Toggle()
+    {
+        open = !open;
+        if (open) Go(StartFolder(Value));
+    }
+
+    static string StartFolder(string value)
+    {
+        if (Directory.Exists(value)) return value;
+        for (var d = SafeParent(value); d is not null; d = SafeParent(d))
+            if (Directory.Exists(d)) return d;
+        return Directory.Exists(UiSettings.WorkDir) ? UiSettings.WorkDir : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+    }
+
+    static string? SafeParent(string p)
+    {
+        try { return string.IsNullOrWhiteSpace(p) ? null : Path.GetDirectoryName(p.TrimEnd('\\', '/')); }
+        catch (ArgumentException) { return null; }
+    }
+
+    void Go(string path)
+    {
+        dir = path; error = null; dirs = []; files = [];
+        try
+        {
+            var di = new DirectoryInfo(path);
+            dirs = di.EnumerateDirectories().Where(d => (d.Attributes & (FileAttributes.Hidden | FileAttributes.System)) == 0).OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase).ToList();
+            if (!Folder)
+                files = di.EnumerateFiles().Where(f => Extensions.Length == 0 || Extensions.Contains(f.Extension, StringComparer.OrdinalIgnoreCase))
+                    .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase).ToList();
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Security.SecurityException) { error = e.Message; }
+    }
+
+    async Task Pick(string path) { open = false; await Set(path); }
+
+    async Task UseFolder()
+    {
+        open = false;
+        await Set(Folder ? dir : Path.Combine(dir, Path.GetFileName(Value) is { Length: > 0 } n ? n : "mapping.json"));
+    }
+
+    Task OnTyped(ChangeEventArgs e) => Set(e.Value as string ?? string.Empty);
+
+    async Task Set(string v) { Value = v.Trim().Trim('"'); await ValueChanged.InvokeAsync(Value); }
+
+    static IEnumerable<(string, string)> Shortcuts()
+    {
+        if (UiSettings.SamplesDir is { } s) yield return ("samples", s);
+        if (Directory.Exists(UiSettings.WorkDir)) yield return ("Csv2Xml", UiSettings.WorkDir);
+        yield return ("Documents", Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+        yield return ("Desktop", Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory));
+        var downloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+        if (Directory.Exists(downloads)) yield return ("Downloads", downloads);
+        yield return ("Temp", Path.GetTempPath());
+        foreach (var d in DriveInfo.GetDrives().Where(d => d.IsReady)) yield return (d.Name.TrimEnd('\\'), d.RootDirectory.FullName);
+    }
+
+    static string Size(long b) => b < 1024 ? $"{b} B" : b < 1 << 20 ? $"{b / 1024.0:0.#} KB" : $"{b / 1048576.0:0.#} MB";
+}

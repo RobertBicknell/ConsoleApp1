@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v9.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v9.0": {
+      "Csv2Xml.SamplePlugin/1.0.0": {
+        "dependencies": {
+          "Csv2Xml.Runtime": "1.0.0"
+        },
+        "runtime": {
+          "Csv2Xml.SamplePlugin.dll": {}
+        }
+      },
+      "Csv2Xml.Runtime/1.0.0": {
+        "runtime": {
+          "Csv2Xml.Runtime.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Csv2Xml.SamplePlugin/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Csv2Xml.Runtime/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
