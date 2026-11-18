@@ -2,6 +2,7 @@
    unlike a browser <input type=file>). Opens in the folder of the current value, or its nearest existing ancestor. *@
 @using Csv2Xml.TestUi.Services
 
+<div class="picker-wrap">
 <div class="picker">
     <input type="text" value="@Value" placeholder="@Placeholder" spellcheck="false"
            @onchange="OnTyped" />
@@ -11,13 +12,31 @@
         <button class="icon" title="Preview in a new window" disabled="@(!File.Exists(Value))" @onclick="() => OnPreview.InvokeAsync(Value)">👁</button>
     }
 </div>
+@if (!string.IsNullOrWhiteSpace(Value))
+{
+    @* the box scrolls a long path; this line shows it all, name first, wrapping instead of cutting *@
+    <div class="pathinfo" title="@Value">
+        @if (Folder) { <span>@Value</span> }
+        else
+        {
+            <strong>@Path.GetFileName(Value)</strong>
+            <span class="muted">in @Path.GetDirectoryName(Value)</span>
+            @if (!File.Exists(Value)) { <span class="@(Save ? "muted" : "err")"> @(Save ? "· new file" : "· not found")</span> }
+        }
+    </div>
+}
 
 @if (open)
 {
     <div class="browser">
         <div class="browser-bar">
             <button class="icon" title="Up" disabled="@(Directory.GetParent(dir) is null)" @onclick="() => Go(Directory.GetParent(dir)!.FullName)">⬆</button>
-            <code class="cwd" title="@dir">@dir</code>
+            <div class="crumbs">
+                @foreach (var (name, full) in Crumbs(dir))
+                {
+                    <button class="crumb" @onclick="() => Go(full)">@name</button><span class="sep">›</span>
+                }
+            </div>
             @if (Folder || Save)
             {
                 <button class="primary" @onclick="UseFolder">@(Folder ? "Use this folder" : $"Save here as {Path.GetFileName(Value)}")</button>
@@ -49,6 +68,8 @@
         </ul>
     </div>
 }
+
+</div>
 
 @code {
     [Parameter] public string Value { get; set; } = "";
@@ -124,6 +145,15 @@
         if (Directory.Exists(downloads)) yield return ("Downloads", downloads);
         yield return ("Temp", Path.GetTempPath());
         foreach (var d in DriveInfo.GetDrives().Where(d => d.IsReady)) yield return (d.Name.TrimEnd('\\'), d.RootDirectory.FullName);
+    }
+
+    /// <summary>Each ancestor of a folder, root first, for clickable breadcrumbs.</summary>
+    static IEnumerable<(string Name, string Full)> Crumbs(string folder)
+    {
+        var chain = new List<DirectoryInfo>();
+        for (var d = new DirectoryInfo(folder); d is not null; d = d.Parent) chain.Add(d);
+        chain.Reverse();
+        return chain.Select(d => (d.Parent is null ? d.FullName.TrimEnd('\\', '/') : d.Name, d.FullName));
     }
 
     static string Size(long b) => b < 1024 ? $"{b} B" : b < 1 << 20 ? $"{b / 1024.0:0.#} KB" : $"{b / 1048576.0:0.#} MB";

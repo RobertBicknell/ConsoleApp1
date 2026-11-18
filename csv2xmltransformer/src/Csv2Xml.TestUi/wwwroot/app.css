@@ -18,7 +18,7 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
-main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 48px; }
+main { max-width: 1320px; margin: 0 auto; padding: 20px 16px 48px; }
 header.top { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 header.top h1 { font-size: 20px; margin: 0; flex: 1; }
 .muted { color: var(--muted); }
@@ -28,7 +28,7 @@ section.card { background: var(--panel); border: 1px solid var(--border); border
 section.card > h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 10px; }
 section.card > h2 .step { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--accent-text); font-size: 12px; }
 .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 8px 0; }
-.field { display: grid; grid-template-columns: 150px 1fr; align-items: start; gap: 8px; margin: 8px 0; }
+.field { display: grid; grid-template-columns: 170px minmax(0, 1fr); align-items: start; gap: 8px; margin: 8px 0; }
 .field > label { padding-top: 7px; color: var(--muted); }
 
 input[type=text], select, textarea {
@@ -52,11 +52,17 @@ button.primary:hover:not(:disabled) { filter: brightness(1.08); }
 button.icon { padding: 5px 8px; line-height: 1; }
 button.chip { padding: 3px 10px; border-radius: 999px; font-size: 12.5px; }
 
+.picker-wrap { min-width: 0; }
 .picker { display: flex; gap: 6px; width: 100%; }
-.picker input { flex: 1; font-family: "Cascadia Code", Consolas, monospace; font-size: 12.5px; }
+.picker input { flex: 1; min-width: 0; font-family: "Cascadia Code", Consolas, monospace; font-size: 13px; }
 .browser { margin-top: 6px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel-2); overflow: hidden; }
 .browser-bar { display: flex; align-items: center; gap: 8px; padding: 8px; border-bottom: 1px solid var(--border); }
-.browser-bar .cwd { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
+.crumbs { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; min-width: 0; }
+button.crumb { background: none; border: 0; padding: 2px 5px; border-radius: 4px; font-family: "Cascadia Code", Consolas, monospace; font-size: 13px; }
+button.crumb:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.crumbs .sep { color: var(--muted); }
+.pathinfo { margin-top: 4px; font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+.pathinfo strong { font-weight: 600; }
 .shortcuts { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; border-bottom: 1px solid var(--border); }
 .entries { list-style: none; margin: 0; padding: 4px; max-height: 280px; overflow: auto; }
 .entry { display: flex; justify-content: space-between; gap: 12px; padding: 5px 8px; border-radius: var(--radius-sm); cursor: pointer; }

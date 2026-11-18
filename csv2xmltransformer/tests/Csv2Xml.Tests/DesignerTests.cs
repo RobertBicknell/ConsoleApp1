@@ -108,6 +108,18 @@ public class DesignerTests
         Assert.Equal(2, XDocument.Parse(r.Xml).Descendants("Line").Count());
     }
 
+    [Fact]
+    public void Job_needs_only_stored_mappings_and_asks_for_the_document_level_values()
+    {
+        var stored = ConfigJson.MappingFromBytes(ConfigJson.ToBytes(OrdersSpec())); // as a host would hold it: no XSD
+        var job = MappingDesigner.Job("J", [stored]);
+        Assert.Equal(["submissionId", "SubmitterName", "SubmittedAt"], job.Parameters.Select(p => p.Key));
+        Assert.Equal("Submitter name", job.Parameters[1].Label);
+        Assert.Equal("{now}", job.Parameters[2].Default);
+        Assert.All(job.Parameters, p => Assert.True(p.Required));
+        Assert.Equivalent(MappingDesigner.RunParameters(Doc), job.Parameters, strict: true); // the form shown at design time is the one used at run time
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

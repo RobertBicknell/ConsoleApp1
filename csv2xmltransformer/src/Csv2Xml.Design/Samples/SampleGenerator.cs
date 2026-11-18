@@ -3,6 +3,7 @@ using System.Xml.Linq;
 using Csv2Xml.Design.Matching;
 using Csv2Xml.Design.Schema;
 using Csv2Xml.Runtime.Mapping;
+using Csv2Xml.Runtime.Validation;
 using Csv2Xml.Runtime.Writing;
 
 namespace Csv2Xml.Design.Samples;
@@ -29,7 +30,9 @@ public sealed record SampleFile(
     };
 }
 
-public sealed record SampleSet(IReadOnlyList<SampleFile> Files, IReadOnlyList<string> Notes, IReadOnlyDictionary<string, string> RunValues)
+/// <param name="ExemplarKind">The kind the exemplar contains (the only kind generated); null when generated from the XSD alone (every kind).</param>
+public sealed record SampleSet(IReadOnlyList<SampleFile> Files, IReadOnlyList<string> Notes, IReadOnlyDictionary<string, string> RunValues,
+    string? ExemplarKind = null)
 {
     public bool AllPassed => Files.Count > 0 && Files.All(f => f.Passed);
 
@@ -56,6 +59,9 @@ public sealed record SampleSet(IReadOnlyList<SampleFile> Files, IReadOnlyList<st
     {
         var sb = new StringBuilder();
         sb.AppendLine("# Generated sample CSVs").AppendLine();
+        sb.AppendLine(ExemplarKind is null
+            ? "Source: the XSD alone; every kind, values synthesised from the XSD."
+            : $"Source: exemplar XML, a {ExemplarKind} document; every value is taken from it.").AppendLine();
         sb.AppendLine($"Result: {(AllPassed ? "all files behaved as expected" : $"{Files.Count(f => !f.Passed)} of {Files.Count} files did NOT behave as expected")}.").AppendLine();
         sb.AppendLine("Each `X.csv` has `X.mapping.json` (the correct mapping) and, when valid, `X.expected.xml` (the output it produces).").AppendLine();
         sb.AppendLine("| File | Expected | Result | Suggestions | Demonstrates |").AppendLine("|---|---|---|---|---|");
@@ -87,9 +93,14 @@ public sealed record SampleSet(IReadOnlyList<SampleFile> Files, IReadOnlyList<st
 }
 
 /// <summary>
-/// Generates, per document kind, CSV files demonstrating each mapping ability, plus the correct mapping for each, and
-/// proves each one by running it through the real writer and XSD validation. Values come from the exemplar XML when it
-/// contains the kind, otherwise they are synthesised from the XSD types and restrictions.
+/// Generates CSV files demonstrating each mapping ability, plus the correct mapping for each, and proves each one by running
+/// it through the real writer and XSD validation. Two modes:
+/// <list type="bullet">
+/// <item>With an exemplar XML: one kind, the one the exemplar contains. The exemplar must be valid against the XSD. Every
+/// value comes from the exemplar; items it does not contain are left out. Nothing is invented.</item>
+/// <item>XSD only: every kind, each file holding only its own kind's items, with values synthesised from the XSD types and
+/// restrictions (there is no other source).</item>
+/// </list>
 /// </summary>
 public static class SampleGenerator
 {
@@ -97,49 +108,79 @@ public static class SampleGenerator
 
     sealed record Table(IReadOnlyList<Col> Cols, IReadOnlyList<IReadOnlyDictionary<string, string>> Rows);
 
-    /// <exception cref="InvalidDataException">The XSD is unusable (see MappingDesigner.LoadSchema) or the exemplar is not well-formed XML.</exception>
+    /// <exception cref="InvalidDataException">The XSD is unusable (see MappingDesigner.LoadSchema); or the exemplar is not
+    /// well-formed, not valid against the XSD, contains none of its kinds, or its kind cannot be expressed as one CSV.</exception>
     public static SampleSet Generate(string xsdText, string? exemplarXml = null)
     {
         var doc = MappingDesigner.LoadSchema(xsdText);
-        XDocument? xml;
-        try { xml = exemplarXml is null ? null : XDocument.Parse(exemplarXml); }
-        catch (System.Xml.XmlException e) { throw new InvalidDataException("exemplar XML is not well-formed: " + e.Message, e); }
-        var notes = new List<string>();
+        return exemplarXml is null ? FromXsd(doc, xsdText) : FromExemplar(doc, xsdText, exemplarXml);
+    }
 
-        var exemplarRoot = xml is null ? new Dictionary<string, string>() : ExemplarValues.RootValues(doc, xml);
-        var runValues = doc.RootTargets.ToDictionary(t => t.Path, t => exemplarRoot.TryGetValue(t.Path, out var v) ? v : SyntheticValues.For(t, 1).Text);
-
+    static SampleSet FromXsd(SchemaDocument doc, string xsd)
+    {
+        var notes = new List<string> { "No exemplar XML: all values are synthesised from the XSD types and restrictions." };
+        var runValues = doc.RootTargets.ToDictionary(t => t.Path, t => SyntheticValues.For(t, 1).Text);
         var files = new List<SampleFile>();
         foreach (var kind in doc.Kinds)
         {
-            var chain = RepeatChain.Of(kind.Targets.Select(t => t.RepeatingAncestors));
-            var offChain = kind.Targets.Where(t => !t.RepeatingAncestors.SequenceEqual(chain.Take(t.RepeatingAncestors.Count))).ToList();
-            if (offChain.FirstOrDefault(t => t.Required) is { } req)
-            {
-                notes.Add($"{kind.Name}: skipped. Required '{req.Path}' repeats independently of '{string.Join(" > ", chain)}'; one CSV cannot express sibling repeating groups.");
-                continue;
-            }
-            if (offChain.Count > 0)
-                notes.Add($"{kind.Name}: optional {string.Join(", ", offChain.Select(t => $"'{t.Path}'"))} not demonstrated: in a repeating group beside '{string.Join(" > ", chain)}', so it cannot be mapped together with it.");
-            var usable = kind with { Targets = kind.Targets.Except(offChain).ToList() };
-            if (usable.Targets.Count == 0) { notes.Add($"{kind.Name}: skipped, no mappable values."); continue; }
-            files.AddRange(ForKind(doc, xsdText, usable, chain, xml, runValues, notes));
+            var (usable, chain, problem) = Mappable(kind, notes);
+            if (problem is not null) { notes.Add(problem); continue; }
+            var rows = Synthetic(usable, chain, chain.Count == 0 ? [] : [2, .. Enumerable.Repeat(1, chain.Count - 1)], notes);
+            files.AddRange(ForKind(doc, xsd, usable, chain, rows, fromExemplar: false, runValues));
         }
         return new SampleSet(files, notes, runValues);
     }
 
+    static SampleSet FromExemplar(SchemaDocument doc, string xsd, string exemplarXml)
+    {
+        XDocument xml;
+        try { xml = XDocument.Parse(exemplarXml); }
+        catch (System.Xml.XmlException e) { throw new InvalidDataException("exemplar XML is not well-formed: " + e.Message, e); }
+
+        // A valid exemplar has the XSD's root, every mandatory item, and exactly one kind; anything less is an input problem.
+        var report = XsdValidator.Validate(exemplarXml, XsdValidator.Compile(xsd), 10);
+        if (!report.IsValid)
+            throw new InvalidDataException("exemplar XML is not valid against the XSD: " +
+                string.Join("; ", report.Issues.Select(i => $"{i.Line}:{i.Column} {i.Message}")));
+
+        var kind = doc.Kinds.FirstOrDefault(k => ExemplarValues.Contains(k, xml))
+            ?? throw new InvalidDataException($"exemplar root <{xml.Root!.Name.LocalName}> contains none of the XSD's kinds ({string.Join(", ", doc.Kinds.Select(k => k.Name))})");
+
+        var notes = new List<string>();
+        var (usable, chain, problem) = Mappable(kind, notes);
+        if (problem is not null) throw new InvalidDataException(problem);
+
+        var rows = ExemplarValues.Rows(usable, chain, xml);
+        var present = rows.SelectMany(r => r.Keys).ToHashSet();
+        var absent = usable.Targets.Where(t => !present.Contains(t.Path)).ToList();
+        if (absent.Count > 0)
+            notes.Add($"{kind.Name}: {string.Join(", ", absent.Select(t => $"'{t.Path}'"))} not in the exemplar; left out of the CSVs.");
+        usable = usable with { Targets = usable.Targets.Where(t => present.Contains(t.Path)).ToList() };
+        if (usable.Targets.Count == 0) throw new InvalidDataException($"{kind.Name}: the exemplar contains no mappable values for this kind");
+
+        var runValues = ExemplarValues.RootValues(doc, xml);
+        return new SampleSet(ForKind(doc, xsd, usable, chain, rows, fromExemplar: true, runValues).ToList(), notes, runValues, kind.Name);
+    }
+
+    /// <summary>The kind's targets one CSV can carry (on the repeat chain), or why the kind cannot be generated.</summary>
+    static (SchemaKind Usable, IReadOnlyList<string> Chain, string? Problem) Mappable(SchemaKind kind, List<string> notes)
+    {
+        var chain = RepeatChain.Of(kind.Targets.Select(t => t.RepeatingAncestors));
+        var offChain = kind.Targets.Where(t => !t.RepeatingAncestors.SequenceEqual(chain.Take(t.RepeatingAncestors.Count))).ToList();
+        if (offChain.FirstOrDefault(t => t.Required) is { } req)
+            return (kind, chain, $"{kind.Name}: skipped. Required '{req.Path}' repeats independently of '{string.Join(" > ", chain)}'; one CSV cannot express sibling repeating groups.");
+        if (offChain.Count > 0)
+            notes.Add($"{kind.Name}: optional {string.Join(", ", offChain.Select(t => $"'{t.Path}'"))} not demonstrated: in a repeating group beside '{string.Join(" > ", chain)}', so it cannot be mapped together with it.");
+        var usable = kind with { Targets = kind.Targets.Except(offChain).ToList() };
+        return usable.Targets.Count == 0 ? (usable, chain, $"{kind.Name}: skipped, no mappable values.") : (usable, chain, null);
+    }
+
     static IEnumerable<SampleFile> ForKind(SchemaDocument doc, string xsd, SchemaKind kind, IReadOnlyList<string> chain,
-        XDocument? xml, IReadOnlyDictionary<string, string> runValues, List<string> notes)
+        IReadOnlyList<IReadOnlyDictionary<string, string>> baseRows, bool fromExemplar, IReadOnlyDictionary<string, string> runValues)
     {
         var targets = kind.Targets;
         var headers = CleanHeaders(targets);
         var cleanCols = targets.Select(t => new Col(headers[t.Path], t.Path)).ToList();
-
-        var exemplarRows = xml is null ? null : ExemplarValues.Rows(kind, chain, xml);
-        var fromExemplar = exemplarRows is { Count: > 0 };
-        if (xml is not null && !fromExemplar) notes.Add($"{kind.Name}: not in the exemplar XML; values synthesised from the XSD.");
-
-        var baseRows = fromExemplar ? exemplarRows! : Synthetic(kind, chain, chain.Count == 0 ? [] : [2, .. Enumerable.Repeat(1, chain.Count - 1)], notes);
         var source = fromExemplar ? "exemplar values" : "synthesised values";
         var clean = new Table(cleanCols, baseRows);
 

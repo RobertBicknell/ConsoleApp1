@@ -72,8 +72,14 @@
             <paramref name="omitXmlDeclaration"/> mirrors <see cref="P:Csv2Xml.Runtime.Run.JobSpec.OmitXmlDeclaration"/> so the preview matches production output.
             </summary>
         </member>
-        <member name="M:Csv2Xml.Design.MappingDesigner.Job(Csv2Xml.Design.Schema.SchemaDocument,System.String,System.Collections.Generic.IEnumerable{Csv2Xml.Runtime.Mapping.MappingSpec})">
-            <summary>A runnable job from one mapping per kind, with run parameters defaulted from the XSD's document-level values.</summary>
+        <member name="M:Csv2Xml.Design.MappingDesigner.Job(System.String,System.Collections.Generic.IEnumerable{Csv2Xml.Runtime.Mapping.MappingSpec})">
+            <summary>
+            A runnable job from stored mappings (one per kind); no XSD needed. Its Parameters are the document-level values the
+            user supplies per run (from the mappings' RootFields), with defaults: date-times {now}, dates {today}.
+            </summary>
+        </member>
+        <member name="M:Csv2Xml.Design.MappingDesigner.RunParameters(Csv2Xml.Design.Schema.SchemaDocument)">
+            <summary>The run parameters a job for this XSD will have (same definitions as <see cref="M:Csv2Xml.Design.MappingDesigner.Job(System.String,System.Collections.Generic.IEnumerable{Csv2Xml.Runtime.Mapping.MappingSpec})"/>), e.g. to show the form before a mapping exists.</summary>
         </member>
         <member name="T:Csv2Xml.Design.MappingDesigner.Utf8StringWriter">
             <summary>Declares utf-8 in the XML header, matching how the text is saved (a plain StringWriter declares utf-16).</summary>
@@ -116,8 +122,12 @@
             </summary>
             <param name="assignment">Target path -> zero-based column index.</param>
         </member>
-        <member name="M:Csv2Xml.Design.Matching.SpecBuilder.DefaultParameters(System.Collections.Generic.IEnumerable{Csv2Xml.Design.Schema.SchemaTarget})">
-            <summary>Default run-parameter definitions for the document-level targets; the user may edit them (labels, defaults, which are required).</summary>
+        <member name="M:Csv2Xml.Design.Matching.SpecBuilder.Parameters(System.Collections.Generic.IEnumerable{Csv2Xml.Runtime.Mapping.RootFieldSpec})">
+            <summary>
+            Run-parameter definitions for document-level values, from the root fields a mapping records (so no XSD is needed).
+            Key = item name ("submissionId" for "Submission/@submissionId"); date-times default to {now}, dates to {today}.
+            The host may edit labels, defaults and requiredness before storing the job.
+            </summary>
         </member>
         <member name="T:Csv2Xml.Design.Samples.SampleFile">
             <summary>One generated CSV with the mapping that fits it, what should happen, and what did happen when it was run.</summary>
@@ -133,18 +143,36 @@
         <member name="P:Csv2Xml.Design.Samples.SampleFile.Passed">
             <summary>The run behaved as Expected: valid output, or failure of the expected sort.</summary>
         </member>
+        <member name="T:Csv2Xml.Design.Samples.SampleSet">
+            <param name="ExemplarKind">The kind the exemplar contains (the only kind generated); null when generated from the XSD alone (every kind).</param>
+        </member>
+        <member name="M:Csv2Xml.Design.Samples.SampleSet.#ctor(System.Collections.Generic.IReadOnlyList{Csv2Xml.Design.Samples.SampleFile},System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyDictionary{System.String,System.String},System.String)">
+            <param name="ExemplarKind">The kind the exemplar contains (the only kind generated); null when generated from the XSD alone (every kind).</param>
+        </member>
+        <member name="P:Csv2Xml.Design.Samples.SampleSet.ExemplarKind">
+            <summary>The kind the exemplar contains (the only kind generated); null when generated from the XSD alone (every kind).</summary>
+        </member>
         <member name="M:Csv2Xml.Design.Samples.SampleSet.ToFiles">
             <summary>Every output as file name -> UTF-8 bytes: CSVs, mappings, expected XML for valid scenarios, README.md.</summary>
         </member>
         <member name="T:Csv2Xml.Design.Samples.SampleGenerator">
             <summary>
-            Generates, per document kind, CSV files demonstrating each mapping ability, plus the correct mapping for each, and
-            proves each one by running it through the real writer and XSD validation. Values come from the exemplar XML when it
-            contains the kind, otherwise they are synthesised from the XSD types and restrictions.
+            Generates CSV files demonstrating each mapping ability, plus the correct mapping for each, and proves each one by running
+            it through the real writer and XSD validation. Two modes:
+            <list type="bullet">
+            <item>With an exemplar XML: one kind, the one the exemplar contains. The exemplar must be valid against the XSD. Every
+            value comes from the exemplar; items it does not contain are left out. Nothing is invented.</item>
+            <item>XSD only: every kind, each file holding only its own kind's items, with values synthesised from the XSD types and
+            restrictions (there is no other source).</item>
+            </list>
             </summary>
         </member>
         <member name="M:Csv2Xml.Design.Samples.SampleGenerator.Generate(System.String,System.String)">
-            <exception cref="T:System.IO.InvalidDataException">The XSD is unusable (see MappingDesigner.LoadSchema) or the exemplar is not well-formed XML.</exception>
+            <exception cref="T:System.IO.InvalidDataException">The XSD is unusable (see MappingDesigner.LoadSchema); or the exemplar is not
+            well-formed, not valid against the XSD, contains none of its kinds, or its kind cannot be expressed as one CSV.</exception>
+        </member>
+        <member name="M:Csv2Xml.Design.Samples.SampleGenerator.Mappable(Csv2Xml.Design.Schema.SchemaKind,System.Collections.Generic.List{System.String})">
+            <summary>The kind's targets one CSV can carry (on the repeat chain), or why the kind cannot be generated.</summary>
         </member>
         <member name="M:Csv2Xml.Design.Samples.SampleGenerator.Synthetic(Csv2Xml.Design.Schema.SchemaKind,System.Collections.Generic.IReadOnlyList{System.String},System.Int32[],System.Collections.Generic.List{System.String})">
             <summary>Rows for a repeat chain with the given instance counts per level; each instance gets a run-wide ordinal.</summary>
@@ -179,8 +207,14 @@
         <member name="T:Csv2Xml.Design.Samples.ExemplarValues">
             <summary>Reads rows and run values out of an exemplar XML, matching by local names (namespace-agnostic).</summary>
         </member>
+        <member name="M:Csv2Xml.Design.Samples.ExemplarValues.KindElement(Csv2Xml.Design.Schema.SchemaKind,System.Xml.Linq.XDocument)">
+            <summary>The kind's element in the exemplar (the root itself, or the choice branch under it); null when it is another kind.</summary>
+        </member>
         <member name="M:Csv2Xml.Design.Samples.ExemplarValues.Rows(Csv2Xml.Design.Schema.SchemaKind,System.Collections.Generic.IReadOnlyList{System.String},System.Xml.Linq.XDocument)">
-            <summary>One row per deepest repeating instance of the kind (path -> value); null when the exemplar lacks the kind.</summary>
+            <summary>
+            One row per deepest repeating instance (path -> value), holding only values present in the exemplar. An instance with
+            no children at the next repeating level still yields a row, so its own values are not lost.
+            </summary>
         </member>
         <member name="M:Csv2Xml.Design.Samples.ExemplarValues.RootValues(Csv2Xml.Design.Schema.SchemaDocument,System.Xml.Linq.XDocument)">
             <summary>Document-level values (root target path -> value) present in the exemplar.</summary>

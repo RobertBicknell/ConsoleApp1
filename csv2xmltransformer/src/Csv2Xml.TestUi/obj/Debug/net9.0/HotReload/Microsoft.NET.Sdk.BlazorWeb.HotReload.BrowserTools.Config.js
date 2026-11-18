@@ -13,7 +13,7 @@
 import { startBrowserTools } from './Microsoft.NET.Sdk.BlazorWeb.HotReload.BrowserTools.js';
 
 export const browserToolsConfiguration = {
-  publicKey: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuMXWlpUmTL2IpdC4efd1HGPwaE/pbXljq5HT8+b34DFVs+76dFiCX0jDtTvDb3D2epXu3IavgnaKWYQvgJU15ZyL+cGpLloqtS5yyiX7IaDljeKDYYOwiCeSHkiUJcUX8h7O7DJVL58jVgveT4B1NURP9w7mf719Y84H30pxIPZaKXhVyPqYo0zCFWW0D6CZzM3nUMadTJH3oxT1OyGCxEMdz/zkGqvaG82LEHt+fevWf+RaofDeGpZswMtFj7tea0QuR4owwT65hqLrsOwvR+sJLJ+TsxVnU4MdSuWcvgmAPwwbofFG9vwCqrOsVXu0Jco/jeQyS2DDbrBAmmXYxQIDAQAB',
+  publicKey: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArQEqSxwV/ip+DrvXV+Wd1yvb+y9u5aNF4kUcZsnv548ewsQl75M9v28m8jMqqxaTgGOIwZtjg6Zbc4pyXXprK2jicMPXGszcTu7WogdakIfe/KKPEH35F78NwLEFOZ5P5xaXSL+myhDKeeZvbVFfseL4kLeHw3843G7xnO/lcLJEpTK+9Udc94WhcwT6G6mYS4stHLhFRyGTOt8O9bMtxb9zqBK9AdCi6krX0PWPWyD2fu5VqlH/oBA2YR7emV6mBUpS7ZrpsREVArc4dux5FvfwYgHCkQR9xocG3LmEsIjFnXN4V7vF6qu7w4UWCcGELiYSdNM1jY5sD3luuOnirQIDAQAB',
   connectPath: '/_framework/dotnet-browser-tools/connect',
   clearCachePath: '/_framework/dotnet-browser-tools/clear-cache',
   moduleUrl: import.meta.url,

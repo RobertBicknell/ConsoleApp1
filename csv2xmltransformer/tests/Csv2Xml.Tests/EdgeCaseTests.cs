@@ -320,7 +320,7 @@ public class EdgeCaseTests
     [Fact]
     public async Task Job_with_two_mappings_for_one_kind_is_refused()
     {
-        var job = MappingDesigner.Job(TestKit.Doc, "J", [Products, Products]);
+        var job = MappingDesigner.Job("J", [Products, Products]);
         var ex = await Assert.ThrowsAsync<RunException>(() => new RunPipeline(new FileOutputSink(Path.GetTempPath()))
             .RunAsync(job, new RunRequest(new Dictionary<string, string>(), new Dictionary<string, string> { ["submissionId"] = "1", ["SubmitterName"] = "n" })));
         Assert.Contains("job has 2 mappings for kind 'Products'", ex.Problems);

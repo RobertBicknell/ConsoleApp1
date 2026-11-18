@@ -1,10 +1,9 @@
 {
   "version": 2,
-  "dgSpecHash": "JsGQlkVni4g=",
+  "dgSpecHash": "ZIttT1ZYT7Y=",
   "success": true,
   "projectFilePath": "C:\\Claude\\csv2xmltransformer\\tests\\Csv2Xml.Tests\\Csv2Xml.Tests.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\robert.bicknell\\.nuget\\packages\\coverlet.collector\\6.0.4\\coverlet.collector.6.0.4.nupkg.sha512",
     "C:\\Users\\robert.bicknell\\.nuget\\packages\\microsoft.codecoverage\\17.14.1\\microsoft.codecoverage.17.14.1.nupkg.sha512",
     "C:\\Users\\robert.bicknell\\.nuget\\packages\\microsoft.net.test.sdk\\17.14.1\\microsoft.net.test.sdk.17.14.1.nupkg.sha512",
     "C:\\Users\\robert.bicknell\\.nuget\\packages\\microsoft.testplatform.objectmodel\\17.14.1\\microsoft.testplatform.objectmodel.17.14.1.nupkg.sha512",
@@ -20,8 +19,8 @@
     "C:\\Users\\robert.bicknell\\.nuget\\packages\\xunit.extensibility.core\\2.9.3\\xunit.extensibility.core.2.9.3.nupkg.sha512",
     "C:\\Users\\robert.bicknell\\.nuget\\packages\\xunit.extensibility.execution\\2.9.3\\xunit.extensibility.execution.2.9.3.nupkg.sha512",
     "C:\\Users\\robert.bicknell\\.nuget\\packages\\xunit.runner.visualstudio\\3.1.4\\xunit.runner.visualstudio.3.1.4.nupkg.sha512",
-    "C:\\Users\\robert.bicknell\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\9.0.23\\microsoft.windowsdesktop.app.ref.9.0.23.nupkg.sha512",
     "C:\\Users\\robert.bicknell\\.nuget\\packages\\microsoft.netcore.app.ref\\9.0.23\\microsoft.netcore.app.ref.9.0.23.nupkg.sha512",
+    "C:\\Users\\robert.bicknell\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\9.0.23\\microsoft.windowsdesktop.app.ref.9.0.23.nupkg.sha512",
     "C:\\Users\\robert.bicknell\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\9.0.23\\microsoft.aspnetcore.app.ref.9.0.23.nupkg.sha512"
   ],
   "logs": []

@@ -41,6 +41,7 @@ public sealed class UiSettings
         "csv" => SamplesDir is null ? WorkDir + Path.DirectorySeparatorChar : Path.Combine(SamplesDir, "csv", "orders_duplicate_headers.csv"),
         "config" => Path.Combine(WorkDir, "mappings", "mapping.json"),
         "generated" => Path.Combine(WorkDir, "generated"),
+        "runout" => Path.Combine(WorkDir, "output"),
         _ => "",
     };
 

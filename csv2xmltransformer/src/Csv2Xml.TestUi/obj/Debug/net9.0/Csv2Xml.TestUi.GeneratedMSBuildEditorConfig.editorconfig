@@ -27,6 +27,10 @@ build_property.EnableCodeStyleSeverity =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xBcHAucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Claude/csv2xmltransformer/src/Csv2Xml.TestUi/Components/FilePicker.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xGaWxlUGlja2VyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Claude/csv2xmltransformer/src/Csv2Xml.TestUi/Components/Pages/Home.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xIb21lLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 

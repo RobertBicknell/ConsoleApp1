@@ -204,26 +204,30 @@ internal static class PatternSample
 /// <summary>Reads rows and run values out of an exemplar XML, matching by local names (namespace-agnostic).</summary>
 internal static class ExemplarValues
 {
-    /// <summary>One row per deepest repeating instance of the kind (path -> value); null when the exemplar lacks the kind.</summary>
-    public static IReadOnlyList<IReadOnlyDictionary<string, string>>? Rows(SchemaKind kind, IReadOnlyList<string> chain, XDocument xml)
-    {
-        var root = xml.Root;
-        if (root is null) return null;
-        var kindEl = kind.RootWrapper is null
-            ? (root.Name.LocalName == kind.Name ? root : null)
-            : (root.Name.LocalName == kind.RootWrapper ? Child(root, kind.Name) : null);
-        if (kindEl is null) return null;
+    /// <summary>The kind's element in the exemplar (the root itself, or the choice branch under it); null when it is another kind.</summary>
+    static XElement? KindElement(SchemaKind kind, XDocument xml) => xml.Root is not { } root ? null
+        : kind.RootWrapper is null ? (root.Name.LocalName == kind.Name ? root : null)
+        : (root.Name.LocalName == kind.RootWrapper ? Child(root, kind.Name) : null);
 
+    public static bool Contains(SchemaKind kind, XDocument xml) => KindElement(kind, xml) is not null;
+
+    /// <summary>
+    /// One row per deepest repeating instance (path -> value), holding only values present in the exemplar. An instance with
+    /// no children at the next repeating level still yields a row, so its own values are not lost.
+    /// </summary>
+    public static IReadOnlyList<IReadOnlyDictionary<string, string>> Rows(SchemaKind kind, IReadOnlyList<string> chain, XDocument xml)
+    {
         var rows = new List<IReadOnlyDictionary<string, string>>();
-        Emit(0, kindEl, kind.Name, new Dictionary<string, string>());
+        if (KindElement(kind, xml) is { } kindEl) Emit(0, kindEl, kind.Name, new Dictionary<string, string>());
         return rows;
 
         void Emit(int level, XElement ctx, string ctxPath, Dictionary<string, string> acc)
         {
             foreach (var t in kind.Targets.Where(t => t.RepeatingAncestors.Count == level))
                 if (Value(ctx, Rel(ctxPath, t.Path)) is { } v) acc[t.Path] = v;
-            if (level == chain.Count) { rows.Add(acc); return; }
-            foreach (var inst in Instances(ctx, Rel(ctxPath, chain[level])))
+            var instances = level == chain.Count ? [] : Instances(ctx, Rel(ctxPath, chain[level])).ToList();
+            if (instances.Count == 0) { if (level > 0 || chain.Count == 0) rows.Add(acc); return; }
+            foreach (var inst in instances)
                 Emit(level + 1, inst, chain[level], new Dictionary<string, string>(acc));
         }
     }

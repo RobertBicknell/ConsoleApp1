@@ -175,8 +175,14 @@ public static class MappingDesigner
         return new VerifyResult(xml, problems);
     }
 
-    /// <summary>A runnable job from one mapping per kind, with run parameters defaulted from the XSD's document-level values.</summary>
-    public static JobSpec Job(SchemaDocument doc, string name, IEnumerable<MappingSpec> mappings) => SpecBuilder.BuildJob(name, doc, mappings);
+    /// <summary>
+    /// A runnable job from stored mappings (one per kind); no XSD needed. Its Parameters are the document-level values the
+    /// user supplies per run (from the mappings' RootFields), with defaults: date-times {now}, dates {today}.
+    /// </summary>
+    public static JobSpec Job(string name, IEnumerable<MappingSpec> mappings) => SpecBuilder.BuildJob(name, mappings);
+
+    /// <summary>The run parameters a job for this XSD will have (same definitions as <see cref="Job"/>), e.g. to show the form before a mapping exists.</summary>
+    public static IReadOnlyList<RunParameterDef> RunParameters(SchemaDocument doc) => SpecBuilder.Parameters(SpecBuilder.RootFields(doc));
 
     static SchemaKind Kind(SchemaDocument doc, string kind) =>
         doc.Kinds.FirstOrDefault(k => k.Name == kind) ?? throw new ArgumentException($"unknown kind '{kind}'", nameof(kind));

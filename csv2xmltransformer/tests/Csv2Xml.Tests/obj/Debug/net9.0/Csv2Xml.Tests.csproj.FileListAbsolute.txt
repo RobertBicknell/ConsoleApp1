@@ -1,5 +1,4 @@
 C:\Claude\csv2xmltransformer\tests\Csv2Xml.Tests\bin\Debug\net9.0\.msCoverageSourceRootsMapping_Csv2Xml.Tests
-C:\Claude\csv2xmltransformer\tests\Csv2Xml.Tests\bin\Debug\net9.0\CoverletSourceRootsMapping_Csv2Xml.Tests
 C:\Claude\csv2xmltransformer\tests\Csv2Xml.Tests\bin\Debug\net9.0\testhost.dll
 C:\Claude\csv2xmltransformer\tests\Csv2Xml.Tests\bin\Debug\net9.0\xunit.abstractions.dll
 C:\Claude\csv2xmltransformer\tests\Csv2Xml.Tests\bin\Debug\net9.0\testhost.exe

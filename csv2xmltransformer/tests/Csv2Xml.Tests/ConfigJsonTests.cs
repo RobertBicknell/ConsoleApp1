@@ -38,7 +38,7 @@ public class ConfigJsonTests
     [Fact]
     public void Job_round_trips()
     {
-        var job = SpecBuilder.BuildJob("Weekly", TestKit.Doc, [OrdersSpec()]) with { ErrorPolicy = Runtime.Writing.ErrorPolicy.SkipRow };
+        var job = SpecBuilder.BuildJob("Weekly", [OrdersSpec()]) with { ErrorPolicy = Runtime.Writing.ErrorPolicy.SkipRow };
         var back = ConfigJson.JobFromBytes(ConfigJson.ToBytes(job));
         Assert.Equal(ConfigJson.ToJson(job), ConfigJson.ToJson(back));
         Assert.Equal(Runtime.Writing.ErrorPolicy.SkipRow, back.ErrorPolicy);

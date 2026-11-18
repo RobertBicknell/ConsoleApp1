@@ -10,8 +10,8 @@ stored by the host application as bytes, and later used to convert CSV files in 
 | `Csv2Xml.Runtime` | net9.0 | Production writer. Reads a stored mapping and CSVs, writes XML, validates, packages, sends. Knows nothing of design. |
 | `Csv2Xml.Design` | net9.0 | Design-time library: reads the XSD, suggests and validates mappings, verifies samples, generates sample CSVs. References Runtime. |
 | `Csv2Xml.SamplePlugin` | net9.0 | Example run-time plugin (`Transform(Context)`). |
-| `Csv2Xml.TestUi` | net10.0 | Blazor Server test UI. Uses only the public API of Design/Runtime. Never shipped (net10 only because the dev machine has no .NET 9 runtime). |
-| `Csv2Xml.Tests` | net9.0 | xUnit tests (180). |
+| `Csv2Xml.TestUi` | net9.0 | Blazor Server test UI. Uses only the public API of Design/Runtime. Never shipped. |
+| `Csv2Xml.Tests` | net9.0 | xUnit tests (185). |
 | `Csv2Xml.TestPlugin` | net9.0 | Test-only plugin that misbehaves on request (throws, duplicate entry). |
 
 Dependency rule: `Runtime` ← `Design` ← (`TestUi`, host application). The runtime never references design code.
@@ -38,7 +38,8 @@ All calls are on `Csv2Xml.Design.MappingDesigner` (pure functions; only `ReadHea
 var doc       = MappingDesigner.LoadSchema(xsdText);
 var delimiter = MappingDesigner.DetectDelimiter(firstLineOfCsv);    // a guess: let the user confirm
 var headers   = MappingDesigner.ReadHeaders(csvStream, delimiter);  // same parser/decoding as run time
-var kind      = MappingDesigner.RankKinds(doc, headers)[0].Kind;    // or let the user pick from MappingDesigner.Kinds(doc)
+var kind      = userChoice;                                         // the user says what the file is: one of MappingDesigner.Kinds(doc)
+                                                                    // (RankKinds(doc, headers) can hint, never decide)
 var targets   = MappingDesigner.Targets(doc, kind);                 // the XML item list (t.Path, t.Required, t.DataType)
 var columns   = MappingDesigner.Columns(headers);                   // dropdown entries: (Index, DisplayName)
 var initial   = MappingDesigner.Suggest(doc, kind, headers);        // path -> column index or null, to pre-fill dropdowns
@@ -57,7 +58,20 @@ byte[] stored = ConfigJson.ToBytes(r.Spec!);                         // host per
 - `MappingDesigner.Verify(xsdText, spec, sampleCsv)` runs a sample through the real writer and validates the XML
   against the XSD; it returns the XML and every problem, never throws. Use it to prove a mapping before storing it.
 - `MappingDesigner.LayoutProblems(spec, headers)` says whether a CSV's header row fits a stored mapping.
-- `MappingDesigner.Job(doc, name, mappings)` assembles a runnable `JobSpec` (stored likewise with `ConfigJson.ToBytes(job)`).
+- `MappingDesigner.Job(name, mappings)` assembles a runnable `JobSpec` from stored mappings alone (no XSD). Its
+  `Parameters` are the document-level values the user must supply per run: key, label, type, required, default
+  (date-times `{now}`, dates `{today}`). Store it with `ConfigJson.ToBytes(job)`, or build it from the stored mapping
+  when a file is processed. `MappingDesigner.RunParameters(doc)` gives the same definitions before a mapping exists.
+
+Processing one file, as the host does it (the values form is built from `job.Parameters`):
+
+```csharp
+var job    = MappingDesigner.Job("weekly", [ConfigJson.MappingFromBytes(stored)]);
+var values = new Dictionary<string, string> { ["submissionId"] = "S-1", ["SubmitterName"] = "Rob" }; // SubmittedAt blank -> {now}
+var result = await new RunPipeline(new FileOutputSink(outDir)).RunAsync(job,
+    new RunRequest(new() { [job.Mappings[0].Kind] = csvPath }, values, xsdText));
+// a required value missing, a wrong type or an unknown key -> RunException listing every problem; nothing written
+```
 
 ## Running
 
@@ -185,9 +199,17 @@ For each kind it writes `Kind.scenario.csv`, the correct `Kind.scenario.mapping.
 Every file is proven by running it through the writer and XSD validation. `WriteTo` overwrites same-named files and
 leaves others in the folder untouched; use an empty folder.
 
-Values come from the exemplar XML when it contains the kind, otherwise they are synthesised from the XSD types and
-restrictions (enumeration, fixed, length, ranges, digits, simple regex patterns). A pattern that cannot be synthesised with
-certainty is reported in the notes; supply an exemplar containing that item.
+Two modes; neither ever puts another kind's items into a CSV:
+
+- **With an exemplar** (a real document): generates the **one kind the exemplar contains** (`s.ExemplarKind`). The exemplar
+  must be valid against the XSD, else `InvalidDataException` listing the problems. That catches a missing mandatory item,
+  a wrong root, or a root that is not one of the XSD's kinds. **Every value comes from the exemplar; nothing is invented.**
+  Items the exemplar does not contain (optional ones) are left out of the CSVs and listed in the notes. A kind with no
+  mappable values, or one whose required items need two independent repeating groups, is an error.
+- **XSD only**: generates **every kind**, each file holding only its own kind's items. With no real document to draw on,
+  values are synthesised from the XSD types and restrictions (enumeration, fixed, length, ranges, digits, simple regex
+  patterns). A pattern that cannot be synthesised with certainty is reported in the notes. A kind that cannot be
+  generated is skipped with a note, so the other kinds are still produced.
 
 ## Security notes
 
@@ -197,16 +219,29 @@ certainty is reported in the notes; supply an exemplar containing that item.
 
 ## Test UI
 
-`start-ui.cmd` (or `dotnet run --project src/Csv2Xml.TestUi`) then http://localhost:5190. Sections: load XSD + CSV
-(delimiter detected, encoding optional), choose kind (the UI says how kinds were found and which element is written),
-document-level run values (shown, with values for Verify), assign columns, build, verify, save/load config, generate samples.
+`start-ui.cmd` (or `dotnet run --project src/Csv2Xml.TestUi`) then http://localhost:5190. It exercises the whole
+product end to end through the public API:
+
+1. **XSD and CSV**: load (delimiter detected, encoding optional).
+2. **Kind of this file**: the user chooses, as in production; nothing is pre-selected. The UI says which element the
+   tool writes for it.
+3. **Document-level values**: the run values (key, type, default), with the values to use.
+4. **Assign columns**: pre-filled by suggestion, then Build.
+5. **Process a file**: **Run** is the production path (`MappingDesigner.Job` + `RunPipeline`: preflight, transform,
+   XSD validation, report, zip into the output folder), showing the report and the XML. A missing required value or a
+   bad file is listed and nothing is written. **Preview XML only** is the quick in-memory check (`Verify`).
+6. **Mapping file**: save or load the stored mapping.
+7. **Generate sample CSVs**, each with an "open in mapper" button that loads it with its kind chosen.
+
 Sample inputs are in `samples/`; `samples/csv/README.md` describes what each CSV demonstrates.
 
 - Dark theme by default; ◐ toggles light/dark (remembered per browser).
 - File pickers browse the server's file system (the UI runs locally, so real paths are available, which a browser file
   input cannot give). Each opens in the folder of its current value; last-used paths are remembered in
   `%LOCALAPPDATA%\Csv2Xml\ui-settings.json`. Defaults: `samples/` in a checkout, else `Documents\Csv2Xml`; mappings go to
-  `Documents\Csv2Xml\mappings\<Kind>.mapping.json`, generated samples to `Documents\Csv2Xml\generated`.
+  `Documents\Csv2Xml\mappings\<Kind>.mapping.json`, run output to `Documents\Csv2Xml\output`, generated samples to
+  `Documents\Csv2Xml\generated`. Under each box the file name is shown in full beside its folder; browsing shows
+  clickable breadcrumbs.
 - 👁 opens a file or result in a new window: XML/XSD and JSON as coloured trees with +/− folding (expand/collapse all,
   open 1–3 levels, find, raw), CSV as a table read with the same parser, delimiter and encoding as the runtime, with
   column numbers, duplicate/blank headers flagged, rows with the wrong field count highlighted, and a toggle that shows

@@ -26,18 +26,9 @@ public class RunParameterTests
     }
 
     [Fact]
-    public void Default_definitions_derive_from_root_targets()
-    {
-        var defs = SpecBuilder.DefaultParameters(TestKit.Doc.RootTargets);
-        Assert.Equal("{now}", defs.Single(d => d.Key == "SubmittedAt").Default);
-        Assert.Equal("Submitter name", defs.Single(d => d.Key == "SubmitterName").Label);
-        Assert.All(defs, d => Assert.True(d.Required));
-    }
-
-    [Fact]
     public void Resolve_prefers_supplied_then_default_and_reports_all_problems()
     {
-        var defs = SpecBuilder.DefaultParameters(TestKit.Doc.RootTargets);
+        var defs = Csv2Xml.Design.MappingDesigner.RunParameters(TestKit.Doc);
         var ok = RunParameters.Resolve(defs, new Dictionary<string, string> { ["submissionId"] = "A1", ["SubmitterName"] = "Bob" }, Clock);
         Assert.Equal("2026-11-15T10:30:00Z", ok.ByKey["SubmittedAt"]);
         Assert.Equal("A1", ok.ByPath["Submission/@submissionId"]);
@@ -86,7 +77,7 @@ public class PipelineTests : IDisposable
             inputs[k.Name] = p;
             maps.Add(TestKit.Build(k, Csvs[k.Name].Split('\n')[0].Split(',')));
         }
-        var job = SpecBuilder.BuildJob("Weekly", TestKit.Doc, maps);
+        var job = SpecBuilder.BuildJob("Weekly", maps);
         return (job, new RunRequest(inputs, parms ?? new() { ["submissionId"] = "SUB-9", ["SubmitterName"] = "Rob" }, withXsd ? TestKit.XsdText : null));
     }
 

@@ -70,11 +70,12 @@ public class SampleValueTests
     }
 
     [Fact]
-    public void Exemplar_lacking_a_kind_yields_null_and_root_values_are_read()
+    public void Exemplar_of_another_kind_yields_no_rows_and_root_values_are_read()
     {
         var xml = XDocument.Parse(FacetTests.RestrictedExample);
         var depots = Doc.Kinds.Single(k => k.Name == "Depots");
-        Assert.Null(ExemplarValues.Rows(depots, ["Depots/DepotInfo"], xml));
+        Assert.False(ExemplarValues.Contains(depots, xml));
+        Assert.Empty(ExemplarValues.Rows(depots, ["Depots/DepotInfo"], xml));
         var rv = ExemplarValues.RootValues(Doc, xml);
         Assert.Equal("LDS-0001", rv["Manifest/Depot"]);
         Assert.Equal("2026-03-01T09:30:00Z", rv["Manifest/@issued"]);

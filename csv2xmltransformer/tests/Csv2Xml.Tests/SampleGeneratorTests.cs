@@ -30,15 +30,89 @@ public class SampleGeneratorTests
     }
 
     [Fact]
-    public void Restricted_xsd_with_exemplar_uses_exemplar_values_and_notes_missing_kind()
+    public void Exemplar_generates_only_its_own_kind_from_its_own_values()
     {
         var s = SampleGenerator.Generate(FacetTests.RestrictedXsd, FacetTests.RestrictedExample);
         Assert.True(s.AllPassed, Report(s));
-        var clean = s.Files.Single(f => f.Kind == "Shipments" && f.Scenario == "clean");
+        Assert.Equal("Shipments", s.ExemplarKind);
+        Assert.All(s.Files, f => Assert.Equal("Shipments", f.Kind)); // no Depots files invented
+        var clean = s.Files.Single(f => f.Scenario == "clean");
         Assert.Contains("SHP-1001", clean.Csv);
         Assert.Contains("Books", clean.Verification.Xml);
         Assert.Equal("LDS-0001", s.RunValues["Manifest/Depot"]);
-        Assert.Contains(s.Notes, n => n.StartsWith("Depots: not in the exemplar"));
+        Assert.DoesNotContain(s.Notes, n => n.Contains("synthesised") || n.Contains("Depots"));
+        Assert.Contains("a Shipments document", s.Readme());
+    }
+
+    const string OrdersExemplar = """
+        <Submission submissionId="S-1"><SubmitterName>Ann</SubmitterName><SubmittedAt>2026-01-02T03:04:05Z</SubmittedAt>
+          <Orders><Order orderId="7" customerId="3"><OrderDate>2026-01-01</OrderDate>
+            <Line sku="Q-1"><Quantity>4</Quantity><UnitPrice>2.25</UnitPrice></Line>
+            <Line sku="Q-2"><Quantity>1</Quantity><UnitPrice>9.00</UnitPrice></Line>
+          </Order></Orders></Submission>
+        """;
+
+    [Fact]
+    public void Kind_is_read_from_the_exemplar_and_every_value_comes_from_it()
+    {
+        var s = SampleGenerator.Generate(DevXsd, OrdersExemplar);
+        Assert.True(s.AllPassed, Report(s));
+        Assert.Equal("Orders", s.ExemplarKind);
+        Assert.Equal(["Orders"], s.Files.Select(f => f.Kind).Distinct());
+        Assert.Equal("Ann", s.RunValues["Submission/SubmitterName"]);
+        var clean = s.Files.Single(f => f.Scenario == "clean").Csv.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(3, clean.Length); // header + the exemplar's two lines, nothing more
+        Assert.Contains("Q-2", clean[2]);
+    }
+
+    [Fact]
+    public void Generated_csvs_never_carry_document_level_values()
+    {
+        foreach (var s in new[] { SampleGenerator.Generate(DevXsd), SampleGenerator.Generate(DevXsd, OrdersExemplar) })
+            foreach (var f in s.Files)
+            {
+                var header = f.Csv.Split('\n')[0].ToLowerInvariant();
+                Assert.DoesNotContain("submi", header); // submissionId, SubmitterName, SubmittedAt
+                Assert.All(s.RunValues.Values, v => Assert.DoesNotContain(v, f.Csv));
+                if (f.Expected == Expectation.Valid) Assert.Contains(s.RunValues.Values.First(), f.Verification.Xml); // they reach the XML as run values only
+            }
+    }
+
+    [Fact]
+    public void Optional_items_missing_from_the_exemplar_are_left_out_not_invented()
+    {
+        const string customers = """
+            <Submission submissionId="S-1"><SubmitterName>Ann</SubmitterName><SubmittedAt>2026-01-02T03:04:05Z</SubmittedAt>
+              <Customers><Customer id="1"><CustomerName>Bo</CustomerName></Customer></Customers></Submission>
+            """;
+        var s = SampleGenerator.Generate(DevXsd, customers);
+        Assert.True(s.AllPassed, Report(s));
+        var clean = s.Files.Single(f => f.Scenario == "clean");
+        Assert.Equivalent(new[] { "Customers/Customer/@id", "Customers/Customer/CustomerName" }, clean.Mapping.Fields.Where(f => f.ColumnIndex is not null).Select(f => f.Path).ToArray(), strict: true);
+        Assert.DoesNotContain("email", clean.Csv.Split('\n')[0]);
+        Assert.Contains(s.Notes, n => n.Contains("'Customers/Customer/Email'") && n.Contains("left out"));
+    }
+
+    [Fact]
+    public void Exemplar_invalid_against_the_xsd_is_refused()
+    {
+        var missingMandatory = OrdersExemplar.Replace("<OrderDate>2026-01-01</OrderDate>", "");
+        var ex = Assert.Throws<InvalidDataException>(() => SampleGenerator.Generate(DevXsd, missingMandatory));
+        Assert.StartsWith("exemplar XML is not valid against the XSD", ex.Message);
+        Assert.Contains("OrderDate", ex.Message);
+
+        var wrongRoot = Assert.Throws<InvalidDataException>(() => SampleGenerator.Generate(DevXsd, "<Other/>"));
+        Assert.StartsWith("exemplar XML is not valid against the XSD", wrongRoot.Message);
+    }
+
+    [Fact]
+    public void Xsd_only_generation_covers_every_kind_and_says_values_are_synthesised()
+    {
+        var s = SampleGenerator.Generate(DevXsd);
+        Assert.Null(s.ExemplarKind);
+        Assert.Contains(s.Notes, n => n.StartsWith("No exemplar XML"));
+        foreach (var f in s.Files) // each file holds only its own kind's items
+            Assert.All(f.Mapping.Fields, x => Assert.StartsWith(f.Kind + "/", x.Path));
     }
 
     [Fact]
