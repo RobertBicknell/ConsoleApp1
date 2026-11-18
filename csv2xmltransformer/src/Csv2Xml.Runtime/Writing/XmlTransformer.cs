@@ -20,6 +20,8 @@ public sealed record TransformResult(long RowsRead, long RowsWritten, IReadOnlyL
 /// Streams CSV rows into XML via XmlWriter; memory is independent of input size (one row + open-element key stack).
 /// Rows sharing the same key at an outer repeating level (and contiguous in the input) collapse into one instance.
 /// Owned (non-repeating) content of an instance is emitted when the instance opens, i.e. before any repeating child.
+/// The same holds for a single element between levels (e.g. P holding F, T and repeating S): it is written once, its own
+/// values first, then the repeating children inside it.
 /// <para>
 /// Row checks (an error halts or skips the row per ErrorPolicy): field count must equal the header's; required values present;
 /// mapped values contain only XML-legal characters. Malformed CSV (unterminated quote) or undecodable bytes halt the run.
@@ -111,7 +113,11 @@ public sealed class XmlTransformer
                 {
                     var lvl = plan.Levels[k];
                     var fr = frames[k];
-                    if (!fr.WrappersOpen) { foreach (var w in lvl.Wrappers) xml.WriteStartElement(w, nsLocal); fr.WrappersOpen = true; }
+                    if (!fr.WrappersOpen)
+                    {
+                        foreach (var w in lvl.Wrappers) { xml.WriteStartElement(w.Name, nsLocal); WriteOwned(xml, w, row, V, nsLocal); }
+                        fr.WrappersOpen = true;
+                    }
                     fr.Key = lvl.KeyFields.Select(x => V(row, x)).ToArray();
                     fr.InstanceOpen = true;
                     xml.WriteStartElement(lvl.Template.Name, nsLocal);

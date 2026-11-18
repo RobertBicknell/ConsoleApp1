@@ -234,6 +234,70 @@ public class EdgeCaseTests
         Assert.Throws<InvalidDataException>(() => MappingDesigner.LoadSchema(xsd));
     }
 
+    // P occurs once and holds two scalars plus a repeating S: P's scalars and the S instances must share one P.
+    const string ScalarsBesideRepeat = """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+          <xs:element name="Root"><xs:complexType><xs:sequence>
+            <xs:choice>
+              <xs:element name="K"><xs:complexType><xs:sequence>
+                <xs:element name="P"><xs:complexType><xs:sequence>
+                  <xs:element name="F" type="xs:float"/>
+                  <xs:element name="T" type="xs:string"/>
+                  <xs:element name="S" maxOccurs="unbounded"><xs:complexType><xs:sequence>
+                    <xs:element name="N" type="xs:string"/></xs:sequence></xs:complexType></xs:element>
+                </xs:sequence></xs:complexType></xs:element>
+              </xs:sequence></xs:complexType></xs:element>
+              <xs:element name="Other" type="xs:string"/>
+            </xs:choice>
+          </xs:sequence></xs:complexType></xs:element>
+        </xs:schema>
+        """;
+
+    [Fact]
+    public void Scalars_of_a_single_element_share_it_with_its_repeating_child()
+    {
+        var doc = MappingDesigner.LoadSchema(ScalarsBesideRepeat);
+        var spec = MappingDesigner.Build(doc, "K", ["f", "t", "n"],
+            new Dictionary<string, int> { ["K/P/F"] = 0, ["K/P/T"] = 1, ["K/P/S/N"] = 2 }).Spec!;
+        var r = MappingDesigner.Verify(ScalarsBesideRepeat, spec, "f,t,n\n1.5,x,a\n1.5,x,b\n");
+        var k = XDocument.Parse(r.Xml).Root!.Elements().Single();
+        Assert.True(r.IsValid, string.Join("; ", r.Problems) + "\n" + r.Xml);
+        Assert.Single(k.Elements());
+        Assert.Equal(["F", "T", "S", "S"], k.Elements().Single().Elements().Select(e => e.Name.LocalName));
+    }
+
+    [Fact]
+    public void A_single_element_with_scalars_and_a_repeat_is_written_once_per_repeating_parent()
+    {
+        const string xsd = """
+            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+              <xs:element name="Root"><xs:complexType><xs:sequence><xs:choice>
+                <xs:element name="K"><xs:complexType><xs:sequence>
+                  <xs:element name="O" maxOccurs="unbounded"><xs:complexType><xs:sequence>
+                    <xs:element name="R" type="xs:string"/>
+                    <xs:element name="P"><xs:complexType><xs:sequence>
+                      <xs:element name="F" type="xs:float"/>
+                      <xs:element name="T" type="xs:string"/>
+                      <xs:element name="S" maxOccurs="unbounded"><xs:complexType><xs:sequence>
+                        <xs:element name="N" type="xs:string"/></xs:sequence></xs:complexType></xs:element>
+                    </xs:sequence></xs:complexType></xs:element>
+                  </xs:sequence></xs:complexType></xs:element>
+                </xs:sequence></xs:complexType></xs:element>
+                <xs:element name="Other" type="xs:string"/>
+              </xs:choice></xs:sequence></xs:complexType></xs:element>
+            </xs:schema>
+            """;
+        var doc = MappingDesigner.LoadSchema(xsd);
+        var spec = MappingDesigner.Build(doc, "K", ["r", "f", "t", "n"],
+            new Dictionary<string, int> { ["K/O/R"] = 0, ["K/O/P/F"] = 1, ["K/O/P/T"] = 2, ["K/O/P/S/N"] = 3 }).Spec!;
+        var r = MappingDesigner.Verify(xsd, spec, "r,f,t,n\nA,1,x,a\nA,1,x,b\nB,2,y,c\n");
+        Assert.True(r.IsValid, string.Join("; ", r.Problems) + "\n" + r.Xml);
+        var orders = XDocument.Parse(r.Xml).Root!.Elements().Single().Elements().ToList();
+        Assert.Equal(["R", "P"], orders[0].Elements().Select(e => e.Name.LocalName));
+        Assert.Equal(["F", "T", "S", "S"], orders[0].Elements().Last().Elements().Select(e => e.Name.LocalName));
+        Assert.Equal(["2", "y", "c"], orders[1].Elements().Last().Elements().Select(e => e.Value));
+    }
+
     const string Siblings = """
         <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
           <xs:element name="Order"><xs:complexType><xs:sequence>

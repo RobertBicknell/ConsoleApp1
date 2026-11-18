@@ -35,10 +35,11 @@ static class RootTemplate
     }
 }
 
-/// <param name="Wrappers">Non-repeating elements between the parent level and this level's element, outermost first.</param>
+/// <param name="Wrappers">Non-repeating elements between the parent level and this level's element, outermost first.
+/// Each carries its own mapped content (not the next wrapper), written when it opens, so the element is written once.</param>
 /// <param name="Template">Owned fields as a tree; its Name is the level's element name.</param>
 /// <param name="KeyFields">Field indices whose values identify an instance.</param>
-sealed record Level(string Path, string[] Wrappers, Node Template, int[] KeyFields);
+sealed record Level(string Path, Node[] Wrappers, Node Template, int[] KeyFields);
 
 /// <summary>
 /// Static analysis of a spec: root template + chain of repeating levels (outermost first).
@@ -78,13 +79,34 @@ sealed class WritePlan
         Levels = levels.Select((l, i) =>
         {
             var parent = i == 0 ? RootName : levels[i - 1].Path;
-            var wrappers = l.Path.Split('/').Skip(parent.Split('/').Length).SkipLast(1).ToArray();
+            var names = l.Path.Split('/').Skip(parent.Split('/').Length).SkipLast(1);
+            var wrappers = DetachWrappers(i == 0 ? RootTemplate : levels[i - 1].Node, names);
             var owned = mapped.Where(k => fields[k].RepeatingAncestors.Count == i + 1).ToArray();
-            int[] key = spec.GroupKeys is { } gk && gk.TryGetValue(l.Path, out var names)
-                ? names.Select(n => Array.FindIndex(fields.ToArray(), f => f.Path == n)).Where(k => k >= 0).ToArray()
+            int[] key = spec.GroupKeys is { } gk && gk.TryGetValue(l.Path, out var keyNames)
+                ? keyNames.Select(n => Array.FindIndex(fields.ToArray(), f => f.Path == n)).Where(k => k >= 0).ToArray()
                 : owned;
             return new Level(l.Path, wrappers, l.Node, key);
         }).ToList();
+    }
+
+    /// <summary>
+    /// Moves the wrapper chain out of the parent's template: a wrapper that also holds mapped values (e.g. P with F, T beside
+    /// repeating S) would otherwise be written twice, once by the parent's template and once around the repeating level.
+    /// Each returned node keeps only its own content; the next wrapper is detached from it in turn.
+    /// </summary>
+    static Node[] DetachWrappers(Node parent, IEnumerable<string> names)
+    {
+        var chain = new List<Node>();
+        var holder = parent;
+        foreach (var name in names)
+        {
+            var n = holder.Kids.Find(k => k.Name == name && !k.IsAttribute);
+            if (n is null) n = new Node(name, false);
+            else holder.Kids.Remove(n);
+            chain.Add(n);
+            holder = n;
+        }
+        return [.. chain];
     }
 }
 

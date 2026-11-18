@@ -11,7 +11,7 @@ stored by the host application as bytes, and later used to convert CSV files in 
 | `Csv2Xml.Design` | net9.0 | Design-time library: reads the XSD, suggests and validates mappings, verifies samples, generates sample CSVs. References Runtime. |
 | `Csv2Xml.SamplePlugin` | net9.0 | Example run-time plugin (`Transform(Context)`). |
 | `Csv2Xml.TestUi` | net9.0 | Blazor Server test UI. Uses only the public API of Design/Runtime. Never shipped. |
-| `Csv2Xml.Tests` | net9.0 | xUnit tests (185). |
+| `Csv2Xml.Tests` | net9.0 | xUnit tests (187). |
 | `Csv2Xml.TestPlugin` | net9.0 | Test-only plugin that misbehaves on request (throws, duplicate entry). |
 
 Dependency rule: `Runtime` ← `Design` ← (`TestUi`, host application). The runtime never references design code.
@@ -122,6 +122,7 @@ Each line is pinned by a test (file in brackets, under `tests/Csv2Xml.Tests`).
 | Leading/trailing spaces in values | Kept as-is; XSD whitespace rules of the target type then apply. Whitespace-only counts as empty. |
 | Required value empty in a row | Row error listing the missing paths. [TransformerTests] |
 | Rows for one repeating instance not consecutive | Produce separate instances (grouping is by consecutive equal values). Known limit. |
+| A single element holding values and a repeating child (P with F, T and repeating S) | Written once: its values, then the repeating children inside it; once per instance when inside a repeating parent. [EdgeCaseTests] |
 
 ### Headers and columns
 
@@ -253,6 +254,8 @@ Sample inputs are in `samples/`; `samples/csv/README.md` describes what each CSV
 - Suggestions are lexical (case, separators, typos, parent-qualified names). Abbreviations and synonyms (`Qty`, `Town`)
   are left for the user to assign.
 - Rows belonging to one repeating instance must be consecutive in the CSV.
+- Within an element, values are written before its repeating child. A sequence that places a value *after* the repeating
+  child (e.g. `F, S*, T`) produces XML the validator rejects.
 - Single self-contained XSD only (no include/import).
 - Local elements must all be qualified or all unqualified.
 - A further `choice` among the document-level values (e.g. Email *or* Phone) is not resolved by the tool: each branch is an

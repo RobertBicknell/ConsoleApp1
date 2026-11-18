@@ -291,17 +291,20 @@
             <summary>Root-field template builder.</summary>
         </member>
         <member name="T:Csv2Xml.Runtime.Writing.Level">
-            <param name="Wrappers">Non-repeating elements between the parent level and this level's element, outermost first.</param>
+            <param name="Wrappers">Non-repeating elements between the parent level and this level's element, outermost first.
+            Each carries its own mapped content (not the next wrapper), written when it opens, so the element is written once.</param>
             <param name="Template">Owned fields as a tree; its Name is the level's element name.</param>
             <param name="KeyFields">Field indices whose values identify an instance.</param>
         </member>
-        <member name="M:Csv2Xml.Runtime.Writing.Level.#ctor(System.String,System.String[],Csv2Xml.Runtime.Writing.Node,System.Int32[])">
-            <param name="Wrappers">Non-repeating elements between the parent level and this level's element, outermost first.</param>
+        <member name="M:Csv2Xml.Runtime.Writing.Level.#ctor(System.String,Csv2Xml.Runtime.Writing.Node[],Csv2Xml.Runtime.Writing.Node,System.Int32[])">
+            <param name="Wrappers">Non-repeating elements between the parent level and this level's element, outermost first.
+            Each carries its own mapped content (not the next wrapper), written when it opens, so the element is written once.</param>
             <param name="Template">Owned fields as a tree; its Name is the level's element name.</param>
             <param name="KeyFields">Field indices whose values identify an instance.</param>
         </member>
         <member name="P:Csv2Xml.Runtime.Writing.Level.Wrappers">
-            <summary>Non-repeating elements between the parent level and this level's element, outermost first.</summary>
+            <summary>Non-repeating elements between the parent level and this level's element, outermost first.
+            Each carries its own mapped content (not the next wrapper), written when it opens, so the element is written once.</summary>
         </member>
         <member name="P:Csv2Xml.Runtime.Writing.Level.Template">
             <summary>Owned fields as a tree; its Name is the level's element name.</summary>
@@ -313,6 +316,13 @@
             <summary>
             Static analysis of a spec: root template + chain of repeating levels (outermost first).
             Only mapped fields shape the plan: an unmapped field never produces output, so it cannot constrain the structure.
+            </summary>
+        </member>
+        <member name="M:Csv2Xml.Runtime.Writing.WritePlan.DetachWrappers(Csv2Xml.Runtime.Writing.Node,System.Collections.Generic.IEnumerable{System.String})">
+            <summary>
+            Moves the wrapper chain out of the parent's template: a wrapper that also holds mapped values (e.g. P with F, T beside
+            repeating S) would otherwise be written twice, once by the parent's template and once around the repeating level.
+            Each returned node keeps only its own content; the next wrapper is detached from it in turn.
             </summary>
         </member>
         <member name="T:Csv2Xml.Runtime.Writing.RepeatChain">
@@ -346,6 +356,8 @@
             Streams CSV rows into XML via XmlWriter; memory is independent of input size (one row + open-element key stack).
             Rows sharing the same key at an outer repeating level (and contiguous in the input) collapse into one instance.
             Owned (non-repeating) content of an instance is emitted when the instance opens, i.e. before any repeating child.
+            The same holds for a single element between levels (e.g. P holding F, T and repeating S): it is written once, its own
+            values first, then the repeating children inside it.
             <para>
             Row checks (an error halts or skips the row per ErrorPolicy): field count must equal the header's; required values present;
             mapped values contain only XML-legal characters. Malformed CSV (unterminated quote) or undecodable bytes halt the run.
